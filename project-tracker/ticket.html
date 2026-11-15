@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlcheMix II — Journal de ticket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300..900&family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        colors: {
+          'surface': '#17120f', 'surface-container': '#241e1b', 'surface-container-high': '#2f2925',
+          'surface-container-low': '#201a17', 'primary': '#edbf7a', 'primary-container': '#c89d5c',
+          'secondary': '#ffb59d', 'tertiary': '#9cd1c6', 'on-surface': '#ece0da',
+          'on-surface-variant': '#d2c4b4', 'outline': '#9b8f80', 'outline-variant': '#4f4539'
+        },
+        fontFamily: { 'body': ['Hanken Grotesk','sans-serif'], 'display': ['Space Grotesk','sans-serif'], 'mono': ['JetBrains Mono','monospace'] }
+      } }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { overscroll-behavior: none; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #4f4539; border-radius: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body text-[14px] leading-5 min-h-screen">
+  <header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-surface-container-high">
+    <div class="max-w-[1100px] mx-auto px-6 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <a href="board.html" class="px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-[11px] font-bold uppercase tracking-wider transition-colors">← Kanban</a>
+        <div>
+          <h1 id="page-title" class="font-display text-lg font-bold uppercase tracking-wider text-primary leading-tight">Journal de ticket</h1>
+          <p id="ticket-id-line" class="font-mono text-[10px] text-outline uppercase tracking-widest">ALC-XXX</p>
+        </div>
+      </div>
+      <span class="font-mono text-[10px] text-tertiary uppercase tracking-widest">Journal horodaté</span>
+    </div>
+  </header>
+
+  <main class="max-w-[1100px] mx-auto px-6 py-5 flex flex-col gap-5">
+    <!-- Bandeau ticket -->
+    <section id="ticket-card" class="bg-surface-container rounded-xl border border-surface-container-high p-4"></section>
+    <!-- Journal -->
+    <section class="bg-surface-container-low rounded-xl border border-surface-container-high p-4">
+      <h2 class="font-display text-[12px] font-bold uppercase tracking-widest text-primary mb-3">Historique du travail</h2>
+      <ol id="journal-list" class="flex flex-col gap-2 border-l border-outline-variant/60 ml-2 pl-4"></ol>
+    </section>
+  </main>
+<script>
+  'use strict';
+
+  const STATUS_COLORS = { 'Backlog': '#9b8f80', 'En cours': '#edbf7a', 'En revue': '#ffb59d', 'Terminé': '#9cd1c6' };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function fmt(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString('fr-FR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }
+
+  // Contexte partagé avec le Kanban (fallback si file:// impossible)
+  function defaultTasks() {
+    try { return JSON.parse(JSON.stringify(window.GLOBAL_DATA && GLOBAL_DATA.tasks || [])); }
+    catch (e) { return []; }
+  }
+
+  async function load() {
+    const params = new URLSearchParams(location.search);
+    let raw = (params.get('id') || 'ALC-005').toUpperCase();
+
+    // Normalisation : tolère les zéros excédentaires (ALC-0011 -> ALC-011), espaces, tirets multiples
+    const norm = (x) => {
+      let s = x.replace(/[^A-Z0-9]/g, '').toUpperCase(); // ex: ALC0011
+      const m = s.match(/^ALC0*(\d+)$/);                  // ALC + numéro (retire les 0 inutiles)
+      if (m) return 'ALC-' + parseInt(m[1], 10);          // ex: ALC-011
+      return x;
+    };
+    const id = norm(raw);
+
+    // 1) Journal horodaté — résolution robuste (essai clé canonique, puis variantes)
+    let journal = { entries: [] };
+    try {
+      const r = await fetch('journals.json', { cache: 'no-store' });
+      if (r.ok) {
+        const d = await r.json();
+        const J = d.journals || {};
+        journal = J[id] || J[raw] || (J['ALC-' + parseInt(id.slice(4), 10)]);
+        if (!journal) journal = { entries: [] };
+        else journal = journal.entries ? journal : { entries: journal };
+      }
+    } catch (e) { /* file:// */ }
+    const entries = journal.entries || [];
+
+    // 2) Ticket — même résolution
+    const pick = (arr) => (arr||[]).find(t => {
+      const ti = norm(t.id);
+      return ti === id || t.id.toUpperCase() === raw || t.id.toUpperCase() === id;
+    });
+    let task = null;
+    try {
+      const r = await fetch('tasks.json', { cache: 'no-store' });
+      if (r.ok) { const d = await r.json(); task = pick(d.tasks); }
+    } catch (e) { /* file:// */ }
+    if (!task && window.GLOBAL_DATA) task = pick((window.GLOBAL_DATA && GLOBAL_DATA.tasks) || []);
+
+    // -- Titres --
+    document.getElementById('ticket-id-line').textContent = id;
+    document.getElementById('page-title').textContent = task ? task.title : ('Journal — ' + id);
+
+    // -- Bandeau ticket --
+    const card = document.getElementById('ticket-card');
+    if (task) {
+      const color = STATUS_COLORS[task.status] || '#9b8f80';
+      const done = (task.subtasks||[]).filter(s=>s.completed).length;
+      const total = (task.subtasks||[]).length;
+      card.innerHTML =
+        '<div class="flex items-center justify-between gap-2 flex-wrap">' +
+          '<span class="font-mono text-[11px] font-bold text-outline uppercase">'+esc(task.id)+'</span>' +
+          '<span class="text-[11px] font-bold uppercase tracking-wider" style="color:'+color+'">● '+esc(task.status)+'</span>' +
+        '</div>' +
+        '<h3 class="font-display text-lg font-bold leading-snug mt-1">'+esc(task.title)+'</h3>' +
+        (task.description ? '<p class="text-[12px] text-on-surface-variant mt-1">'+esc(task.description)+'</p>' : '') +
+        '<div class="mt-2 flex items-center gap-2 flex-wrap text-[11px] font-mono text-outline">' +
+          '<span>agent · '+esc(task.agent||'—')+'</span>' +
+          '<span>•</span><span>'+done+'/'+total+' micro-tâches</span>' +
+          '<span>•</span><span>créé '+fmt(task.createdAt)+'</span>' +
+        '</div>' +
+        '<div class="mt-3 flex flex-col gap-1 border-t border-surface-container-high pt-2">' +
+          (task.subtasks||[]).map(s =>
+            '<label class="flex items-start gap-2 text-[12px] '+(s.completed?'opacity-60':'')+'">' +
+              '<span class="mt-0.5 w-3 h-3 rounded-sm border flex-none '+(s.completed?'bg-primary border-primary':'border-outline')+'">'+(s.completed?'✓':'')+'</span>' +
+              '<span class="'+(s.completed?'line-through text-outline':'text-on-surface-variant')+'">'+esc(s.id)+' · '+esc(s.title)+'</span>' +
+            '</label>'
+          ).join('') +
+        '</div>';
+    } else {
+      card.innerHTML = '<p class="text-on-surface-variant">Ticket inconnu : <span class="font-mono">'+esc(id)+'</span></p>';
+    }
+
+    // -- Journal --
+    const list = document.getElementById('journal-list');
+    if (!entries.length) {
+      list.innerHTML = '<li class="text-[12px] text-outline italic py-4">Aucune entrée de journal pour ce ticket pour le moment.</li>';
+      return;
+    }
+    // tri chronologique
+    entries.slice().sort((a,b)=>a.ts.localeCompare(b.ts)).forEach(e => {
+      const dot = e.type === 'subtask' ? 'bg-secondary' : e.type === 'column' ? 'bg-primary' : 'bg-tertiary';
+      const badge = e.type ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ' +
+        (e.type==='subtask'?'bg-secondary/10 text-secondary':e.type==='column'?'bg-primary/10 text-primary':'bg-tertiary/10 text-tertiary')+'">'+e.type+'</span>' : '';
+      const li = document.createElement('li');
+      li.className = 'relative flex flex-col gap-1';
+      li.innerHTML =
+        '<span class="absolute -left-[21px] top-1 w-2 h-2 rounded-full '+dot+'"></span>' +
+        '<div class="flex items-center gap-2 flex-wrap">'+badge+'<span class="font-mono text-[10px] text-outline">'+fmt(e.ts)+'</span></div>' +
+        '<p class="text-[13px] text-on-surface leading-5">'+esc(e.message)+'</p>';
+      list.appendChild(li);
+    });
+  }
+
+  load();
+</script>
+</body>
+</html>

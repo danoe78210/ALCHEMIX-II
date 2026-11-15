@@ -1,0 +1,668 @@
+﻿<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlcheMix II — Tableau de suivi (Kanban)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300..900&family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'surface': '#17120f',
+            'surface-low': '#201a17',
+            'surface-lowest': '#120d0a',
+            'surface-container': '#241e1b',
+            'surface-container-low': '#201a17',
+            'surface-container-high': '#2f2925',
+            'primary': '#edbf7a',
+            'primary-container': '#c89d5c',
+            'secondary': '#ffb59d',
+            'tertiary': '#9cd1c6',
+            'error': '#ffb4ab',
+            'on-surface': '#ece0da',
+            'on-surface-variant': '#d2c4b4',
+            'outline': '#9b8f80',
+            'outline-variant': '#4f4539'
+          },
+          fontFamily: {
+            'body': ['Hanken Grotesk', 'sans-serif'],
+            'display': ['Space Grotesk', 'sans-serif'],
+            'mono': ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { overscroll-behavior: none; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #4f4539; border-radius: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    .fade-in { animation: fade 0.25s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .flash-highlight { animation: flashCard 1.6s ease; box-shadow: 0 0 0 2px #edbf7a, 0 0 24px rgba(237,191,122,0.6); }
+    @keyframes flashCard { 0% { outline: 2px solid #edbf7a66; } 100% { outline: 2px solid transparent; } }
+    .live-dot { animation: livePulse 1.2s ease-in-out infinite; }
+    @keyframes livePulse { 0%,100% { opacity: 0.35; box-shadow: 0 0 0 rgba(156,209,198,0); } 50% { opacity: 1; box-shadow: 0 0 8px rgba(156,209,198,0.9); } }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body text-[14px] leading-5 min-h-screen">
+  <!-- En-tête -->
+  <header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-surface-container-high">
+    <div class="max-w-[1720px] mx-auto px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center text-surface shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
+          <span class="text-[18px]">🧭</span>
+        </div>
+        <div>
+          <h1 class="font-display text-lg font-bold uppercase tracking-wider text-primary leading-tight">AlcheMix II</h1>
+          <p class="font-mono text-[10px] text-outline uppercase tracking-widest">Tableau de suivi · Kanban</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Filtre par agent -->
+        <div class="flex items-center gap-1 bg-surface-container rounded-full p-1 shadow-[inset_0_1px_3px_rgba(0,0,0,0.7)]">
+          <button data-agent="all" class="agent-filter px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide bg-surface-container-high">Tous</button>
+          <button data-agent="Architecte" class="agent-filter px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide" style="color:#edbf7a">Architecte</button>
+          <button data-agent="Maître Horloger" class="agent-filter px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide" style="color:#ffb59d">Maître Horloger</button>
+          <button data-agent="Forgeron Système" class="agent-filter px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide" style="color:#9cd1c6">Forgeron Système</button>
+        </div>
+
+        <button id="btn-export" class="px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-[11px] font-bold uppercase tracking-wider border border-surface-container-high transition-colors">Exporter JSON</button>
+        <button id="btn-import" class="px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-[11px] font-bold uppercase tracking-wider border border-surface-container-high transition-colors">Importer</button>
+        <button id="btn-sync" class="px-3 py-2 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary text-[11px] font-bold uppercase tracking-wider border border-primary/30 transition-colors">🔄 Sync tasks.json</button>
+        <input id="file-input" type="file" accept=".json,application/json" class="hidden" />
+        <span id="status" class="font-mono text-[10px] text-tertiary"></span>
+        <span id="live-pulse" class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-tertiary/10 border border-tertiary/20" title="Live Sync actif">
+          <span class="live-dot w-1.5 h-1.5 rounded-full bg-tertiary inline-block"></span>
+          <span class="font-mono text-[10px] uppercase tracking-wider text-tertiary">Live Sync actif</span>
+        </span>
+      </div>
+    </div>
+  </header>
+<main class="max-w-[1720px] mx-auto px-6 py-5 flex items-start gap-5">
+  <!-- ===== Sidebar : Liste des tickets ===== -->
+  <aside
+    id="sidebar"
+    class="sticky top-20 hidden lg:flex flex-col w-72 shrink-0 bg-surface-container/50 rounded-xl border border-surface-container-high p-3 gap-3 max-h-[calc(100vh-7rem)]"
+    aria-label="Liste des tickets"
+  >
+    <div class="flex items-center justify-between px-1">
+      <h2 class="font-display text-[12px] font-bold uppercase tracking-widest text-primary">Tickets</h2>
+      <button id="btn-toggle-sidebar" class="lg:hidden p-1 text-outline hover:text-on-surface" title="Masquer la liste">✕</button>
+    </div>
+    <div id="ticket-list" class="flex flex-col gap-1 overflow-y-auto pr-1"></div>
+  </aside>
+
+  <div class="flex-1 min-w-0">
+    <!-- Barre de stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div class="bg-surface-container rounded-xl p-3 shadow-sm">
+        <span class="font-mono text-[10px] text-outline uppercase">Total</span>
+        <div class="font-display text-2xl font-bold text-on-surface" id="stat-total">0</div>
+      </div>
+      <div class="bg-surface-container rounded-xl p-3 shadow-sm">
+        <span class="font-mono text-[10px] text-outline uppercase">Micro-tâches</span>
+        <div class="font-display text-2xl font-bold text-primary" id="stat-sub">0/0</div>
+      </div>
+      <div class="bg-surface-container rounded-xl p-3 shadow-sm">
+        <span class="font-mono text-[10px] text-outline uppercase">En revue</span>
+        <div class="font-display text-2xl font-bold text-secondary" id="stat-review">0</div>
+      </div>
+      <div class="bg-surface-container rounded-xl p-3 shadow-sm">
+        <span class="font-mono text-[10px] text-outline uppercase">Terminées</span>
+        <div class="font-display text-2xl font-bold text-tertiary" id="stat-done">0</div>
+      </div>
+    </div>
+
+    <!-- Kanban -->
+    <div id="board" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start"></div>
+  </div>
+</main>
+
+<script>
+  'use strict';
+
+  const COLUMNS = ['Backlog', 'En cours', 'En revue', 'Terminé'];
+  const AGENT_COLORS = {
+    'Architecte': '#edbf7a',
+    'Maître Horloger': '#ffb59d',
+    'Forgeron Système': '#9cd1c6'
+  };
+
+  let state = { tasks: [], agent: 'all' };
+
+  // ===== Données locales par défaut (miroir exact de project-tracker/tasks.json) =====
+  // Garde-fou : le Kanban s'affiche instantanément même via file:// (fetch indisponible).
+  let globalData = {
+    meta: {
+      project: 'AlcheMix II — Console de mixage harmonique DJ (Tauri 2 / Svelte 5 / Rust)',
+      version: '1.11.0',
+      agents: ['Architecte', 'Maître Horloger', 'Forgeron Système'],
+      columns: ['Backlog', 'En cours', 'En revue', 'Terminé'],
+      updatedAt: '2026-11-14T23:30:00.000Z',
+      boardUrl: 'https://stitch.google.com/preview/5027840654181556512?node-id=f93eb484e7d94f13894a3de1a280a6f3'
+    },
+    tasks: [
+      { "id": "ALC-001", "title": "Amorçage du projet SvelteKit + Tauri 2", "status": "Terminé", "agent": "Architecte", "priority": "Haute", "label": "Infrastructure",
+        "subtasks": [
+          { "id": "ALC-001-1", "title": "Initialiser le squelette SvelteKit avec adapter-static", "completed": true },
+          { "id": "ALC-001-2", "title": "Configurer le plugin Tauri v2 et les capabilities", "completed": true },
+          { "id": "ALC-001-3", "title": "Valider le pont IPC de base (invoke ↔ #[tauri::command])", "completed": true }
+        ],
+        "description": "Mise en place du socle technique du projet : SvelteKit, Tauri 2 et le pont de communication.",
+        "createdAt": "2026-10-02T09:00:00.000Z", "completedAt": "2026-10-05T16:30:00.000Z" },
+      { "id": "ALC-002", "title": "Architecture 3 colonnes & console centrale (Camelot)", "status": "Terminé", "agent": "Maître Horloger", "priority": "Haute", "label": "UI / UX",
+        "subtasks": [
+          { "id": "ALC-002-1", "title": "Construire la grille Deck A / Centre / Deck B", "completed": true },
+          { "id": "ALC-002-2", "title": "Intégrer la Roue de Camelot et l'arc harmonique court", "completed": true },
+          { "id": "ALC-002-3", "title": "Intégrer l'Oracle Acoustique et les conseils de mixage", "completed": true }
+        ],
+        "description": "Restauration de la colonne centrale avec la roue Camelot et l'oracle harmonique.",
+        "createdAt": "2026-10-06T09:00:00.000Z", "completedAt": "2026-10-12T14:00:00.000Z" },
+      { "id": "ALC-003", "title": "Restoration des platines photoréalistes (Cassettes, VU, Faders)", "status": "Terminé", "agent": "Maître Horloger", "priority": "Haute", "label": "UI / UX",
+        "subtasks": [
+          { "id": "ALC-003-1", "title": "Copier 1:1 les cassettes (coque ambrée, spools, vis laiton)", "completed": true },
+          { "id": "ALC-003-2", "title": "Restaurer le VU-mètre balistique avec son <svg>", "completed": true },
+          { "id": "ALC-003-3", "title": "Restaurer les faders dorés interactifs (drag + reset)", "completed": true },
+          { "id": "ALC-003-4", "title": "Vérifier la compilation svelte-check (0 erreur)", "completed": true }
+        ],
+        "description": "Copier-coller chirurgical 1:1 du DOM de la maquette pour DeckA et DeckB.",
+        "createdAt": "2026-10-13T09:00:00.000Z", "completedAt": "2026-10-20T18:00:00.000Z" },
+      { "id": "ALC-004", "title": "Épuration UX & correction de la Roue de Camelot", "status": "En revue", "agent": "Maître Horloger", "priority": "Moyenne", "label": "UI / UX",
+        "subtasks": [
+          { "id": "ALC-004-1", "title": "Forcer l'arc harmonique sur le chemin court (≤ 180°)", "completed": true },
+          { "id": "ALC-004-2", "title": "Supprimer SERENISSIMA 1889 et la légende redondante", "completed": true },
+          { "id": "ALC-004-3", "title": "Supprimer le badge MATRICULE et épurer les specs (Codec/Échantillonnage/Débit)", "completed": true },
+          { "id": "ALC-004-4", "title": "Supprimer la barre fixe du header et la légende du crossfader", "completed": true },
+          { "id": "ALC-004-5", "title": "Valider le rendu final dans Tauri (revue)", "completed": true }
+        ],
+        "description": "Interventions ergonomiques ciblées : épuration de l'interface, faders interactifs et correction géométrique.",
+        "createdAt": "2026-10-21T09:00:00.000Z", "completedAt": null },
+      { "id": "ALC-005", "title": "Implémentation du sélecteur de fichiers audio Tauri v2", "status": "En revue", "agent": "Forgeron Système", "priority": "Haute", "label": "Audio",
+        "subtasks": [
+          { "id": "ALC-005-1", "title": "Ajouter les dépendances plugin-dialog et plugin-fs (Cargo.toml + capabilities)", "completed": true },
+          { "id": "ALC-005-2", "title": "Créer la commande Rust #[tauri::command] qui ouvre le sélecteur de fichier audio", "completed": true },
+          { "id": "ALC-005-3", "title": "Lier la commande au bouton EJECT/Parc de l'interface Svelte avec invoke()", "completed": true }
+        ],
+        "description": "Sélecteur de fichiers audio Tauri v2 : plugin dialog/fs, commande Rust et liaison au bouton de l'interface.",
+        "createdAt": "2026-11-01T09:00:00.000Z", "completedAt": null },
+      { "id": "ALC-006", "title": "Analyse BPM & clé Camelot temps réel", "status": "En revue", "agent": "Forgeron Système", "priority": "Moyenne", "label": "Audio",
+        "subtasks": [
+          { "id": "ALC-006-1", "title": "Calculer le BPM effectif et le pitch en temps réel", "completed": true },
+          { "id": "ALC-006-2", "title": "Mapper la clé détectée vers la roue Camelot", "completed": true },
+          { "id": "ALC-006-3", "title": "Exposer les résultats via l'IPC", "completed": true }
+        ],
+        "description": "Analyse temps réel du tempo et de la tonalité pour alimenter la console (BPM effectif, Δ tempo, clé Camelot).",
+        "createdAt": "2026-11-02T09:00:00.000Z", "completedAt": "2026-11-14T14:30:00.000Z" },
+      { "id": "ALC-007", "title": "Tableau de bord de suivi (project-tracker/board.html)", "status": "Terminé", "agent": "Architecte", "priority": "Moyenne", "label": "Outils / Ops",
+        "subtasks": [
+          { "id": "ALC-007-1", "title": "Créer tasks.json avec historique ALC-001..006 et subtasks", "completed": true },
+          { "id": "ALC-007-2", "title": "Créer le Kanban board.html (colonnes, filtres par agent, coches, import/export)", "completed": true },
+          { "id": "ALC-007-3", "title": "Injecter les données locales par défaut (fallback file://)", "completed": true },
+          { "id": "ALC-007-4", "title": "Intégrer la sidebar (tickets triés par ID + pastilles de statut + smooth scroll)", "completed": true },
+          { "id": "ALC-007-5", "title": "Activer le live sync (polling 1500ms, hash, verrou, cross-tab, Live Pulse)", "completed": true }
+        ],
+        "description": "Reprise du outil local de suivi : intégration de la maquette Stitch, des micro-tâches, de la sidebar et de la synchronisation en temps réel.",
+        "createdAt": "2026-11-13T09:00:00.000Z", "completedAt": "2026-11-14T15:00:00.000Z" },
+      { "id": "ALC-009", "title": "Ajout de micro-LEDs lumineuses sur les faders", "status": "En revue", "agent": "Maître Horloger", "priority": "Moyenne", "label": "UI / UX",
+        "subtasks": [
+          { "id": "ALC-009-1", "title": "Ajouter la micro-LED émeraude (bg-emerald-400 + lueur) sur les curseurs Volume & Pitch de DeckA", "completed": true },
+          { "id": "ALC-009-2", "title": "Ajouter la micro-LED bleue (bg-cyan-400 + lueur) sur les curseurs Volume & Pitch de DeckB", "completed": true },
+          { "id": "ALC-009-3", "title": "Ajouter la micro-LED ambre/dorée (bg-primary + pulse) au cœur du crossfader central", "completed": true },
+          { "id": "ALC-009-4", "title": "Valider la compilation (svelte-check 0 erreur) et basculer en revue", "completed": true }
+        ],
+        "description": "Intégration de micro-LEDs colorées et lumineuses sur tous les curseurs de faders (Volume, Pitch, Crossfader).",
+        "createdAt": "2026-11-14T15:30:00.000Z", "completedAt": null },
+      { "id": "ALC-008", "title": "Implémentation du moteur audio et choix de la fidélité de calcul pour l'analyseur Camelot & BPM", "status": "Backlog", "agent": "Forgeron Système", "priority": "Haute", "label": "Audio",
+        "description": "Conception et implémentation du moteur audio sous-jacent (Rust / Rodio-Symphonia) en déterminant la résolution d'échantillonnage et la taille de la fenêtre FFT optimale pour alimenter avec la plus haute précision l'analyseur de la roue de Camelot et le calcul de BPM en temps réel.",
+        "subtasks": [
+          { "id": "ALC-008-1", "title": "Benchmarker les compromis de fidélité audio (44.1kHz/48kHz vs 96kHz / buffers FFT 2048 vs 4096) pour l'analyse spectrale", "completed": false },
+          { "id": "ALC-008-2", "title": "Implémenter le pipeline de décodage et de traitement du signal dans le backend Rust", "completed": false },
+          { "id": "ALC-008-3", "title": "Connecter la sortie du détecteur de tempo et de tonalité vers le pont IPC pour la Roue de Camelot", "completed": false }
+        ],
+        "createdAt": "2026-11-14T22:12:00.000Z", "completedAt": null },
+      { "id": "ALC-010", "title": "Correction du mécanisme de Live Sync du tableau de bord (board.html)", "status": "Terminé", "agent": "Architecte", "priority": "Moyenne", "label": "Outils / Ops",
+        "subtasks": [
+          { "id": "ALC-010-1", "title": "Unifier le hash de comparaison (tasksHash) et fiabiliser la détection de changement", "completed": true },
+          { "id": "ALC-010-2", "title": "Implémenter un polling robuste toutes les 1200ms avec verrous anti-chevauchement", "completed": true },
+          { "id": "ALC-010-3", "title": "Fusionner les données distantes sans écraser les éditions locales récentes (différé)", "completed": true },
+          { "id": "ALC-010-4", "title": "Renforcer le canal cross-tab (storage event + writeShared versionné)", "completed": true },
+          { "id": "ALC-010-5", "title": "Tester le chargement (HTTP 200) et valider la compilation JS", "completed": true }
+        ],
+        "description": "Refactorisation du Live Sync pour une mise à jour fluide en arrière-plan : hash unique, polling 1200ms, fusion non destructive, cross-tab robuste.",
+        "createdAt": "2026-11-14T22:20:00.000Z", "completedAt": null },
+      { "id": "ALC-012", "title": "Pages de journal de travail individuel par ticket (project-tracker)", "status": "En revue", "agent": "Architecte", "priority": "Moyenne", "label": "Outils / Ops",
+        "subtasks": [
+          { "id": "ALC-012-1", "title": "Créer le fichier journals.json (journaux horodatés par ticket)", "completed": true },
+          { "id": "ALC-012-2", "title": "Créer la page ticket.html (template piloté par ?id=ALC-XXX) affichant l'historique complet", "completed": true },
+          { "id": "ALC-012-3", "title": "Ajouter les liens Journal (📓) sur les cartes du Kanban et dans la sidebar", "completed": true },
+          { "id": "ALC-012-4", "title": "Ajouter la règle d'écriture automatique du journal dans .clinerules (Architecte + agents)", "completed": true }
+        ],
+        "description": "Journal de travail individuel horodaté par ticket : page dédiée, accès depuis le Kanban, et règle d'écriture automatique.",
+        "createdAt": "2026-11-14T23:10:00.000Z", "completedAt": null },
+      { "id": "ALC-011", "title": "Initialisation et publication du dépôt Git / GitHub du projet AlcheMix II", "status": "En cours", "agent": "Architecte", "priority": "Haute", "label": "Outils / Ops",
+        "subtasks": [
+          { "id": "ALC-011-1", "title": "Initialiser le dépôt Git local à la racine et configurer un .gitignore robuste (node_modules, target/ Tauri, builds, cache)", "completed": true },
+          { "id": "ALC-011-2", "title": "Structurer les branches (main/dev) et rédiger un README.md technique (Tauri 2, SvelteKit, Rust, Venezia 1889)", "completed": true },
+          { "id": "ALC-011-3", "title": "Créer le dépôt distant GitHub et lier le local (git remote add origin …)", "completed": false },
+          { "id": "ALC-011-4", "title": "Effectuer le premier commit propre de la structure globale et pousser la première branche vers GitHub", "completed": false }
+        ],
+        "description": "Initialisation du dépôt Git local, configuration du .gitignore, branches, README, et lien vers GitHub pour la publication.",
+        "createdAt": "2026-11-14T23:30:00.000Z", "completedAt": null }
+    ]
+  };
+
+  function defaultTasks() {
+    return JSON.parse(JSON.stringify(globalData.tasks));
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  async function loadTasks() {
+    // La source de vérité est tasks.json (ou globalData en file://).
+    // On essaie d'abord le fichier, sinon on retombe sur globalData.
+    // Le cache localStorage n'est utilisé que s'il correspond à la version courante
+    // (évite d'afficher un vieux cache obsolète, ex. ALC-005 resté "Backlog").
+    const DATA_VERSION = (globalData.meta && globalData.meta.version) || '0';
+
+    let loaded = false;
+
+    // 1) Source : tasks.json (serveur / dev)
+    try {
+      const res = await fetch('tasks.json', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.tasks) && data.tasks.length) { state.tasks = data.tasks; loaded = true; }
+      }
+    } catch (e) { /* fetch indisponible (file://) */ }
+
+    // 2) Fallback fichier absent → données locales intégrées (affichage immédiat en file://)
+    if (!loaded) {
+      state.tasks = defaultTasks();
+      flash('Mode local (file://) : données intégrées ✓');
+    }
+
+    // 3) Un cache LOCAL n'est appliqué QUE s'il porte EXACTEMENT la version courante.
+    //    Tout cache obsolète (sans version, ou version antérieure) est IGNORÉ :
+    //    on garde la source de vérité (tasks.json / globalData) → évite un vieux "Backlog".
+    const cached = localStorage.getItem('alchemix-board');
+    if (cached) {
+      try {
+        const c = JSON.parse(cached);
+        if (Array.isArray(c.tasks) && c.tasks.length && c.version === DATA_VERSION) {
+          state.tasks = c.tasks; // cache à jour : respecte uniquement les interactions locales récentes
+        }
+      } catch (e) { /* cache illisible : on ignore */ }
+    }
+  }
+
+  // ---- Hash léger (format unique, appliqué partout) ----
+  function hashString(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) { h = (Math.imul(31, h) + str.charCodeAt(i)) | 0; }
+    return (h >>> 0).toString(16);
+  }
+  function tasksHash(tasks) {
+    return hashString(JSON.stringify(tasks));
+  }
+  const DATA_VERSION = () => (globalData.meta && globalData.meta.version) || '1.4.0';
+
+  let lastHash = '';
+  let interacting = false;      // verrou d'interaction en cours (coche / clic)
+  let lastLocalEdit = 0;        // timestamp de la dernière édition locale
+  let pollBusy = false;         // évite les chevauchements d'appels de poll
+  let storageBusy = false;      // évite les boucles cross-tab
+
+  function signalInteraction(on) {
+    interacting = on;
+  }
+
+  function flashLive() {
+    const dot = document.querySelector('.live-dot');
+    if (dot) { dot.style.animationPlayState = 'running'; }
+  }
+
+  // Écrit la référence partagée (source de vérité inter-onglets)
+  function writeShared() {
+    localStorage.setItem('alchemix-board', JSON.stringify({
+      tasks: state.tasks,
+      updatedAt: new Date().toISOString(),
+      lastHash: tasksHash(state.tasks),
+      version: DATA_VERSION()
+    }));
+  }
+
+  // Valeur partagée sous forme objet (si présente et valide)
+  function readShared() {
+    try { const c = JSON.parse(localStorage.getItem('alchemix-board') || 'null'); return c; }
+    catch (e) { return null; }
+  }
+
+  // ---- Fusion d'un jeu de tâches entrant, sans écraser une édition locale récente ----
+  function applyRemoteTasks(remoteTasks) {
+    const remoteHash = tasksHash(remoteTasks);
+    const localHash = tasksHash(state.tasks);
+    if (remoteHash === localHash) return false; // aucun changement
+
+    // Si une édition locale vient d'avoir lieu, on laisse l'utilisateur finir (différé)
+    if (Date.now() - lastLocalEdit < 1000) return 'defer';
+
+    const agent = state.agent; // préserve le filtre agent
+    state.tasks = remoteTasks;
+    render();
+    state.agent = agent;
+    lastHash = remoteHash;
+    writeShared();
+    flashLive();
+    return true;
+  }
+
+  // ---- Recharge depuis tasks.json (bouton / polling / focus) ----
+  async function syncFromFile() {
+    if (interacting) return 'defer';
+    if (pollBusy) return 'busy';
+    pollBusy = true;
+    try {
+      const res = await fetch('tasks.json', { cache: 'no-store' });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!Array.isArray(data.tasks) || !data.tasks.length) return false;
+      return applyRemoteTasks(data.tasks);
+    } catch (e) {
+      // file:// : fetch inaccessible → on retombe sur un éventuel cache cross-tab
+      const remote = readShared();
+      if (remote && Array.isArray(remote.tasks) && remote.tasks.length &&
+          remote.version === DATA_VERSION() && remote.lastHash !== lastHash) {
+        return applyRemoteTasks(remote.tasks);
+      }
+      return false;
+    } finally {
+      pollBusy = false;
+    }
+  }
+
+  function persist() {
+    lastLocalEdit = Date.now();
+    lastHash = tasksHash(state.tasks);
+    writeShared();
+  }
+
+  function currentTasks() {
+    return state.agent === 'all' ? state.tasks : state.tasks.filter((t) => t.agent === state.agent);
+  }
+
+  function cardHtml(t) {
+    const agent = t.agent || '—';
+    const color = AGENT_COLORS[agent] || '#9b8f80';
+    const subs = t.subtasks || [];
+    const doneCount = subs.filter((s) => s.completed).length;
+    const progress = subs.length ? Math.round((doneCount / subs.length) * 100) : 0;
+    const idx = COLUMNS.indexOf(t.status);
+
+    const subtasksHtml = subs.map((s) => {
+      const cbId = 'sub-' + t.id + '-' + s.id;
+      return '<label for="' + cbId + '" class="flex items-start gap-2 rounded-md px-2 py-1 cursor-pointer hover:bg-surface-container transition-colors ' +
+        (s.completed ? 'opacity-60' : '') + '">' +
+        '<input type="checkbox" data-task="' + t.id + '" data-sub="' + s.id + '" id="' + cbId + '"' + (s.completed ? ' checked' : '') +
+        ' class="mt-0.5 accent-[#edbf7a] cursor-pointer" />' +
+        '<span class="text-[12px] leading-4 ' + (s.completed ? 'line-through text-outline' : 'text-on-surface-variant') + '">' + escapeHtml(s.title) + '</span>' +
+        '</label>';
+    }).join('');
+
+    const prio = (t.priority || '');
+    const prioBadge = prio ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ' +
+      (prio === 'Haute' ? 'bg-error/10 text-[#ffb4ab]' : prio === 'Moyenne' ? 'bg-primary/10 text-primary' : 'bg-tertiary/10 text-tertiary') + '">' + escapeHtml(prio) + '</span>' : '';
+
+    return '<article class="fade-in bg-surface-container rounded-xl shadow-[0_6px_20px_rgba(0,0,0,0.6)] border border-surface-container-high p-3 flex flex-col gap-2" data-id="' + t.id + '">' +
+      '<div class="flex items-start justify-between gap-2">' +
+        '<span class="font-mono text-[10px] font-bold tracking-wider text-outline">' + escapeHtml(t.id) + '</span>' +
+        '<span class="text-[10px] font-bold uppercase tracking-wider" style="color:' + color + '">● ' + escapeHtml(agent) + '</span>' +
+      '</div>' +
+      '<h3 class="font-display text-[13px] font-bold leading-snug text-on-surface">' + escapeHtml(t.title) + '</h3>' +
+      '<div class="flex items-center gap-2 flex-wrap">' + prioBadge +
+        '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style="background:' + color + '1f;color:' + color + '">' + escapeHtml(t.label || '') + '</span>' +
+      '</div>' +
+      '<a href="ticket.html?id=' + encodeURIComponent(t.id) + '" class="inline-flex items-center gap-1.5 self-start px-2 py-1 rounded-md bg-surface-low hover:bg-surface-container-high border border-surface-container-high text-[10px] font-bold uppercase tracking-wider text-primary transition-colors" title="Ouvrir le journal du ticket">' +
+        '<span>📓</span><span>Journal</span>' +
+      '</a>' +
+      (t.description ? '<p class="text-[12px] text-on-surface-variant leading-4">' + escapeHtml(t.description) + '</p>' : '') +
+      '<div class="mt-1">' +
+        '<div class="flex items-center justify-between text-[10px] font-mono text-outline mb-1"><span>Micro-tâches</span><span>' + doneCount + '/' + subs.length + ' · ' + progress + '%</span></div>' +
+        '<div class="h-1.5 w-full bg-surface-low rounded-full overflow-hidden"><div class="h-full bg-primary rounded-full transition-all duration-300" style="width:' + progress + '%"></div></div>' +
+        '<div class="mt-2 flex flex-col gap-1 border-t border-surface-container-high pt-2">' + subtasksHtml + '</div>' +
+      '</div>' +
+      '<div class="flex items-center gap-1 mt-1">' +
+        '<button data-move data-dir="left" data-id="' + t.id + '"' + (idx > 0 ? '' : ' disabled') +
+          ' class="flex-1 text-center text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-md bg-surface-low hover:bg-surface-container-high transition-colors disabled:opacity-30">←</button>' +
+        '<button data-move data-dir="right" data-id="' + t.id + '"' + (idx < COLUMNS.length - 1 ? '' : ' disabled') +
+          ' class="flex-1 text-center text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-md bg-surface-low hover:bg-surface-container-high transition-colors disabled:opacity-30">→</button>' +
+      '</div>' +
+      '</article>';
+  }
+
+  function columnHtml(col) {
+    const items = currentTasks().filter((t) => t.status === col);
+    const titleColor = col === 'Terminé' ? 'text-tertiary' : col === 'En revue' ? 'text-secondary' : col === 'En cours' ? 'text-primary' : 'text-on-surface';
+    return '<section class="bg-surface-low rounded-xl p-3 border border-surface-container-high">' +
+      '<div class="flex items-center justify-between mb-3 px-1">' +
+        '<h2 class="font-display text-[12px] font-bold uppercase tracking-widest ' + titleColor + '">' + col + '</h2>' +
+        '<span class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center text-[11px] font-mono text-on-surface-variant">' + items.length + '</span>' +
+      '</div>' +
+      '<div class="flex flex-col gap-3 min-h-[120px]">' +
+        (items.map(cardHtml).join('') || '<p class="text-[12px] text-outline text-center italic py-4">Aucune tâche</p>') +
+      '</div></section>';
+  }
+function render() {
+    const board = document.getElementById('board');
+    board.innerHTML = COLUMNS.map(columnHtml).join('');
+    updateStats();
+    renderSidebar();
+    persist();
+  }
+
+  function updateStats() {
+    document.getElementById('stat-total').textContent = state.tasks.length;
+    const allSub = state.tasks.flatMap((t) => t.subtasks || []);
+    document.getElementById('stat-sub').textContent = allSub.filter((s) => s.completed).length + '/' + allSub.length;
+    document.getElementById('stat-review').textContent = state.tasks.filter((t) => t.status === 'En revue').length;
+    document.getElementById('stat-done').textContent = state.tasks.filter((t) => t.status === 'Terminé').length;
+  }
+
+  // Couleurs associées aux statuts (pastilles)
+  const STATUS_COLORS = {
+    'Backlog': '#9b8f80',
+    'En cours': '#edbf7a',
+    'En revue': '#ffb59d',
+    'Terminé': '#9cd1c6'
+  };
+
+  // ---- Sidebar : liste des tickets (triés par ID croissant) ----
+  function renderSidebar() {
+    const list = document.getElementById('ticket-list');
+    if (!list) return;
+    // Sidebar = uniquement le travail à accomplir : Backlog + En cours.
+    // Terminé / En revue sont exclus pour alléger l'interface.
+    const active = state.tasks.filter((t) => t.status === 'Backlog' || t.status === 'En cours');
+    // Tri strict croissant par ID
+    const sorted = active.slice().sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+    list.innerHTML = sorted.map((t) => {
+      const color = STATUS_COLORS[t.status] || '#9b8f80';
+      const done = (t.subtasks || []).filter((s) => s.completed).length;
+      const total = (t.subtasks || []).length;
+      return '<button data-sidebar-id="' + t.id + '" class="flex items-center gap-2 w-full text-left rounded-lg px-2 py-2 hover:bg-surface-container-high transition-colors group" title="Aller à ' + escapeHtml(t.id) + '">' +
+        '<span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:' + color + ';box-shadow:0 0 8px ' + color + '88"></span>' +
+        '<span class="flex flex-col min-w-0">' +
+          '<span class="font-mono text-[10px] font-bold tracking-wider text-outline">' + escapeHtml(t.id) + '</span>' +
+          '<span class="text-[12px] leading-4 text-on-surface truncate">' + escapeHtml(t.title) + '</span>' +
+          '<span class="font-mono text-[9px] text-outline">' + done + '/' + total + ' ● ' + escapeHtml(t.status) + '</span>' +
+        '</span>' +
+        '<a href="ticket.html?id=' + encodeURIComponent(t.id) + '" class="shrink-0 px-1.5 py-1 ml-1 rounded text-[10px] text-primary hover:bg-surface-container-high transition-colors" title="Journal ' + escapeHtml(t.id) + '" onclick="event.stopPropagation()">📓</a>' +
+      '</button>';
+    }).join('') || '<p class="text-[12px] text-outline text-center italic py-4">Aucun ticket actif (Backlog / En cours)</p>';
+  }
+
+  // ---- Défilement fluide + surbrillance d'un ticket ----
+  function scrollToTicket(id) {
+    const card = document.querySelector('article[data-id="' + id + '"]');
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('flash-highlight');
+    setTimeout(() => card.classList.remove('flash-highlight'), 1600);
+  }
+
+  // Règle : ne passer en REVIEW que si toutes les micro-tâches sont validées
+  function updateMacroStatus(task) {
+    const subs = task.subtasks || [];
+    const allDone = subs.length > 0 && subs.every((s) => s.completed);
+    if (allDone && task.status === 'En cours') {
+      task.status = 'En revue';
+      flash(task.id + ' : toutes les micro-tâches validées → En revue');
+    } else if (task.status === 'En revue' && subs.length > 0 && !allDone) {
+      task.status = 'En cours';
+      flash(task.id + ' : micro-tâches incomplètes → réouverte en cours');
+    }
+  }
+
+  function flash(msg) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    setTimeout(() => { el.textContent = ''; }, 2400);
+  }
+
+  // ---- Événements (délégation) ----
+  document.addEventListener('click', (e) => {
+    // Clic sur un ticket de la sidebar → défilement fluide + surbrillance
+    const sideItem = e.target.closest('[data-sidebar-id]');
+    if (sideItem) { scrollToTicket(sideItem.dataset.sidebarId); return; }
+
+    const agentBtn = e.target.closest('.agent-filter');
+    if (agentBtn) {
+      state.agent = agentBtn.dataset.agent;
+      document.querySelectorAll('.agent-filter').forEach((b) => b.classList.remove('bg-surface-container-high'));
+      if (state.agent === 'all') agentBtn.classList.add('bg-surface-container-high');
+      render();
+      return;
+    }
+
+    const moveBtn = e.target.closest('[data-move]');
+    if (moveBtn) {
+      const t = state.tasks.find((x) => x.id === moveBtn.dataset.id);
+      if (t) {
+        const idx = COLUMNS.indexOf(t.status);
+        const next = moveBtn.dataset.dir === 'left' ? idx - 1 : idx + 1;
+        if (next >= 0 && next < COLUMNS.length) { t.status = COLUMNS[next]; commit(); flash('Déplacé → ' + COLUMNS[next]); }
+      }
+      return;
+    }
+
+    const cb = e.target.closest('input[type=checkbox][data-task]');
+    if (cb) {
+      const task = state.tasks.find((x) => x.id === cb.dataset.task);
+      const sub = task && (task.subtasks || []).find((s) => s.id === cb.dataset.sub);
+      if (sub) { sub.completed = cb.checked; updateMacroStatus(task); commit(); }
+      return;
+    }
+
+    if (e.target.closest('#btn-export')) {
+      const blob = new Blob([JSON.stringify({ meta: { project: 'AlcheMix II', agents: Object.keys(AGENT_COLORS), columns: COLUMNS, updatedAt: new Date().toISOString() }, tasks: state.tasks }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'tasks.json';
+      a.click();
+      flash('Exporté ✓');
+      return;
+    }
+
+    if (e.target.closest('#btn-import')) { document.getElementById('file-input').click(); return; }
+    if (e.target.closest('#btn-sync')) { syncFromFile(); return; }
+  });
+
+  document.getElementById('file-input').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (Array.isArray(data.tasks)) { state.tasks = data.tasks; render(); flash('Importé ✓'); }
+        else throw new Error('clé "tasks" manquante');
+      } catch (err) { alert('JSON invalide : ' + err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // ---- Commit : reflète toute modification, persiste et propage cross-tab ----
+  function commit() {
+    render();
+    persist();
+    // court verrou pour ne pas être écrasé pendant l'interaction en cours
+    signalInteraction(true);
+    setTimeout(() => signalInteraction(false), 300);
+  }
+
+  // ---- Synchronisation automatique (focus / visibilité / stockage / polling) ----
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { syncFromFile(); }
+  });
+  window.addEventListener('focus', () => { syncFromFile(); });
+  // Cross-tab : un autre onglet a écrit dans localStorage → synchronise instantanément
+  window.addEventListener('storage', (e) => {
+    if (storageBusy || interacting || e.key !== 'alchemix-board' || !e.newValue) return;
+    storageBusy = true;
+    try {
+      const c = JSON.parse(e.newValue);
+      if (Array.isArray(c.tasks) && c.tasks.length && c.version === DATA_VERSION()) {
+        // ré-très important : éviter d'écraser une édition locale fraîche
+        if (Date.now() - lastLocalEdit < 500) return;
+        const h = c.lastHash || tasksHash(c.tasks);
+        if (h !== lastHash) { applyRemoteTasks(c.tasks); }
+      }
+    } catch (err) { /* ignore */ }
+    finally { setTimeout(() => { storageBusy = false; }, 150); }
+  });
+
+  // ---- Initialisation ----
+  (async function init() {
+    await loadTasks();
+    if (state.tasks.length === 0) state.tasks = defaultTasks();
+    state.tasks.forEach((t) => {
+      if (t.status === 'En revue' && (t.subtasks || []).some((s) => !s.completed)) t.status = 'En cours';
+    });
+    // initialise le hash courant (format unifié) pour ne pas re-rendre au premier poll
+    lastHash = tasksHash(state.tasks);
+    render();
+    startPolling();
+    // premier check immédiat (arrivée de modifications pendant le chargement)
+    syncFromFile();
+  })();
+
+  // ---- Polling intelligent : vérifie tasks.json toutes les 1200 ms ----
+  function startPolling() {
+    setInterval(() => {
+      const r = syncFromFile();
+      // si différé (édition locale en cours), on retente rapidement
+      if (r && typeof r.then === 'function') r.then((res) => { if (res === 'defer') { setTimeout(syncFromFile, 400); } });
+    }, 1200);
+    // petit battement visuel régulier même sans changement
+    window.setInterval(() => {
+      const dot = document.querySelector('.live-dot');
+      if (dot) dot.style.animationPlayState = 'running';
+    }, 600);
+  }
+</script>
+</body>
+</html>

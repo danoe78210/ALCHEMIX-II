@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "project": "AlcheMix II — Journaux de travail individuels par ticket",
+    "version": "1.2.0",
+    "updatedAt": "2026-11-15T00:40:00.000Z",
+    "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
+  },
+  "journals": {
+    "ALC-008": {
+      "ticketId": "ALC-008",
+      "entries": [
+        { "ts": "2026-11-15T00:20:00.000Z", "type": "column", "message": "Statut : Backlog → En cours (prise en main du ticket ALC-008)" },
+        { "ts": "2026-11-15T00:30:00.000Z", "type": "subtask", "message": "ALC-008-1 cochée : benchmark fidélité documenté en tête de src-tauri/src/audio.rs — 48 kHz + FFT 4096 + hop 1024 retenus (résolution 11.7 Hz/bin ; 96 kHz inutile, 2048 trop grossier pour les graves)" },
+        { "ts": "2026-11-15T00:30:00.000Z", "type": "subtask", "message": "ALC-008-2 cochée : pipeline Rust réel implémenté (Symphonia décodage → mono → resampler linéaire 48 kHz → FFT rustfft) : chromagramme + profils Krumhansl-Schmuckler pour la clé Camelot, autocorrélation d'enveloppe pour le BPM, waveform 256 bins" },
+        { "ts": "2026-11-15T00:35:00.000Z", "type": "subtask", "message": "ALC-008-3 cochée : pont IPC connecté — load_audio_file consomme audio::analyze et renvoie BPM réel + clé Camelot + codec/résolution → détecteur alimente la Roue via detect_tempo_camelot. Cargo.toml : symphonia + rustfft ajoutés" },
+        { "ts": "2026-11-15T00:40:00.000Z", "type": "report", "message": "Compilation validée : cargo check OK (0 erreur) sur le backend Tauri" },
+        { "ts": "2026-11-15T00:40:00.000Z", "type": "column", "message": "Statut : En cours → En revue (3/3 micro-tâches validées, compilation OK)" }
+      ]
+    },
+    "ALC-005": {
+      "ticketId": "ALC-005",
+      "entries": [
+        { "ts": "2026-11-01T09:00:00.000Z", "type": "creation", "message": "Ticket créé : Implémentation du sélecteur de fichiers audio Tauri v2" },
+        { "ts": "2026-11-14T22:12:00.000Z", "type": "subtask", "message": "ALC-005-1 cochée : plugins plugin-dialog & plugin-fs (Cargo.toml + capabilities)" },
+        { "ts": "2026-11-14T22:12:00.000Z", "type": "subtask", "message": "ALC-005-2 cochée : commande Rust #[tauri::command] open_audio_file" },
+        { "ts": "2026-11-14T22:12:00.000Z", "type": "subtask", "message": "ALC-005-3 cochée : liaison Svelte invoke('open_audio_file') sur le bouton EJECT" },
+        { "ts": "2026-11-14T22:30:00.000Z", "type": "column", "message": "Statut : Backlog → En cours" },
+        { "ts": "2026-11-14T22:45:00.000Z", "type": "column", "message": "Statut : En cours → En revue (toutes micro-tâches validées) — en attente de validation visuelle" }
+      ]
+    },
+    "ALC-006": {
+      "ticketId": "ALC-006",
+      "entries": [
+        { "ts": "2026-11-02T09:00:00.000Z", "type": "creation", "message": "Ticket créé : Analyse BPM & clé Camelot temps réel" },
+        { "ts": "2026-11-14T22:45:00.000Z", "type": "column", "message": "Statut : Terminé → En cours (ré-ouvert pour finalisation)" },
+        { "ts": "2026-11-14T22:45:00.000Z", "type": "subtask", "message": "ALC-006-1 validée : calcul du BPM effectif et du pitch (computeEffectiveBpm / effectiveBpmA-B / bpmDelta)" },
+        { "ts": "2026-11-14T23:00:00.000Z", "type": "subtask", "message": "ALC-006-2 cochée : mapping dynamique de la clé Camelot vers la Roue (aiguilles angleA/angleB + arc harmonyArcPath réactifs)" },
+        { "ts": "2026-11-14T23:25:00.000Z", "type": "subtask", "message": "ALC-006-3 cochée : pont IPC detect_tempo_camelot exposé (client.ts + store refreshTempoCamelot) et branché sur le chargement de piste" },
+        { "ts": "2026-11-14T23:25:00.000Z", "type": "column", "message": "Statut : En cours → En revue (toutes micro-tâches validées, compilation cargo check + npm run check OK)" }
+      ]
+    },
+    "ALC-011": {
+      "ticketId": "ALC-011",
+      "entries": [
+        { "ts": "2026-11-14T23:30:00.000Z", "type": "creation", "message": "Ticket créé : Initialisation et publication du dépôt Git / GitHub du projet AlcheMix II (statut En cours)" },
+        { "ts": "2026-11-14T23:30:00.000Z", "type": "report", "message": "Rapport d'étape : création de .gitignore robuste (node_modules/, dist/, build/, .svelte-kit/, src-tauri/target/, .env, logs, cache, IDE) — micro-tâche ALC-011-1 (partielle : git init non exécuté, Git absent)" },
+        { "ts": "2026-11-14T23:30:00.000Z", "type": "report", "message": "Rapport d'étape : création du README.md technique (Tauri 2, SvelteKit 5, Rust, Tailwind v4, ambiance Venezia 1889 + structure branches main/dev) — micro-tâche ALC-011-2" },
+        { "ts": "2026-11-14T23:30:00.000Z", "type": "report", "message": "Rapport d'étape : création du script scripts/git_publish.ps1 (git init -b main, branches main/dev, commit, remote add origin, push)" },
+        { "ts": "2026-11-14T23:30:00.000Z", "type": "subtask", "message": "ALC-011-1 cochée (livrable .gitignore créé) ; ALC-011-2 cochée (README + branches documentées)" },
+        { "ts": "2026-11-14T23:30:00.000Z", "type": "blocker", "message": "Blocage : binaire git non installé sur la machine — git init, branches, remote et push (ALC-011-3 / ALC-011-4) en attente ; à exécuter par l'utilisateur (voir script git_publish.ps1)" },
+        { "ts": "2026-11-14T23:30:00.000Z", "type": "column", "message": "Statut : En cours (IN_PROGRESS) — 2/4 micro-tâches validées (011-1, 011-2), 011-3 et 011-4 en attente" }
+      ]
+    }
+  }
+}

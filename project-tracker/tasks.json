@@ -1,0 +1,294 @@
+﻿{
+  "meta": {
+    "project": "AlcheMix II — Console de mixage harmonique DJ (Tauri 2 / Svelte 5 / Rust)",
+    "version": "1.13.0",
+    "agents": ["Architecte", "Maître Horloger", "Forgeron Système"],
+    "columns": ["Backlog", "En cours", "En revue", "Terminé"],
+    "updatedAt": "2026-11-15T00:40:00.000Z",
+    "boardUrl": "https://stitch.google.com/preview/5027840654181556512?node-id=f93eb484e7d94f13894a3de1a280a6f3"
+  },
+  "tasks": [
+    {
+      "id": "ALC-001",
+      "title": "Amorçage du projet SvelteKit + Tauri 2",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Infrastructure",
+      "subtasks": [
+        { "id": "ALC-001-1", "title": "Initialiser le squelette SvelteKit avec adapter-static", "completed": true },
+        { "id": "ALC-001-2", "title": "Configurer le plugin Tauri v2 et les capabilities", "completed": true },
+        { "id": "ALC-001-3", "title": "Valider le pont IPC de base (invoke ↔ #[tauri::command])", "completed": true }
+      ],
+      "description": "Mise en place du socle technique du projet : SvelteKit, Tauri 2 et le pont de communication.",
+      "createdAt": "2026-10-02T09:00:00.000Z",
+      "completedAt": "2026-10-05T16:30:00.000Z"
+    },
+    {
+      "id": "ALC-002",
+      "title": "Architecture 3 colonnes & console centrale (Camelot)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX",
+      "subtasks": [
+        { "id": "ALC-002-1", "title": "Construire la grille Deck A / Centre / Deck B", "completed": true },
+        { "id": "ALC-002-2", "title": "Intégrer la Roue de Camelot et l'arc harmonique court", "completed": true },
+        { "id": "ALC-002-3", "title": "Intégrer l'Oracle Acoustique et les conseils de mixage", "completed": true }
+      ],
+      "description": "Restauration de la colonne centrale avec la roue Camelot et l'oracle harmonique.",
+      "createdAt": "2026-10-06T09:00:00.000Z",
+      "completedAt": "2026-10-12T14:00:00.000Z"
+    },
+    {
+      "id": "ALC-003",
+      "title": "Restoration des platines photoréalistes (Cassettes, VU, Faders)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX",
+      "subtasks": [
+        { "id": "ALC-003-1", "title": "Copier 1:1 les cassettes (coque ambrée, spools, vis laiton)", "completed": true },
+        { "id": "ALC-003-2", "title": "Restaurer le VU-mètre balistique avec son <svg>", "completed": true },
+        { "id": "ALC-003-3", "title": "Restaurer les faders dorés interactifs (drag + reset)", "completed": true },
+        { "id": "ALC-003-4", "title": "Vérifier la compilation svelte-check (0 erreur)", "completed": true }
+      ],
+      "description": "Copier-coller chirurgical 1:1 du DOM de la maquette pour DeckA et DeckB.",
+      "createdAt": "2026-10-13T09:00:00.000Z",
+      "completedAt": "2026-10-20T18:00:00.000Z"
+    },
+    {
+      "id": "ALC-004",
+      "title": "Épuration UX & correction de la Roue de Camelot",
+      "status": "En revue",
+      "agent": "Maître Horloger",
+      "priority": "Moyenne",
+      "label": "UI / UX",
+      "subtasks": [
+        { "id": "ALC-004-1", "title": "Forcer l'arc harmonique sur le chemin court (≤ 180°)", "completed": true },
+        { "id": "ALC-004-2", "title": "Supprimer SERENISSIMA 1889 et la légende redondante", "completed": true },
+        { "id": "ALC-004-3", "title": "Supprimer le badge MATRICULE et épurer les specs (Codec/Échantillonnage/Débit)", "completed": true },
+        { "id": "ALC-004-4", "title": "Supprimer la barre fixe du header et la légende du crossfader", "completed": true },
+        { "id": "ALC-004-5", "title": "Valider le rendu final dans Tauri (revue)", "completed": true }
+      ],
+      "description": "Interventions ergonomiques ciblées : épuration de l'interface, faders interactifs et correction géométrique.",
+      "createdAt": "2026-10-21T09:00:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-005",
+      "title": "Implémentation du sélecteur de fichiers audio Tauri v2",
+      "status": "En revue",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio",
+      "subtasks": [
+        { "id": "ALC-005-1", "title": "Ajouter les dépendances plugin-dialog et plugin-fs (Cargo.toml + capabilities)", "completed": true },
+        { "id": "ALC-005-2", "title": "Créer la commande Rust #[tauri::command] qui ouvre le sélecteur de fichier audio", "completed": true },
+        { "id": "ALC-005-3", "title": "Lier la commande au bouton EJECT/Parc de l'interface Svelte avec invoke()", "completed": true }
+      ],
+      "description": "Sélecteur de fichiers audio Tauri v2 : plugin dialog/fs, commande Rust et liaison au bouton de l'interface.",
+      "createdAt": "2026-11-01T09:00:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-006",
+      "title": "Analyse BPM & clé Camelot temps réel",
+      "status": "En revue",
+      "agent": "Forgeron Système",
+      "priority": "Moyenne",
+      "label": "Audio",
+      "subtasks": [
+        { "id": "ALC-006-1", "title": "Calculer le BPM effectif et le pitch en temps réel", "completed": true },
+        { "id": "ALC-006-2", "title": "Mapper la clé détectée vers la roue Camelot", "completed": true },
+        { "id": "ALC-006-3", "title": "Exposer les résultats via l'IPC", "completed": true }
+      ],
+      "description": "Analyse temps réel du tempo et de la tonalité pour alimenter la console (BPM effectif, Δ tempo, clé Camelot).",
+      "createdAt": "2026-11-02T09:00:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-007",
+      "title": "Tableau de bord de suivi (project-tracker/board.html)",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Moyenne",
+      "label": "Outils / Ops",
+      "subtasks": [
+        { "id": "ALC-007-1", "title": "Créer tasks.json avec historique ALC-001..006 et subtasks", "completed": true },
+        { "id": "ALC-007-2", "title": "Créer le Kanban board.html (colonnes, filtres par agent, coches, import/export)", "completed": true },
+        { "id": "ALC-007-3", "title": "Injecter les données locales par défaut (fallback file://)", "completed": true },
+        { "id": "ALC-007-4", "title": "Intégrer la sidebar (tickets triés par ID + pastilles de statut + smooth scroll)", "completed": true },
+        { "id": "ALC-007-5", "title": "Activer le live sync (polling 1500ms, hash, verrou, cross-tab, Live Pulse)", "completed": true }
+      ],
+      "description": "Reprise du outil local de suivi : intégration de la maquette Stitch, des micro-tâches, de la sidebar et de la synchronisation en temps réel.",
+      "createdAt": "2026-11-13T09:00:00.000Z",
+      "completedAt": "2026-11-14T15:00:00.000Z"
+    },
+    {
+      "id": "ALC-009",
+      "title": "Ajout de micro-LEDs lumineuses sur les faders",
+      "status": "En revue",
+      "agent": "Maître Horloger",
+      "priority": "Moyenne",
+      "label": "UI / UX",
+      "subtasks": [
+        { "id": "ALC-009-1", "title": "Ajouter la micro-LED émeraude (bg-emerald-400 + lueur) sur les curseurs Volume & Pitch de DeckA", "completed": true },
+        { "id": "ALC-009-2", "title": "Ajouter la micro-LED bleue (bg-cyan-400 + lueur) sur les curseurs Volume & Pitch de DeckB", "completed": true },
+        { "id": "ALC-009-3", "title": "Ajouter la micro-LED ambre/dorée (bg-primary + pulse) au cœur du crossfader central", "completed": true },
+        { "id": "ALC-009-4", "title": "Valider la compilation (svelte-check 0 erreur) et basculer en revue", "completed": true }
+      ],
+      "description": "Intégration de micro-LEDs colorées et lumineuses sur tous les curseurs de faders (Volume, Pitch, Crossfader).",
+      "createdAt": "2026-11-14T15:30:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-008",
+      "title": "Implémentation du moteur audio et choix de la fidélité de calcul pour l'analyseur Camelot & BPM",
+      "description": "Conception et implémentation du moteur audio sous-jacent (Rust / Rodio-Symphonia) en déterminant la résolution d'échantillonnage et la taille de la fenêtre FFT optimale pour alimenter avec la plus haute précision l'analyseur de la roue de Camelot et le calcul de BPM en temps réel.",
+      "status": "En revue",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio",
+      "subtasks": [
+        { "id": "ALC-008-1", "title": "Benchmarker les compromis de fidélité audio (44.1kHz/48kHz vs 96kHz / buffers FFT 2048 vs 4096) pour l'analyse spectrale", "completed": true },
+        { "id": "ALC-008-2", "title": "Implémenter le pipeline de décodage et de traitement du signal dans le backend Rust", "completed": true },
+        { "id": "ALC-008-3", "title": "Connecter la sortie du détecteur de tempo et de tonalité vers le pont IPC pour la Roue de Camelot", "completed": true }
+      ],
+      "createdAt": "2026-11-14T22:12:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-010",
+      "title": "Correction du mécanisme de Live Sync du tableau de bord (board.html)",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Moyenne",
+      "label": "Outils / Ops",
+      "subtasks": [
+        { "id": "ALC-010-1", "title": "Unifier le hash de comparaison (tasksHash) et fiabiliser la détection de changement", "completed": true },
+        { "id": "ALC-010-2", "title": "Implémenter un polling robuste toutes les 1200ms avec verrous anti-chevauchement", "completed": true },
+        { "id": "ALC-010-3", "title": "Fusionner les données distantes sans écraser les éditions locales récentes (différé)", "completed": true },
+        { "id": "ALC-010-4", "title": "Renforcer le canal cross-tab (storage event + writeShared versionné)", "completed": true },
+        { "id": "ALC-010-5", "title": "Tester le chargement (HTTP 200) et valider la compilation JS", "completed": true }
+      ],
+      "description": "Refactorisation du Live Sync pour une mise à jour fluide en arrière-plan : hash unique, polling 1200ms, fusion non destructive, cross-tab robuste.",
+      "createdAt": "2026-11-14T22:20:00.000Z",
+      "completedAt": "2026-11-14T22:30:00.000Z"
+    },
+    {
+      "id": "ALC-011",
+      "title": "Initialisation et publication du dépôt Git / GitHub du projet AlcheMix II",
+      "status": "En cours",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Outils / Ops",
+      "subtasks": [
+        { "id": "ALC-011-1", "title": "Initialiser le dépôt Git local à la racine et configurer un .gitignore robuste (node_modules, target/ Tauri, builds, cache)", "completed": true },
+        { "id": "ALC-011-2", "title": "Structurer les branches (main/dev) et rédiger un README.md technique (Tauri 2, SvelteKit, Rust, Venezia 1889)", "completed": true },
+        { "id": "ALC-011-3", "title": "Créer le dépôt distant GitHub et lier le local (git remote add origin …)", "completed": false },
+        { "id": "ALC-011-4", "title": "Effectuer le premier commit propre de la structure globale et pousser la première branche vers GitHub", "completed": false }
+      ],
+      "description": "Initialisation du dépôt Git local, configuration du .gitignore, branches, README, et lien vers GitHub pour la publication.",
+      "createdAt": "2026-11-14T23:30:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-012",
+      "title": "Pages de journal de travail individuel par ticket (project-tracker)",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Moyenne",
+      "label": "Outils / Ops",
+      "subtasks": [
+        { "id": "ALC-012-1", "title": "Créer le fichier journals.json (journaux horodatés par ticket)", "completed": true },
+        { "id": "ALC-012-2", "title": "Créer la page ticket.html (template piloté par ?id=ALC-XXX) affichant l'historique complet", "completed": true },
+        { "id": "ALC-012-3", "title": "Ajouter les liens Journal (📓) sur les cartes du Kanban et dans la sidebar", "completed": true },
+        { "id": "ALC-012-4", "title": "Ajouter la règle d'écriture automatique du journal dans .clinerules (Architecte + agents)", "completed": true }
+      ],
+      "description": "Journal de travail individuel horodaté par ticket : page dédiée, accès depuis le Kanban, et règle d'écriture automatique.",
+      "createdAt": "2026-11-14T23:10:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-101",
+      "title": "Gestion du Transport et des Platines (Deck A & B)",
+      "status": "Backlog",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX",
+      "subtasks": [
+        { "id": "ALC-101-1", "title": "Connecter les états Svelte des boutons Play/Pause/Cue/Eject", "completed": false },
+        { "id": "ALC-101-2", "title": "Implémenter l'animation CSS de rotation des bobines de cassette synchronisée sur la lecture", "completed": false },
+        { "id": "ALC-101-3", "title": "Écrire les tests unitaires des actions de transport", "completed": false }
+      ],
+      "description": "Implémentation complète des contrôles de transport et rétroaction visuelle des platines.",
+      "createdAt": "2026-11-15T00:00:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-102",
+      "title": "Galvanomètres VU-mètres Balistiques",
+      "status": "Backlog",
+      "agent": "Forgeron Système",
+      "priority": "Moyenne",
+      "label": "Audio",
+      "subtasks": [
+        { "id": "ALC-102-1", "title": "Lier l'événement d'analyse spectrale Rust aux métriques RMS/Peak du frontend", "completed": false },
+        { "id": "ALC-102-2", "title": "Animer la rotation de l'aiguille galvanométrique via requestAnimationFrame (60fps)", "completed": false },
+        { "id": "ALC-102-3", "title": "Valider la fluidité visuelle et l'absence de décrochage en charge", "completed": false }
+      ],
+      "description": "Restauration dynamique des VU-mètres analogiques à aiguille pour les Decks A et B.",
+      "createdAt": "2026-11-15T00:00:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-103",
+      "title": "Potentiomètres de Volume et Régulateurs de Cadence (Pitch)",
+      "status": "Backlog",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX",
+      "subtasks": [
+        { "id": "ALC-103-1", "title": "Coder l'interaction de glissement (drag) tactile des faders dorés", "completed": false },
+        { "id": "ALC-103-2", "title": "Câbler les valeurs de pitch et volume aux commandes IPC du moteur audio", "completed": false },
+        { "id": "ALC-103-3", "title": "Tester la précision des paliers de réglage et l'allumage des micro-LEDs", "completed": false }
+      ],
+      "description": "Commandes de précision pour le volume et le pitch avec indicateurs lumineux.",
+      "createdAt": "2026-11-15T00:00:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-104",
+      "title": "Roue de Camelot & Oracle Acoustique (Console Centrale)",
+      "status": "Backlog",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / UI",
+      "subtasks": [
+        { "id": "ALC-104-1", "title": "Implémenter l'algorithme de calcul du plus court chemin harmonique (<= 180°)", "completed": false },
+        { "id": "ALC-104-2", "title": "Générer dynamiquement le tracé SVG du connecteur lumineux entre les deux clés", "completed": false },
+        { "id": "ALC-104-3", "title": "Afficher les conseils textuels de l'Oracle Acoustique en fonction du delta BPM", "completed": false }
+      ],
+      "description": "Intelligence de mixage harmonique et affichage astrolabe de la Roue de Camelot.",
+      "createdAt": "2026-11-15T00:00:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-105",
+      "title": "Crossfader Master",
+      "status": "Backlog",
+      "agent": "Forgeron Système",
+      "priority": "Moyenne",
+      "label": "Audio",
+      "subtasks": [
+        { "id": "ALC-105-1", "title": "Intégrer le curseur horizontal avec graduation 50/50 Équilibre", "completed": false },
+        { "id": "ALC-105-2", "title": "Appliquer la loi de puissance (equal power curve) pour le mixage stéréo", "completed": false },
+        { "id": "ALC-105-3", "title": "Tester la transition fluide entre le Canal A et le Canal B", "completed": false }
+      ],
+      "description": "Crossfader linéaire master pour la transition fluide des flux audio.",
+      "createdAt": "2026-11-15T00:00:00.000Z",
+      "completedAt": null
+    }
+  ]
+}
