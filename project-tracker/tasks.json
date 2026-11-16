@@ -1,11 +1,19 @@
-﻿{
+{
   "meta": {
-    "project": "AlcheMix II — Console de mixage harmonique DJ (Tauri 2 / Svelte 5 / Rust)",
-    "version": "1.13.0",
-    "agents": ["Architecte", "Maître Horloger", "Forgeron Système"],
-    "columns": ["Backlog", "En cours", "En revue", "Terminé"],
-    "updatedAt": "2026-11-15T00:40:00.000Z",
-    "boardUrl": "https://stitch.google.com/preview/5027840654181556512?node-id=f93eb484e7d94f13894a3de1a280a6f3"
+    "project": "AlcheMix II",
+    "agents": [
+      "Architecte",
+      "Maître Horloger",
+      "Forgeron Système"
+    ],
+    "columns": [
+      "Backlog",
+      "En cours",
+      "En revue",
+      "Terminé"
+    ],
+    "version": "1.12.0",
+    "updatedAt": "2026-11-16T21:30:00.000+01:00"
   },
   "tasks": [
     {
@@ -16,13 +24,25 @@
       "priority": "Haute",
       "label": "Infrastructure",
       "subtasks": [
-        { "id": "ALC-001-1", "title": "Initialiser le squelette SvelteKit avec adapter-static", "completed": true },
-        { "id": "ALC-001-2", "title": "Configurer le plugin Tauri v2 et les capabilities", "completed": true },
-        { "id": "ALC-001-3", "title": "Valider le pont IPC de base (invoke ↔ #[tauri::command])", "completed": true }
+        {
+          "id": "ALC-001-1",
+          "title": "Initialiser le squelette SvelteKit avec adapter-static",
+          "completed": true
+        },
+        {
+          "id": "ALC-001-2",
+          "title": "Configurer le plugin Tauri v2 et les capabilities",
+          "completed": true
+        },
+        {
+          "id": "ALC-001-3",
+          "title": "Valider le pont IPC de base (invoke ↔ #[tauri::command])",
+          "completed": true
+        }
       ],
       "description": "Mise en place du socle technique du projet : SvelteKit, Tauri 2 et le pont de communication.",
-      "createdAt": "2026-10-02T09:00:00.000Z",
-      "completedAt": "2026-10-05T16:30:00.000Z"
+      "createdAt": "2026-10-02T11:00:00.000+02:00",
+      "completedAt": "2026-10-05T18:30:00.000+02:00"
     },
     {
       "id": "ALC-002",
@@ -32,13 +52,25 @@
       "priority": "Haute",
       "label": "UI / UX",
       "subtasks": [
-        { "id": "ALC-002-1", "title": "Construire la grille Deck A / Centre / Deck B", "completed": true },
-        { "id": "ALC-002-2", "title": "Intégrer la Roue de Camelot et l'arc harmonique court", "completed": true },
-        { "id": "ALC-002-3", "title": "Intégrer l'Oracle Acoustique et les conseils de mixage", "completed": true }
+        {
+          "id": "ALC-002-1",
+          "title": "Construire la grille Deck A / Centre / Deck B",
+          "completed": true
+        },
+        {
+          "id": "ALC-002-2",
+          "title": "Intégrer la Roue de Camelot et l'arc harmonique court",
+          "completed": true
+        },
+        {
+          "id": "ALC-002-3",
+          "title": "Intégrer l'Oracle Acoustique et les conseils de mixage",
+          "completed": true
+        }
       ],
       "description": "Restauration de la colonne centrale avec la roue Camelot et l'oracle harmonique.",
-      "createdAt": "2026-10-06T09:00:00.000Z",
-      "completedAt": "2026-10-12T14:00:00.000Z"
+      "createdAt": "2026-10-06T11:00:00.000+02:00",
+      "completedAt": "2026-10-12T16:00:00.000+02:00"
     },
     {
       "id": "ALC-003",
@@ -48,64 +80,234 @@
       "priority": "Haute",
       "label": "UI / UX",
       "subtasks": [
-        { "id": "ALC-003-1", "title": "Copier 1:1 les cassettes (coque ambrée, spools, vis laiton)", "completed": true },
-        { "id": "ALC-003-2", "title": "Restaurer le VU-mètre balistique avec son <svg>", "completed": true },
-        { "id": "ALC-003-3", "title": "Restaurer les faders dorés interactifs (drag + reset)", "completed": true },
-        { "id": "ALC-003-4", "title": "Vérifier la compilation svelte-check (0 erreur)", "completed": true }
+        {
+          "id": "ALC-003-1",
+          "title": "Copier 1:1 les cassettes (coque ambrée, spools, vis laiton)",
+          "completed": true
+        },
+        {
+          "id": "ALC-003-2",
+          "title": "Restaurer le VU-mètre balistique avec son <svg>",
+          "completed": true
+        },
+        {
+          "id": "ALC-003-3",
+          "title": "Restaurer les faders dorés interactifs (drag + reset)",
+          "completed": true
+        },
+        {
+          "id": "ALC-003-4",
+          "title": "Vérifier la compilation svelte-check (0 erreur)",
+          "completed": true
+        }
       ],
       "description": "Copier-coller chirurgical 1:1 du DOM de la maquette pour DeckA et DeckB.",
-      "createdAt": "2026-10-13T09:00:00.000Z",
-      "completedAt": "2026-10-20T18:00:00.000Z"
+      "createdAt": "2026-10-13T11:00:00.000+02:00",
+      "completedAt": "2026-10-20T20:00:00.000+02:00"
     },
     {
       "id": "ALC-004",
       "title": "Épuration UX & correction de la Roue de Camelot",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Maître Horloger",
       "priority": "Moyenne",
       "label": "UI / UX",
       "subtasks": [
-        { "id": "ALC-004-1", "title": "Forcer l'arc harmonique sur le chemin court (≤ 180°)", "completed": true },
-        { "id": "ALC-004-2", "title": "Supprimer SERENISSIMA 1889 et la légende redondante", "completed": true },
-        { "id": "ALC-004-3", "title": "Supprimer le badge MATRICULE et épurer les specs (Codec/Échantillonnage/Débit)", "completed": true },
-        { "id": "ALC-004-4", "title": "Supprimer la barre fixe du header et la légende du crossfader", "completed": true },
-        { "id": "ALC-004-5", "title": "Valider le rendu final dans Tauri (revue)", "completed": true }
+        {
+          "id": "ALC-004-1",
+          "title": "Forcer l'arc harmonique sur le chemin court (≤ 180°)",
+          "completed": true
+        },
+        {
+          "id": "ALC-004-2",
+          "title": "Supprimer SERENISSIMA 1889 et la légende redondante",
+          "completed": true
+        },
+        {
+          "id": "ALC-004-3",
+          "title": "Supprimer le badge MATRICULE et épurer les specs (Codec/Échantillonnage/Débit)",
+          "completed": true
+        },
+        {
+          "id": "ALC-004-4",
+          "title": "Supprimer la barre fixe du header et la légende du crossfader",
+          "completed": true
+        },
+        {
+          "id": "ALC-004-5",
+          "title": "Valider le rendu final dans Tauri (revue)",
+          "completed": true
+        }
       ],
       "description": "Interventions ergonomiques ciblées : épuration de l'interface, faders interactifs et correction géométrique.",
-      "createdAt": "2026-10-21T09:00:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-10-21T11:00:00.000+02:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-005",
       "title": "Implémentation du sélecteur de fichiers audio Tauri v2",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Forgeron Système",
       "priority": "Haute",
       "label": "Audio",
       "subtasks": [
-        { "id": "ALC-005-1", "title": "Ajouter les dépendances plugin-dialog et plugin-fs (Cargo.toml + capabilities)", "completed": true },
-        { "id": "ALC-005-2", "title": "Créer la commande Rust #[tauri::command] qui ouvre le sélecteur de fichier audio", "completed": true },
-        { "id": "ALC-005-3", "title": "Lier la commande au bouton EJECT/Parc de l'interface Svelte avec invoke()", "completed": true }
+        {
+          "id": "ALC-005-1",
+          "title": "Ajouter les dépendances plugin-dialog et plugin-fs (Cargo.toml + capabilities)",
+          "completed": true
+        },
+        {
+          "id": "ALC-005-2",
+          "title": "Créer la commande Rust #[tauri::command] qui ouvre le sélecteur de fichier audio",
+          "completed": true
+        },
+        {
+          "id": "ALC-005-3",
+          "title": "Lier la commande au bouton EJECT/Parc de l'interface Svelte avec invoke()",
+          "completed": true
+        }
       ],
       "description": "Sélecteur de fichiers audio Tauri v2 : plugin dialog/fs, commande Rust et liaison au bouton de l'interface.",
-      "createdAt": "2026-11-01T09:00:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-11-01T10:00:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-006",
       "title": "Analyse BPM & clé Camelot temps réel",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Forgeron Système",
       "priority": "Moyenne",
       "label": "Audio",
       "subtasks": [
-        { "id": "ALC-006-1", "title": "Calculer le BPM effectif et le pitch en temps réel", "completed": true },
-        { "id": "ALC-006-2", "title": "Mapper la clé détectée vers la roue Camelot", "completed": true },
-        { "id": "ALC-006-3", "title": "Exposer les résultats via l'IPC", "completed": true }
+        {
+          "id": "ALC-006-1",
+          "title": "Calculer le BPM effectif et le pitch en temps réel",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-2",
+          "title": "Mapper la clé détectée vers la roue Camelot",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-3",
+          "title": "Exposer les résultats via l'IPC",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-4",
+          "title": "Règle 1 — Représentation temps-fréquence : rééchantillonnage ~8 kHz + STFT perceptuelle (8 sous-bandes log, trame 32 ms, hop 50 %) dans le moteur Rust",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-5",
+          "title": "Règle 2 — Onset robuste : flux spectral demi-onde max(0,Δlog|S|), agrégation inter-fréquences par médiane, soustraction du seuil dynamique local, normalisation par σ",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-6",
+          "title": "Règle 3 — Calibrage temporel : fenêtres d'analyse ~11,9 s / recouvrement 50 % (~5,96 s), moyennage des tempogrammes pour la stabilité du tempo global",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-7",
+          "title": "Règle 4 — Résolution octave/métrique : bornes 30–240 BPM, prior gaussien log-120 BPM, combinaison TPS + TPS₂ (½) + TPS₃ (⅓)",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-8",
+          "title": "Règle 5 — Beat tracking par programmation dynamique (Ellis DP) : nouveauté + pénalité de régularité vs intervalle idéal δ̂, variante causale à lookahead",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-9",
+          "title": "Règle 6 — Rubato : c_var = σ_IBI/μ_IBI, bascule sur médiane glissante 12 s si c_var>0,15 (isolation des zones de transition)",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-10",
+          "title": "Règle 7 — Validation MIREX : Acc1 (±4–5 %), Acc2/ALOTC (multiples 0,5/2/0,33/3), F-mesure (±70 ms) + tests unitaires Rust",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-11",
+          "title": "Camelot·Tuning Correction — estimer la déviation globale d'accordage (phase/pics) et décaler circulairement les profils avant projection (pas de diapason fixe 440 Hz)",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-12",
+          "title": "Camelot·HPCP/CQT — chroma haute résolution (36 bacs/octave = 3 par demi-ton), pondération des 4 premières harmoniques (pente ~0,6), seuillage/gating BGATE (4 composantes faibles + trames silencieuses)",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-13",
+          "title": "Camelot·Agrégation structurelle — Flat Input (binarisation 0/1 sur fenêtres 1–2 s), normalisation L2 du chroma moyen, pondération des sections stables",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-14",
+          "title": "Camelot·Profils calibrés — corrélation (cosinus) aux 24 profils (KS, Temperley, Shaath, EDMA, EDMM, BGATE) + axe principal de la Signature de Quintes",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-15",
+          "title": "Camelot·Mode (Majeure/Mineure) — marge relative (max1−max2)/max1 ; si faible écart majeur/relatif mineur, trancher par l'énergie tierce majeure vs mineure",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-16",
+          "title": "Camelot·Conversion modulaire — majeur B=((7p+7) mod 12)+1, mineur A=((7p+4) mod 12)+1 ; tests unitaires du mapping + profils, cargo check/test, passage En revue",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-17",
+          "title": "Étalonnage·Profils tonals : réduire drastiquement le poids EDMM/EDMA et l'agressivité du gating BGATE, privilégier KS + Temperley + Shaath (retrait du biais vers l'anneau mineur A)",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-18",
+          "title": "Étalonnage·Registre grave : chroma secondaire 50–250 Hz (basse/fondamentales) combiné au chroma global pour la corrélation et la désambiguïsation du mode ; borne tuning ±0,2 demi-ton (anti sur-compensation analogique)",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-19",
+          "title": "Étalonnage·Anti-double-tempo : si pic dominant >138 BPM évaluer le sous-multiple ÷2 ; si rapport >0,75 sélectionner le tempo <100 BPM (146→73, 168→84)",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-20",
+          "title": "Étalonnage·Tests : majeur non biaisé (12B/11B sans bascule vers A), anti-double-tempo (146→73 / 168→84) ; cargo check/test (0 erreur), journal heure de Paris, passage En revue",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-21",
+          "title": "Étalonnage·Audit blocage 2A : identifier pourquoi detect_key_from renvoie 2A sur 11B/7A/8B (domination du sous-chroma grave 50–250 Hz, kicks ~78 Hz=Eb2→2A)",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-22",
+          "title": "Étalonnage·Réduction basses : bass_chroma à partir de 65 Hz avec interpolation parabolique, poids grave ≤15 % ; tonal repose sur le HPCP large bande (80–4000 Hz)",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-23",
+          "title": "Étalonnage·Vérifier tuning (bornes, pas de bac hors bornes) et boucle de corrélation 24 clés (cosinus) sur profils équilibrés KS+Temperley+Shaath",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-24",
+          "title": "Étalonnage·Tests synthétiques : La maj (11B), Ré min (7A), Do maj (8B) → jamais 2A ; anti-double préservé 146 et corrigé 168→84",
+          "completed": true
+        },
+        {
+          "id": "ALC-006-25",
+          "title": "Étalonnage·Validation : cargo check + cargo test --lib (0 erreur, 100 %) puis passage du ticket en En revue",
+          "completed": true
+        }
       ],
-      "description": "Analyse temps réel du tempo et de la tonalité pour alimenter la console (BPM effectif, Δ tempo, clé Camelot).",
-      "createdAt": "2026-11-02T09:00:00.000Z",
-      "completedAt": null
+      "description": "Refonte du moteur d'analyse du rythme (BPM) selon 7 règles rigoureuses : représentation temps-fréquence perceptuelle (STFT/bands log), détection d'onsets robuste (flux spectral demi-onde, agrégation par médiane, seuil dynamique local), calibrage temporel (fenêtres 11,9 s), résolution des ambiguïtés d'octave (TPS + échantillonnage métrique, prior 120 BPM), beat tracking (programmation dynamique), gestion du rubato (c_var), et validation selon les métriques MIREX. La sortie IPC TempoCamelot reste inchangée (BPM effectif, Δ tempo, clé Camelot).",
+      "createdAt": "2026-11-02T10:00:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-007",
@@ -115,48 +317,96 @@
       "priority": "Moyenne",
       "label": "Outils / Ops",
       "subtasks": [
-        { "id": "ALC-007-1", "title": "Créer tasks.json avec historique ALC-001..006 et subtasks", "completed": true },
-        { "id": "ALC-007-2", "title": "Créer le Kanban board.html (colonnes, filtres par agent, coches, import/export)", "completed": true },
-        { "id": "ALC-007-3", "title": "Injecter les données locales par défaut (fallback file://)", "completed": true },
-        { "id": "ALC-007-4", "title": "Intégrer la sidebar (tickets triés par ID + pastilles de statut + smooth scroll)", "completed": true },
-        { "id": "ALC-007-5", "title": "Activer le live sync (polling 1500ms, hash, verrou, cross-tab, Live Pulse)", "completed": true }
+        {
+          "id": "ALC-007-1",
+          "title": "Créer tasks.json avec historique ALC-001..006 et subtasks",
+          "completed": true
+        },
+        {
+          "id": "ALC-007-2",
+          "title": "Créer le Kanban board.html (colonnes, filtres par agent, coches, import/export)",
+          "completed": true
+        },
+        {
+          "id": "ALC-007-3",
+          "title": "Injecter les données locales par défaut (fallback file://)",
+          "completed": true
+        },
+        {
+          "id": "ALC-007-4",
+          "title": "Intégrer la sidebar (tickets triés par ID + pastilles de statut + smooth scroll)",
+          "completed": true
+        },
+        {
+          "id": "ALC-007-5",
+          "title": "Activer le live sync (polling 1500ms, hash, verrou, cross-tab, Live Pulse)",
+          "completed": true
+        }
       ],
       "description": "Reprise du outil local de suivi : intégration de la maquette Stitch, des micro-tâches, de la sidebar et de la synchronisation en temps réel.",
-      "createdAt": "2026-11-13T09:00:00.000Z",
-      "completedAt": "2026-11-14T15:00:00.000Z"
+      "createdAt": "2026-11-13T10:00:00.000+01:00",
+      "completedAt": "2026-11-14T16:00:00.000+01:00"
     },
     {
       "id": "ALC-009",
       "title": "Ajout de micro-LEDs lumineuses sur les faders",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Maître Horloger",
       "priority": "Moyenne",
       "label": "UI / UX",
       "subtasks": [
-        { "id": "ALC-009-1", "title": "Ajouter la micro-LED émeraude (bg-emerald-400 + lueur) sur les curseurs Volume & Pitch de DeckA", "completed": true },
-        { "id": "ALC-009-2", "title": "Ajouter la micro-LED bleue (bg-cyan-400 + lueur) sur les curseurs Volume & Pitch de DeckB", "completed": true },
-        { "id": "ALC-009-3", "title": "Ajouter la micro-LED ambre/dorée (bg-primary + pulse) au cœur du crossfader central", "completed": true },
-        { "id": "ALC-009-4", "title": "Valider la compilation (svelte-check 0 erreur) et basculer en revue", "completed": true }
+        {
+          "id": "ALC-009-1",
+          "title": "Ajouter la micro-LED émeraude (bg-emerald-400 + lueur) sur les curseurs Volume & Pitch de DeckA",
+          "completed": true
+        },
+        {
+          "id": "ALC-009-2",
+          "title": "Ajouter la micro-LED bleue (bg-cyan-400 + lueur) sur les curseurs Volume & Pitch de DeckB",
+          "completed": true
+        },
+        {
+          "id": "ALC-009-3",
+          "title": "Ajouter la micro-LED ambre/dorée (bg-primary + pulse) au cœur du crossfader central",
+          "completed": true
+        },
+        {
+          "id": "ALC-009-4",
+          "title": "Valider la compilation (svelte-check 0 erreur) et basculer en revue",
+          "completed": true
+        }
       ],
       "description": "Intégration de micro-LEDs colorées et lumineuses sur tous les curseurs de faders (Volume, Pitch, Crossfader).",
-      "createdAt": "2026-11-14T15:30:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-11-14T16:30:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-008",
       "title": "Implémentation du moteur audio et choix de la fidélité de calcul pour l'analyseur Camelot & BPM",
       "description": "Conception et implémentation du moteur audio sous-jacent (Rust / Rodio-Symphonia) en déterminant la résolution d'échantillonnage et la taille de la fenêtre FFT optimale pour alimenter avec la plus haute précision l'analyseur de la roue de Camelot et le calcul de BPM en temps réel.",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Forgeron Système",
       "priority": "Haute",
       "label": "Audio",
       "subtasks": [
-        { "id": "ALC-008-1", "title": "Benchmarker les compromis de fidélité audio (44.1kHz/48kHz vs 96kHz / buffers FFT 2048 vs 4096) pour l'analyse spectrale", "completed": true },
-        { "id": "ALC-008-2", "title": "Implémenter le pipeline de décodage et de traitement du signal dans le backend Rust", "completed": true },
-        { "id": "ALC-008-3", "title": "Connecter la sortie du détecteur de tempo et de tonalité vers le pont IPC pour la Roue de Camelot", "completed": true }
+        {
+          "id": "ALC-008-1",
+          "title": "Benchmarker les compromis de fidélité audio (44.1kHz/48kHz vs 96kHz / buffers FFT 2048 vs 4096) pour l'analyse spectrale",
+          "completed": true
+        },
+        {
+          "id": "ALC-008-2",
+          "title": "Implémenter le pipeline de décodage et de traitement du signal dans le backend Rust",
+          "completed": true
+        },
+        {
+          "id": "ALC-008-3",
+          "title": "Connecter la sortie du détecteur de tempo et de tonalité vers le pont IPC pour la Roue de Camelot",
+          "completed": true
+        }
       ],
-      "createdAt": "2026-11-14T22:12:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-11-14T23:12:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-010",
@@ -166,129 +416,1734 @@
       "priority": "Moyenne",
       "label": "Outils / Ops",
       "subtasks": [
-        { "id": "ALC-010-1", "title": "Unifier le hash de comparaison (tasksHash) et fiabiliser la détection de changement", "completed": true },
-        { "id": "ALC-010-2", "title": "Implémenter un polling robuste toutes les 1200ms avec verrous anti-chevauchement", "completed": true },
-        { "id": "ALC-010-3", "title": "Fusionner les données distantes sans écraser les éditions locales récentes (différé)", "completed": true },
-        { "id": "ALC-010-4", "title": "Renforcer le canal cross-tab (storage event + writeShared versionné)", "completed": true },
-        { "id": "ALC-010-5", "title": "Tester le chargement (HTTP 200) et valider la compilation JS", "completed": true }
+        {
+          "id": "ALC-010-1",
+          "title": "Unifier le hash de comparaison (tasksHash) et fiabiliser la détection de changement",
+          "completed": true
+        },
+        {
+          "id": "ALC-010-2",
+          "title": "Implémenter un polling robuste toutes les 1200ms avec verrous anti-chevauchement",
+          "completed": true
+        },
+        {
+          "id": "ALC-010-3",
+          "title": "Fusionner les données distantes sans écraser les éditions locales récentes (différé)",
+          "completed": true
+        },
+        {
+          "id": "ALC-010-4",
+          "title": "Renforcer le canal cross-tab (storage event + writeShared versionné)",
+          "completed": true
+        },
+        {
+          "id": "ALC-010-5",
+          "title": "Tester le chargement (HTTP 200) et valider la compilation JS",
+          "completed": true
+        }
       ],
       "description": "Refactorisation du Live Sync pour une mise à jour fluide en arrière-plan : hash unique, polling 1200ms, fusion non destructive, cross-tab robuste.",
-      "createdAt": "2026-11-14T22:20:00.000Z",
-      "completedAt": "2026-11-14T22:30:00.000Z"
+      "createdAt": "2026-11-14T23:20:00.000+01:00",
+      "completedAt": "2026-11-14T23:30:00.000+01:00"
     },
     {
       "id": "ALC-011",
       "title": "Initialisation et publication du dépôt Git / GitHub du projet AlcheMix II",
-      "status": "En cours",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Outils / Ops",
       "subtasks": [
-        { "id": "ALC-011-1", "title": "Initialiser le dépôt Git local à la racine et configurer un .gitignore robuste (node_modules, target/ Tauri, builds, cache)", "completed": true },
-        { "id": "ALC-011-2", "title": "Structurer les branches (main/dev) et rédiger un README.md technique (Tauri 2, SvelteKit, Rust, Venezia 1889)", "completed": true },
-        { "id": "ALC-011-3", "title": "Créer le dépôt distant GitHub et lier le local (git remote add origin …)", "completed": false },
-        { "id": "ALC-011-4", "title": "Effectuer le premier commit propre de la structure globale et pousser la première branche vers GitHub", "completed": false }
+        {
+          "id": "ALC-011-1",
+          "title": "Initialiser le dépôt Git local à la racine et configurer un .gitignore robuste (node_modules, target/ Tauri, builds, cache)",
+          "completed": true
+        },
+        {
+          "id": "ALC-011-2",
+          "title": "Structurer les branches (main/dev) et rédiger un README.md technique (Tauri 2, SvelteKit, Rust, Venezia 1889)",
+          "completed": true
+        },
+        {
+          "id": "ALC-011-3",
+          "title": "Créer le dépôt distant GitHub et lier le local (git remote add origin …)",
+          "completed": true
+        },
+        {
+          "id": "ALC-011-4",
+          "title": "Effectuer le premier commit propre de la structure globale et pousser la première branche vers GitHub",
+          "completed": true
+        }
       ],
       "description": "Initialisation du dépôt Git local, configuration du .gitignore, branches, README, et lien vers GitHub pour la publication.",
-      "createdAt": "2026-11-14T23:30:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-11-15T00:30:00.000+01:00",
+      "completedAt": "2026-11-15T02:00:00.000+01:00"
     },
     {
       "id": "ALC-012",
       "title": "Pages de journal de travail individuel par ticket (project-tracker)",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Moyenne",
       "label": "Outils / Ops",
       "subtasks": [
-        { "id": "ALC-012-1", "title": "Créer le fichier journals.json (journaux horodatés par ticket)", "completed": true },
-        { "id": "ALC-012-2", "title": "Créer la page ticket.html (template piloté par ?id=ALC-XXX) affichant l'historique complet", "completed": true },
-        { "id": "ALC-012-3", "title": "Ajouter les liens Journal (📓) sur les cartes du Kanban et dans la sidebar", "completed": true },
-        { "id": "ALC-012-4", "title": "Ajouter la règle d'écriture automatique du journal dans .clinerules (Architecte + agents)", "completed": true }
+        {
+          "id": "ALC-012-1",
+          "title": "Créer le fichier journals.json (journaux horodatés par ticket)",
+          "completed": true
+        },
+        {
+          "id": "ALC-012-2",
+          "title": "Créer la page ticket.html (template piloté par ?id=ALC-XXX) affichant l'historique complet",
+          "completed": true
+        },
+        {
+          "id": "ALC-012-3",
+          "title": "Ajouter les liens Journal (📓) sur les cartes du Kanban et dans la sidebar",
+          "completed": true
+        },
+        {
+          "id": "ALC-012-4",
+          "title": "Ajouter la règle d'écriture automatique du journal dans .clinerules (Architecte + agents)",
+          "completed": true
+        }
       ],
       "description": "Journal de travail individuel horodaté par ticket : page dédiée, accès depuis le Kanban, et règle d'écriture automatique.",
-      "createdAt": "2026-11-14T23:10:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-11-15T00:10:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-101",
       "title": "Gestion du Transport et des Platines (Deck A & B)",
-      "status": "Backlog",
+      "status": "Terminé",
       "agent": "Maître Horloger",
       "priority": "Haute",
       "label": "UI / UX",
       "subtasks": [
-        { "id": "ALC-101-1", "title": "Connecter les états Svelte des boutons Play/Pause/Cue/Eject", "completed": false },
-        { "id": "ALC-101-2", "title": "Implémenter l'animation CSS de rotation des bobines de cassette synchronisée sur la lecture", "completed": false },
-        { "id": "ALC-101-3", "title": "Écrire les tests unitaires des actions de transport", "completed": false }
+        {
+          "id": "ALC-101-1",
+          "title": "Connecter les états Svelte des boutons Play/Pause/Cue/Eject",
+          "completed": true
+        },
+        {
+          "id": "ALC-101-2",
+          "title": "Implémenter l'animation CSS de rotation des bobines de cassette synchronisée sur la lecture",
+          "completed": true
+        },
+        {
+          "id": "ALC-101-3",
+          "title": "Écrire les tests unitaires des actions de transport",
+          "completed": true
+        }
       ],
       "description": "Implémentation complète des contrôles de transport et rétroaction visuelle des platines.",
-      "createdAt": "2026-11-15T00:00:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-11-15T01:00:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-102",
       "title": "Galvanomètres VU-mètres Balistiques",
-      "status": "Backlog",
+      "status": "Terminé",
       "agent": "Forgeron Système",
       "priority": "Moyenne",
       "label": "Audio",
       "subtasks": [
-        { "id": "ALC-102-1", "title": "Lier l'événement d'analyse spectrale Rust aux métriques RMS/Peak du frontend", "completed": false },
-        { "id": "ALC-102-2", "title": "Animer la rotation de l'aiguille galvanométrique via requestAnimationFrame (60fps)", "completed": false },
-        { "id": "ALC-102-3", "title": "Valider la fluidité visuelle et l'absence de décrochage en charge", "completed": false }
+        {
+          "id": "ALC-102-1",
+          "title": "Télémétrie RMS/Peak (dBFS) temps réel via AnalyserNode WebAudio ; métriques réactives rmsDbA/peakDbA/rmsDbB/peakDbB/isClipping dans le store",
+          "completed": true
+        },
+        {
+          "id": "ALC-102-2",
+          "title": "Animation balistique 60 fps de l'aiguille (attaque ~30 ms / relâchement ~300 ms), échelle -20..+5 dB, témoin PEAK incandescent >0 dB (maintien ~1,2 s), retour au repos à l'arrêt",
+          "completed": true
+        },
+        {
+          "id": "ALC-102-3",
+          "title": "Validation : cancelAnimationFrame au démontage (pas de fuite) + npm run check 0 erreur ; passage en En revue",
+          "completed": true
+        }
       ],
       "description": "Restauration dynamique des VU-mètres analogiques à aiguille pour les Decks A et B.",
-      "createdAt": "2026-11-15T00:00:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-11-15T01:00:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-103",
       "title": "Potentiomètres de Volume et Régulateurs de Cadence (Pitch)",
-      "status": "Backlog",
+      "status": "Terminé",
       "agent": "Maître Horloger",
       "priority": "Haute",
       "label": "UI / UX",
       "subtasks": [
-        { "id": "ALC-103-1", "title": "Coder l'interaction de glissement (drag) tactile des faders dorés", "completed": false },
-        { "id": "ALC-103-2", "title": "Câbler les valeurs de pitch et volume aux commandes IPC du moteur audio", "completed": false },
-        { "id": "ALC-103-3", "title": "Tester la précision des paliers de réglage et l'allumage des micro-LEDs", "completed": false }
+        {
+          "id": "ALC-103-1",
+          "title": "Coder l'interaction de glissement (drag) tactile des faders dorés",
+          "completed": true
+        },
+        {
+          "id": "ALC-103-2",
+          "title": "Câbler les valeurs de pitch et volume aux commandes IPC du moteur audio",
+          "completed": true
+        },
+        {
+          "id": "ALC-103-3",
+          "title": "Tester la précision des paliers de réglage et l'allumage des micro-LEDs",
+          "completed": true
+        }
       ],
       "description": "Commandes de précision pour le volume et le pitch avec indicateurs lumineux.",
-      "createdAt": "2026-11-15T00:00:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-11-15T01:00:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-104",
       "title": "Roue de Camelot & Oracle Acoustique (Console Centrale)",
-      "status": "Backlog",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Audio / UI",
       "subtasks": [
-        { "id": "ALC-104-1", "title": "Implémenter l'algorithme de calcul du plus court chemin harmonique (<= 180°)", "completed": false },
-        { "id": "ALC-104-2", "title": "Générer dynamiquement le tracé SVG du connecteur lumineux entre les deux clés", "completed": false },
-        { "id": "ALC-104-3", "title": "Afficher les conseils textuels de l'Oracle Acoustique en fonction du delta BPM", "completed": false }
+        {
+          "id": "ALC-104-1",
+          "title": "Algorithme du plus court chemin harmonique (≤180°) + libellé d'intervalle réel (MÊME CLÉ / QUINTE VOISINE / RELATIF / SAUT ÉNERGÉTIQUE / ÉCART DE {n} QUINTES) au moyeu & cartes",
+          "completed": true
+        },
+        {
+          "id": "ALC-104-2",
+          "title": "Arc SVG lumineux court (chemin harmonique ≤180°, r=246, 3 couches) rendu uniquement quand les deux clés sont chargées ; commentaire hardcodé neutralisé",
+          "completed": true
+        },
+        {
+          "id": "ALC-104-3",
+          "title": "Oracle Acoustique 100% dynamique : Conseil 1 (ΔBPM réel — alignés/écart >15% au Cut/pitch exact) + Conseil 2 (relation Camelot → mix harmonique/dissonance) + Modulation LUFS différentielle dynamique (-- LUFS au repos)",
+          "completed": true
+        },
+        {
+          "id": "ALC-104-4",
+          "title": "Validation : npm run check 0 erreur/0 warning, aucun ticket Terminé modifié, passage en En revue",
+          "completed": true
+        }
       ],
       "description": "Intelligence de mixage harmonique et affichage astrolabe de la Roue de Camelot.",
-      "createdAt": "2026-11-15T00:00:00.000Z",
-      "completedAt": null
+      "createdAt": "2026-11-15T01:00:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
     },
     {
       "id": "ALC-105",
-      "title": "Crossfader Master",
-      "status": "Backlog",
+      "title": "Crossfader Master — Loi d'atténuation à puissance égale & réconciliation finale du Backlog",
+      "status": "Terminé",
       "agent": "Forgeron Système",
       "priority": "Moyenne",
       "label": "Audio",
       "subtasks": [
-        { "id": "ALC-105-1", "title": "Intégrer le curseur horizontal avec graduation 50/50 Équilibre", "completed": false },
-        { "id": "ALC-105-2", "title": "Appliquer la loi de puissance (equal power curve) pour le mixage stéréo", "completed": false },
-        { "id": "ALC-105-3", "title": "Tester la transition fluide entre le Canal A et le Canal B", "completed": false }
+        {
+          "id": "ALC-105-1",
+          "title": "Intégrer le curseur horizontal avec graduation 50/50 Équilibre",
+          "completed": true
+        },
+        {
+          "id": "ALC-105-2",
+          "title": "Appliquer la loi de puissance (equal power curve) pour le mixage stéréo",
+          "completed": true
+        },
+        {
+          "id": "ALC-105-3",
+          "title": "Tester la transition fluide entre le Canal A et le Canal B",
+          "completed": true
+        }
       ],
       "description": "Crossfader linéaire master pour la transition fluide des flux audio.",
-      "createdAt": "2026-11-15T00:00:00.000Z",
+      "createdAt": "2026-11-15T01:00:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-106",
+      "title": "Implémentation du bloc de télémétrie Rythme & Clef sous les lecteurs (Deck A & B)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-106-1",
+          "title": "Créer le composant d'affichage compact pour la télémétrie du rythme (BPM) et de la clé Camelot sous chaque platine",
+          "completed": true
+        },
+        {
+          "id": "ALC-106-2",
+          "title": "Connecter dynamiquement les données issues du moteur audio Rust (IPC) pour alimenter ce bloc en temps réel lors du chargement des pistes",
+          "completed": true
+        },
+        {
+          "id": "ALC-106-3",
+          "title": "Vérifier la cohérence de l'affichage avec les informations de la roue centrale de Camelot",
+          "completed": true
+        },
+        {
+          "id": "ALC-106-4",
+          "title": "Valider la compilation et le rendu visuel (svelte-check sans erreur)",
+          "completed": true
+        }
+      ],
+      "description": "Ajout d'un bloc d'information dédié sous chaque lecteur (Deck A et Deck B) pour afficher clairement et de manière unifiée le rythme effectif (BPM) et la clé Camelot détectée par le backend Rust.",
+      "createdAt": "2026-11-15T11:40:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-107",
+      "title": "Correction du bug de réinitialisation des tickets lors de l'utilisation des flèches de déplacement",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "UI / Ops",
+      "subtasks": [
+        {
+          "id": "ALC-107-1",
+          "title": "Identifier la fonction de gestion des clics sur les flèches de déplacement dans le Kanban",
+          "completed": true
+        },
+        {
+          "id": "ALC-107-2",
+          "title": "Ajouter l'appel de persistance (mise à jour du state et synchronisation tasks.json / localStorage)",
+          "completed": true
+        },
+        {
+          "id": "ALC-107-3",
+          "title": "Tester le déplacement d'un ticket et vérifier qu'il conserve sa nouvelle position après actualisation",
+          "completed": true
+        }
+      ],
+      "description": "Correction du comportement où le déplacement d'un ticket via les flèches d'action revient instantanément à sa position initiale en raison d'un défaut de persistance ou de réactivité de l'état.",
+      "createdAt": "2026-11-15T11:48:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-120",
+      "title": "Refonte ergonomique et typographique du bloc Télémétrie Rythme & Clé (Decks A & B)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX",
+      "subtasks": [
+        {
+          "id": "ALC-120-1",
+          "title": "Agrandir la typographie des valeurs principales (BPM effectif et Code Camelot en text-xl/2xl bold) et renforcer les contrastes dans Deck.svelte",
+          "completed": true
+        },
+        {
+          "id": "ALC-120-2",
+          "title": "Appliquer la couleur d'accentuation du canal (Émeraude pour Deck A, Bleu Électrique pour Deck B) sur les badges Camelot et BPM",
+          "completed": true
+        },
+        {
+          "id": "ALC-120-3",
+          "title": "Supprimer ou dynamiser les valeurs statiques résiduelles (4B / 8B) dans le bandeau supérieur des cassettes",
+          "completed": true
+        },
+        {
+          "id": "ALC-120-4",
+          "title": "Valider la lisibilité visuelle dans l'app Tauri et exécuter svelte-check sans erreur",
+          "completed": true
+        }
+      ],
+      "description": "Amélioration de l'ergonomie et de la lisibilité du bloc Télémétrie Rythme & Clé sous chaque lecteur : augmentation de la taille des polices, hiérarchisation visuelle des données critiques (BPM et Camelot) et suppression des mentions statiques contradictoires.",
+      "createdAt": "2026-11-15T12:03:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-121",
+      "title": "Correction de la lisibilité des clés actives sur la Roue de Camelot (MixerCenter)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX",
+      "subtasks": [
+        {
+          "id": "ALC-121-1",
+          "title": "Décaler le rayon des marqueurs lumineux (Active Nodes) dans MixerCenter.svelte afin qu'ils ne masquent plus les libellés SVG (1A..12B)",
+          "completed": true
+        },
+        {
+          "id": "ALC-121-2",
+          "title": "Appliquer une mise en surbrillance typographique (couleur Émeraude / Bleu Électrique, gras, halo) sur les textes SVG des clés actives",
+          "completed": true
+        },
+        {
+          "id": "ALC-121-3",
+          "title": "Afficher explicitement les codes Camelot actifs des Decks A et B dans le moyeu central de la roue",
+          "completed": true
+        },
+        {
+          "id": "ALC-121-4",
+          "title": "Vérifier le rendu visuel sur la roue et valider svelte-check sans erreur",
+          "completed": true
+        }
+      ],
+      "description": "Résolution du chevauchement entre les points lumineux actifs et les libellés de clés sur la Roue de Camelot, mise en valeur des textes des clés détectées et ajout d'un rappel visuel dans le moyeu central.",
+      "createdAt": "2026-11-15T12:05:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-122",
+      "title": "Correction des commandes de transport (PLAY/REC/CUE/REW/FFWD/STOP) des platines Deck A & B",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-122-1",
+          "title": "Fix du bouton PLAY : initialiser explicitement l'état lecture à false (transport 'stopped') au chargement d'une piste pour que PLAY lance dès le premier clic",
+          "completed": true
+        },
+        {
+          "id": "ALC-122-2",
+          "title": "Nettoyage de l'interface de transport : retirer REC et CUE, ajuster l'espacement de la barre restante (REW, FFWD, PLAY, STOP, EJECT)",
+          "completed": true
+        },
+        {
+          "id": "ALC-122-3",
+          "title": "Navigation rapide ±20 s : REW (Math.max(0, t-20)) et FFWD (Math.min(durée, t+20)) sur le lecteur actif via seek()",
+          "completed": true
+        },
+        {
+          "id": "ALC-122-4",
+          "title": "Validation : npm run check / cargo check sans erreur, relecture du transport, journal horodaté (heure de Paris)",
+          "completed": true
+        }
+      ],
+      "description": "Correction des commandes de transport des deux platines : initialisation correcte de la lecture (PLAY non bloqué), nettoyage de la barre (suppression REC/CUE), navigation rapide ±20 s (REW/FFWD) et espacement ajusté (REW, FFWD, PLAY, STOP, EJECT).",
+      "createdAt": "2026-11-15T12:08:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-123",
+      "title": "Aiguilles semi-transparentes & esthétiques de la Roue de Camelot (MixerCenter)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Moyenne",
+      "label": "UI / UX",
+      "subtasks": [
+        {
+          "id": "ALC-123-1",
+          "title": "Hiérarchie des calques SVG : placer le <g> des aiguilles/indicateurs (Decks A & B) avant (en dessous de) les textes des clés 1A..12B",
+          "completed": true
+        },
+        {
+          "id": "ALC-123-2",
+          "title": "Aiguilles ajourées semi-transparentes : tracé double fin façon Breguet, stroke-opacity 0.45, vert émeraude (A) / bleu électrique (B)",
+          "completed": true
+        },
+        {
+          "id": "ALC-123-3",
+          "title": "Viseurs optiques translucides : Active Nodes en anneaux fins cerclés or/couleur de canal, fond quasi transparent fill-opacity 0.12 (loupe de lecture)",
+          "completed": true
+        },
+        {
+          "id": "ALC-123-4",
+          "title": "Valider svelte-check sans erreur et consigner l'intervention horodatée (heure de Paris) dans journals.json",
+          "completed": true
+        }
+      ],
+      "description": "Rendre les aiguilles de la Roue de Camelot semi-transparentes et esthétiques : réordonnancement des calques (aiguilles sous les textes), aiguilles squelettiques Breguet semi-transparentes, et Active Nodes convertis en viseurs optiques translucides (loupe de lecture).",
+      "createdAt": "2026-11-15T12:10:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-124",
+      "title": "Indicateur visuel d'analyse en cours lors du chargement d'une piste audio",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "UI / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-124-1",
+          "title": "État de chargement par platine : ajouter isAnalyzing (Deck A & B) activé avant load_audio_file/detect_tempo_camelot et relâché dans un bloc finally dans le store",
+          "completed": true
+        },
+        {
+          "id": "ALC-124-2",
+          "title": "Bloc Télémétrie : badge animé (animate-pulse, icône animate-spin) aux couleurs du canal avec libellé « ANALYSE MIR EN COURS… » à la place des valeurs BPM/Camelot",
+          "completed": true
+        },
+        {
+          "id": "ALC-124-3",
+          "title": "Console centrale : bandeau central ambré actif « ANALYSE DU SPECTRE & DE LA CLÉ EN COURS… » + barre lumineuse animée + balayage de l'aiguille du canal concerné",
+          "completed": true
+        },
+        {
+          "id": "ALC-124-4",
+          "title": "Validation : npm run check (0 erreur), passage du ticket en En revue et journalisation horodatée (heure de Paris)",
+          "completed": true
+        }
+      ],
+      "description": "Indicateur visuel d'analyse en cours par platine : état isAnalyzing par Deck, badge animé dans le bloc Télémétrie (BPM/Camelot masqués pendant l'analyse) et feedback ambré sur la console centrale avec balayage de l'aiguille.",
+      "createdAt": "2026-11-15T13:00:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-125",
+      "title": "Télémétrie Rythme & Clé à 3 indicateurs + cartouche de cassette dynamique (Decks A & B)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX",
+      "subtasks": [
+        {
+          "id": "ALC-125-1",
+          "title": "Grille à 3 indicateurs (grid-cols-3) de même hauteur : BPM (grand) + CLÉ CAMELOT (grand + mode) + CLÉ (notation standard via table des 24 clés)",
+          "completed": true
+        },
+        {
+          "id": "ALC-125-2",
+          "title": "Table officielle de correspondance Camelot→notation musicale (ex. 8B=C major, 7A=D minor, 12B=E major, 8A=A minor) + sous-ligne Majeur/Mineur",
+          "completed": true
+        },
+        {
+          "id": "ALC-125-3",
+          "title": "Cartouche supérieur de cassette : remplacer « 4B • 124.0 BPM » codé en dur par {camelotKey} • {effectiveBpm} BPM dans DeckA.svelte et DeckB.svelte",
+          "completed": true
+        },
+        {
+          "id": "ALC-125-4",
+          "title": "Validation : npm run check (0 erreur), passage en En revue, journalisation horodatée (heure de Paris)",
+          "completed": true
+        }
+      ],
+      "description": "Refonte du bloc Télémétrie Rythme & Clé en 3 indicateurs côte à côte (BPM, clé Camelot + mode, clé standard via table 24 clés) et dynamisation du cartouche d'en-tête de cassette ({camelotKey} • {effectiveBpm}), aux couleurs du canal.",
+      "createdAt": "2026-11-15T13:20:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-126",
+      "title": "Ergonomie sans scroll & état initial vide des platines (Decks A & B)",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "UI / UX",
+      "subtasks": [
+        {
+          "id": "ALC-126-1",
+          "title": "Suppression de l'ascenseur vertical : h-screen overflow-hidden dans +page.svelte et réduction des marges/paddings internes pour que tout (dont le Crossfader) tienne à l'écran",
+          "completed": true
+        },
+        {
+          "id": "ALC-126-2",
+          "title": "État initial vide : retirer les pistes fictives (Barcarolle Mécanique / L'Automate de Lido) des stores à l'initialisation",
+          "completed": true
+        },
+        {
+          "id": "ALC-126-3",
+          "title": "Placeholders sans piste : BPM --.-, Clé Camelot --, Clé musicale « En attente » dans le bloc Télémétrie tant que !filePath",
+          "completed": true
+        },
+        {
+          "id": "ALC-126-4",
+          "title": "Roue de Camelot : masquer l'aiguille et le viseur optique du deck vide (Deck A / Deck B)",
+          "completed": true
+        },
+        {
+          "id": "ALC-126-5",
+          "title": "Désactiver REW, FFWD, PLAY, STOP tant qu'aucun fichier n'est chargé (DeckA.svelte / DeckB.svelte)",
+          "completed": true
+        },
+        {
+          "id": "ALC-126-6",
+          "title": "Correction enharmonique de la table 24 clés : 3B→Db major, 4B→Ab major, 5B→Eb major, 6B→Bb major",
+          "completed": true
+        },
+        {
+          "id": "ALC-126-7",
+          "title": "Validation : npm run check (0 erreur), passage en En revue et journalisation horodatée (heure de Paris)",
+          "completed": true
+        }
+      ],
+      "description": "Faire tenir toute l'interface à l'écran sans scrollbar, initialiser les platines sans pistes fictives (placeholder --.- / -- / En attente), masquer aiguille et viseur des decks vides, désactiver le transport tant qu'aucun fichier n'est chargé, et corriger l'enharmonie de la table Camelot.",
+      "createdAt": "2026-11-15T14:00:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-127",
+      "title": "Récupération des pochettes d'album (pochette embarquée + fallback API musicale)",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Moyenne",
+      "label": "Audio",
+      "subtasks": [
+        {
+          "id": "ALC-127-1",
+          "title": "Extraction locale Rust : lire la pochette embarquée (lofty) lors de l'analyse et renvoyer coverData (base64 data-URL) dans TrackData",
+          "completed": true
+        },
+        {
+          "id": "ALC-127-2",
+          "title": "Client & store : décoder coverData dans coverUrl de DeckState pour l'afficher dans le cadre pochette",
+          "completed": true
+        },
+        {
+          "id": "ALC-127-3",
+          "title": "Fallback API musicale : si pas de pochette embarquée mais titre/artiste, interroger iTunes Search (artworkUrl100 → 600x600) et l'afficher",
+          "completed": true
+        },
+        {
+          "id": "ALC-127-4",
+          "title": "Validation : cargo check + npm run check (0 erreur), passage en En revue et journalisation horodatée (heure de Paris)",
+          "completed": true
+        }
+      ],
+      "description": "Afficher la pochette d'album sur les platines : extraction locale de l'image embarquée dans les tags (lofty/Symphonia) avec repli sur l'API publique iTunes Search / MusicBrainz Cover Art Archive.",
+      "createdAt": "2026-11-15T14:10:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-128",
+      "title": "Remontée du bloc Télémétrie & états vides des consoles (rigueur UI deck + roue + moyeu + oracle)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX",
+      "subtasks": [
+        {
+          "id": "ALC-128-1",
+          "title": "Déplacer le bloc Télémétrie (3 colonnes + badge ANALYSE) juste sous les 2 sliders (Volume + Pitch), avant Info/Pochette, sur DeckA et DeckB",
+          "completed": true
+        },
+        {
+          "id": "ALC-128-2",
+          "title": "En-têtes de cassette : afficher « -- • --.- BPM » en l'absence de fichier (!filePath) au lieu de 4B/8B • 124 BPM",
+          "completed": true
+        },
+        {
+          "id": "ALC-128-3",
+          "title": "Pitch initialisé à 0.0% au repos (défaut store) sans « (124.0 BPM) » en l'absence de piste ; masquer le badge OPUS 89/92 si coverUrl vide",
+          "completed": true
+        },
+        {
+          "id": "ALC-128-4",
+          "title": "Roue de Camelot : masquer l'arc harmonique doré et neutraliser la surbrillance des tranches tant que la platine concernée est vide",
+          "completed": true
+        },
+        {
+          "id": "ALC-128-5",
+          "title": "Moyeu central : afficher EN ATTENTE (au lieu de Δ=+4 et A 4B • B 8B) tant que les deux platines ne sont pas chargées",
+          "completed": true
+        },
+        {
+          "id": "ALC-128-6",
+          "title": "Console : Affinité Harmonique --%, Modulation Énergétique -- LUFS, et Oracle+itinéraires remplacés par une invite d'attente neutre tant que !bothLoaded",
+          "completed": true
+        },
+        {
+          "id": "ALC-128-7",
+          "title": "Validation : npm run check (0 erreur) puis passage du ticket en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Rendre la Télémétrie immédiatement visible sous les sliders sur chaque platine, et faire disparaître toutes les valeurs/conseils fictifs (en-têtes, OPUS, arc, tranches, moyeu, Oracle, Affinité/Modulation) tant que les pistes ne sont pas chargées.",
+      "createdAt": "2026-11-15T15:20:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-129",
+      "title": "Ergonomie de chargement des pistes (LOAD/EJECT + clic & glisser-déposer sur les cassettes)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-129-1",
+          "title": "Séparer LOAD (charger, mis en valeur quand vide) et EJECT (décharger : arrêt, vidage filePath, reset télémétrie/pochette/aiguille, disabled quand vide) ; barre grid-cols-6",
+          "completed": true
+        },
+        {
+          "id": "ALC-129-2",
+          "title": "Cassette cliquable (cursor-pointer, hover doré) + glisser-déposer (tauri://drag-drop Tauri v2) pour charger une piste, + invite « CLIQUER OU GLISSER UN FICHIER AUDIO » quand vide",
+          "completed": true
+        },
+        {
+          "id": "ALC-129-3",
+          "title": "Validation : npm run check (0 erreur), passage en En revue et journalisation horodatée (heure de Paris)",
+          "completed": true
+        }
+      ],
+      "description": "Rendre le chargement explicite et ergonomique sur chaque lecteur : bouton LOAD (sélecteur) et EJECT (déchargement) distincts, cassette cliquable avec glisser-déposer d'un fichier audio (mp3/flac/wav/ogg/m4a) via les événements Tauri, + invite à vide.",
+      "createdAt": "2026-11-15T16:10:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-130",
+      "title": "Passe de raffinement esthétique (mode Polish Unslop) — copy, spacing, icônes, motion",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Moyenne",
+      "label": "UI / UX",
+      "subtasks": [
+        {
+          "id": "ALC-130-1",
+          "title": "Copy & Type : retirer les badges techniques (ALC-120/125), alléger les intitulés (VOLUME CANAL, CADENCE (PITCH), NIVEAU ANALOGIQUE)",
+          "completed": true
+        },
+        {
+          "id": "ALC-130-2",
+          "title": "Spacing & Layout : rééquilibrer marges/paddings des colonnes pour un alignement horizontal (conserve h-screen overflow-hidden)",
+          "completed": true
+        },
+        {
+          "id": "ALC-130-3",
+          "title": "Icons & Details : uniformiser taille/stroke des icônes transport + Oracle, affiner micro-bordures laiton et états hover/active",
+          "completed": true
+        },
+        {
+          "id": "ALC-130-4",
+          "title": "Motion : rotation fluide des bobines uniquement si reading (isPlaying) ; transition cubic-bezier balistique sur aiguilles galvanomètres + Roue",
+          "completed": true
+        },
+        {
+          "id": "ALC-130-5",
+          "title": "Validation : npm run check (0 erreur), passage en En revue et journalisation horodatée (heure de Paris)",
+          "completed": true
+        }
+      ],
+      "description": "Passe d'épuration esthétique (skill unslop, mode Polish) : micro-copy épurée, badges techniques supprimés, rythme vertical resserré, icônes cohérentes, motion balistique subtile — en préservant Venezia 1889, cassettes photoréalistes, galvanomètres et Roue de Camelot.",
+      "createdAt": "2026-11-15T17:10:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-131",
+      "title": "État temps réel & ergonomie (header MOTEUR AUDIO, bandeau harmonique, Affinité/itinéraires dynamiques, cartouches crossfader)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-131-1",
+          "title": "Header : MOTEUR AUDIO (48 KHZ • PRÊT / ANALYSE MIR EN COURS) + MASTER CLOCK SYNC dynamique (EN ATTENTE / MAÎTRE DECK / Δ BPM / TEMPOS ALIGNÉS)",
+          "completed": true
+        },
+        {
+          "id": "ALC-131-2",
+          "title": "Bandeau central : supprimer « LANCER L'ANALYSE », afficher l'état harmonique temps réel (attente / analyse / 1 piste / verdict aux 2 pistes)",
+          "completed": true
+        },
+        {
+          "id": "ALC-131-3",
+          "title": "Affinité Harmonique (%) + Itinéraires dynamiques à partir de la vraie clé du Deck A (DIRECTE / DESCENDANTE / RELATIF), sans valeurs codées en dur",
+          "completed": true
+        },
+        {
+          "id": "ALC-131-4",
+          "title": "Cartouches crossfader DECK A/B (% + titre + clé, halo selon position) cliquables (100/50/100)",
+          "completed": true
+        },
+        {
+          "id": "ALC-131-5",
+          "title": "Typo : -- → — (cadratin) dans les titres/placeholders ; npm run check (0 erreur) ; passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Rendre le header, le bandeau central et le crossfader dépendants de l'état réel (chargement, analyse, BPM, clés Camelot) : MOTEUR AUDIO, verdict harmonique, Affinité et itinéraires calculés dynamiquement, cartouches crossfader cliquables — mode Polish unslop.",
+      "createdAt": "2026-11-15T18:00:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-133",
+      "title": "Oracle Acoustique neutre au repos & mise en place du Favicon / icônes Tauri",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Moyenne",
+      "label": "UI / Ops",
+      "subtasks": [
+        {
+          "id": "ALC-133-1",
+          "title": "Oracle Acoustique : bloc d'attente neutre tant que les deux pistes ne sont pas chargées + sous-libellés des cartes --% / -- LUFS neutralisés (En attente d'analyse / de mesure)",
+          "completed": true
+        },
+        {
+          "id": "ALC-133-2",
+          "title": "Copier sources/alchemixII_logo.png → static/favicon.png (et project-tracker/favicon.png si pertinent)",
+          "completed": true
+        },
+        {
+          "id": "ALC-133-3",
+          "title": "Mettre à jour src/app.html (link rel=icon favicon.png) et exécuter npx tauri icon pour générer src-tauri/icons/",
+          "completed": true
+        },
+        {
+          "id": "ALC-133-4",
+          "title": "Validation : npm run check (0 erreur), passage en En revue et journalisation horodatée (heure de Paris)",
+          "completed": true
+        }
+      ],
+      "description": "Neutraliser l'Oracle Acoustique et les sous-libellés des cartes d'attente tant qu'aucune piste n'est chargée, et déployer le favicon (static/favicon.png + app.html) ainsi que les icônes de fenêtre/tâche Tauri (tauri icon).",
+      "createdAt": "2026-11-15T18:30:00+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-134",
+      "title": "Métadonnées enrichies — MusicBrainz & Cover Art Archive (Genre / Année réels)",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / API",
+      "subtasks": [
+        {
+          "id": "ALC-134-1",
+          "title": "Nettoyage heuristique du nom de fichier (extension, préfixes numériques, underscore, [Official Video], (320kbps)) pour extraire artiste + titre exploitables",
+          "completed": true
+        },
+        {
+          "id": "ALC-134-2",
+          "title": "Requête MusicBrainz (recording?fmt=json&limit=1, UA AlcheMixII/1.0, rate-limit 1 req/s) → titre, artiste, année, genre (tags), release MBID",
+          "completed": true
+        },
+        {
+          "id": "ALC-134-3",
+          "title": "Repli pochette Cover Art Archive (coverartarchive.org/release/{mbid}/front-500) si ni lofty ni iTunes n'ont fourni de coverUrl",
+          "completed": true
+        },
+        {
+          "id": "ALC-134-4",
+          "title": "Afficher Genre & Année réels dans la carte Informations de DeckA/DeckB ; valider npm run check (0 erreur) ; passer en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Enrichissement des métadonnées (genre, année, artiste/titre réels) via MusicBrainz + Cover Art Archive quand les tags lofty sont absents/génériques.",
+      "createdAt": "2026-11-15T19:40:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-135",
+      "title": "Harmonic Bridge Finder — Pont de clé Camelot via Deezer (Oracle Acoustique)",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / UI / API",
+      "subtasks": [
+        {
+          "id": "ALC-135-1",
+          "title": "Détection du conflit harmonique (Roue ≥ 3 quintes, dissonant) + calcul clé pivot à mi-chemin + tempo cible (bpmA+bpmB)/2",
+          "completed": true
+        },
+        {
+          "id": "ALC-135-2",
+          "title": "Recherche jusqu'à 3 pistes ponts via l'API publique Deezer (titre, artiste, pochette mini, flux preview MP3 30s)",
+          "completed": true
+        },
+        {
+          "id": "ALC-135-3",
+          "title": "Encart « PONTS HARMONIQUES SUGGÉRÉS (CLÉ PIVOT {k}) » dans l'Oracle Acoustique, bouton Play/Stop de pré-écoute 30s, h-screen overflow-hidden, esthétique Venezia",
+          "completed": true
+        },
+        {
+          "id": "ALC-135-4",
+          "title": "Validation : npm run check (0 erreur, 0 warning) ; passer en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Lorsque deux platines chargées sont en conflit harmonique (≥3 quintes), l'Oracle propose 3 pistes ponts (Deezer) calées sur une clé pivot avec pré-écoute 30 s.",
+      "createdAt": "2026-11-15T19:40:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-132",
+      "title": "Console centrale & platines — Jauges segmentées, Marquee, Timer ROLL & Potentiomètre LOW EQ",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-132-1",
+          "title": "Jauges analogiques multi-segments (14 segments laiton/LED) sous Affinité Harmonique (progressive cuivre→émeraude/or) et Modulation Énergétique (bipolaire centrée sur lufsDelta) dans MixerCenter.svelte",
+          "completed": true
+        },
+        {
+          "id": "ALC-132-2",
+          "title": "Défilement horizontal doux (Marquee) des titres longs — étiquette cassette (DeckA/B) + cartouches Crossfader ; détection de débordement, fondu latéral, pause au survol",
+          "completed": true
+        },
+        {
+          "id": "ALC-132-3",
+          "title": "Chronomètre horloger sur le badge ROLL (tabular-nums, synchro position MM:SS) + cliquable pour basculer temps écoulé / temps restant",
+          "completed": true
+        },
+        {
+          "id": "ALC-132-4",
+          "title": "Knob rotatif cranté laiton/cuivre LOW EQ (glissement vertical + molette) sur DeckA/DeckB → atténue les basses via BiquadFilterNode lowshelf (120 Hz) sur la sortie du lecteur",
+          "completed": true
+        },
+        {
+          "id": "ALC-132-5",
+          "title": "Validation : console dans h-screen overflow-hidden sans ascenseur ; npm run check 0 erreur/0 warning ; aucun ticket Terminé modifié ; passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Polish materialisé de la console : jauges segmentées laiton/LED, marquee des titres longs, chronomètre ROLL cliquable et potentiomètre LOW EQ en laiton relié au filtre grave du lecteur.",
+      "createdAt": "2026-11-15T20:00:00.000+01:00",
+      "completedAt": "2026-11-15T20:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-136",
+      "title": "Diagnostic & correction du pipeline de lecture audio & liaison galvanomètre WebAudio/Tauri",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Critique",
+      "label": "Audio / IPC",
+      "subtasks": [
+        {
+          "id": "ALC-136-1",
+          "title": "Réveil explicite de l'AudioContext (resume au PLAY) + routage complet Source→BiquadFilter(lowshelf)→Gain(vol×crossfader égal-puissance)→Analyser→destination",
+          "completed": true
+        },
+        {
+          "id": "ALC-136-2",
+          "title": "Chargement fiable de la source Tauri v2 : commande Rust read_audio_file_bytes → URL.createObjectURL(blob) révoquée à EJECT/rechargement (aucun blocage CORS asset://)",
+          "completed": true
+        },
+        {
+          "id": "ALC-136-3",
+          "title": "Galvanomètre relié à l'AnalyserNode (échantillons réels → rmsDb/peakDb, voyant PEAK) + gestion d'erreur audio explicite (console.error + deck.lastError)",
+          "completed": true
+        },
+        {
+          "id": "ALC-136-4",
+          "title": "Validation : npm run check + cargo check (0 erreur) ; aucun ticket Terminé modifié ; passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Réparation du pipeline de lecture audio réel : création d'un Player WebAudio (media element + source) branché sur le galvanomètre et tous les contrôles de platine.",
+      "createdAt": "2026-11-15T20:40:00.000+01:00",
       "completedAt": null
+    },
+    {
+      "id": "ALC-137",
+      "title": "Volume & Crossfader (courbe franche, affichage), Cassettes (bobines rAF différentielles) & Égaliseur analogique 2 bandes + typo",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "Audio / UI / UX",
+      "subtasks": [
+        {
+          "id": "ALC-137-1",
+          "title": "Volume Canal : conversion 10^(volumeDb/20), gain 0 strict en butée gauche minimale, τ setTargetAtTime 0.015 s (imédiatement réactif au volume + crossfader)",
+          "completed": true
+        },
+        {
+          "id": "ALC-137-2",
+          "title": "Crossfader : sens gauche=100% CANAL A (cos=1/sin=0) / droite=100% CANAL B ; pctA=100-value, pctB=value + highlight des cartouches alignés",
+          "completed": true
+        },
+        {
+          "id": "ALC-137-3",
+          "title": "Rotation bobines pilotée par rAF (rotate angle, vitesse différentielle selon elapsed/duration) + défilement bande + lueur galet/tête de lecture",
+          "completed": true
+        },
+        {
+          "id": "ALC-137-4",
+          "title": "Refonte ÉGALISEUR ANALOGIQUE 2 bandes pleine largeur : LOW EQ (120 Hz) + HIGH EQ (3.2 kHz, highshelf dans Player) ; suppression du bandeau isolé",
+          "completed": true
+        },
+        {
+          "id": "ALC-137-5",
+          "title": "Normalisation typo -- → — des titres (extraction lofty incluse) ; h-screen overflow-hidden ; npm run check 0/0 ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Corrections audio (volume franche, crossfader), animation mécanique réaliste des cassettes (bobines rAF), égaliseur analogique 2 bandes et nettoyage typographique.",
+      "createdAt": "2026-11-15T20:50:00.000+01:00",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-138",
+      "title": "Correction effective du gain audio Volume/Crossfader & déplacement du Crossfader dans la console centrale",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Critique",
+      "label": "Audio / UI",
+      "subtasks": [
+        {
+          "id": "ALC-138-1",
+          "title": "Diagnostic + réparation : player en rune $state (effets ré-appliqués au gain), setOutputGain via cancelScheduledValues + setValueAtTime, targetGain 0 strict quand volume/crossfader coupe ; aucun flux parallèle",
+          "completed": true
+        },
+        {
+          "id": "ALC-138-2",
+          "title": "Supprimer la barre Crossfader inférieure de +page + cartouches redondants ; intégrer un Crossfader compact dans MixerCenter sous Itinéraires/Ponts (LED ambre, graduations A/50-50/B, drag + clic A/centre/B, recentrage)",
+          "completed": true
+        },
+        {
+          "id": "ALC-138-3",
+          "title": "Validation : npm run check 0 erreur/0 warning ; aucun ticket Terminé modifié ; aérer les 3 colonnes sans ascenseur ; passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Gain audio réellement appliqué par le Player actif (rune $state + setValueAtTime) et Crossfader Master déplacé dans la console centrale sous l'Oracle.",
+      "createdAt": "2026-11-15T21:10:00.000+01:00",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-139",
+      "title": "Sliders EQ Graves/Aigus horizontaux & Purge cache / POWER OFF Tauri",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / UI / Ops",
+      "subtasks": [
+        {
+          "id": "ALC-139-1",
+          "title": "Remplacer les BrassKnob LOW/HIGH EQ par 2 sliders horizontaux dorés (style faders, drag + molette + double-clic reset 0.0 dB), graduation -6..+6 centre 0 dB, reliés à setLowShelf/setHighShelf (DeckA/DeckB)",
+          "completed": true
+        },
+        {
+          "id": "ALC-139-2",
+          "title": "shutdownAndPurgeCache() : stop decks + pré-écoute Deezer, fermeture AudioContext/release blob URLs + cache métadonnées, purge caches/sessionStorage/localStorage temporaire, fermeture propre Tauri (commande Rust exit_app)",
+          "completed": true
+        },
+        {
+          "id": "ALC-139-3",
+          "title": "Bouton POWER OFF dans le header (+page, style Venezia, icône power, lueur cuivre/rubis, modale de confirmation 'Couper l'alimentation et vider le cache ?')",
+          "completed": true
+        },
+        {
+          "id": "ALC-139-4",
+          "title": "Validation : npm run check + cargo check (0 erreur/0 warning) ; h-screen overflow-hidden sans ascenseur ; aucun ticket Terminé modifié ; passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Filtres graves/aigus transformés en sliders horizontaux cohérents avec les faders, et arrêt propre de l'app (purge cache + POWER OFF).",
+      "createdAt": "2026-11-15T21:20:00.000+01:00",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-140",
+      "title": "Favicon vectoriel AlcheMix II & onglet LIBRAIRIE & compteur ROLL agrandi",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Moyenne",
+      "label": "UI / UX / Ops",
+      "subtasks": [
+        {
+          "id": "ALC-140-1",
+          "title": "Favicon vectoriel haute netteté : static/favicon.svg (diapason + engrenage doré sur ébène) + static/favicon.png ; déclarations SVG+PNG dans src/app.html ; bundle.icon window Tauri synchronisé",
+          "completed": true
+        },
+        {
+          "id": "ALC-140-2",
+          "title": "3e onglet LIBRAIRIE dans la console centrale (MixerCenter) + panneau d'attente 'ARCHIVES & LIBRAIRIE MUSICALE…' sans défilement (h-screen overflow-hidden)",
+          "completed": true
+        },
+        {
+          "id": "ALC-140-3",
+          "title": "Agrandir le badge ROLL sur DeckA/B (mono tabulaire texte plus grand, padding renforcé, cadre doré chronographe) en conservant le basculement clic écoulé/restant",
+          "completed": true
+        },
+        {
+          "id": "ALC-140-4",
+          "title": "Validation : npm run check 0 erreur/0 warning ; aucun ticket Terminé modifié ; passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Favicon vectoriel de l'emblème AlcheMix II, nouvel onglet LIBRAIRIE dans la console centrale et compteur ROLL agrandi type chronographe.",
+      "createdAt": "2026-11-15T21:35:00.000+01:00",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-141",
+      "title": "Arbitrage harmonique hybride : croisement DSP local + références AcousticBrainz/MusicBrainz",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / API",
+      "subtasks": [
+        {
+          "id": "ALC-141-1",
+          "title": "Exposer key_confidence (0..1) du moteur DSP Rust (dérivé de (corr_max − corr_2nd)/corr_max) via AudioAnalysis + TrackData",
+          "completed": true
+        },
+        {
+          "id": "ALC-141-2",
+          "title": "Récupération de la clé externe AcousticBrainz (low-level, sans clé) depuis le Recording MBID → tonal.key_key/key_scale/key_strength → Camelot 1A-12B",
+          "completed": true
+        },
+        {
+          "id": "ALC-141-3",
+          "title": "resolveHybridCamelotKey (consensus / voisinage API-si-fiable / divergence→DSP prioritaire) + micro-indicateur DSP / DSP+API ✓ / ARBITRÉ dans la télémétrie CLÉ CAMELOT avec infobulle",
+          "completed": true
+        },
+        {
+          "id": "ALC-141-4",
+          "title": "Validation : npm run check + cargo check + cargo test --lib (0 erreur, 14/14) ; aucun ticket Terminé modifié ; passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Croise l'analyse tonale DSP (confiance exposée) avec les références harmoniques externes AcousticBrainz/MusicBrainz via un arbitre hybride.",
+      "createdAt": "2026-11-15T21:48:00.000+01:00",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-142",
+      "title": "Atelier Beatgrid, Auto-Loop Roll & Synchronisation Mashup dans la console centrale",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-142-1",
+          "title": "BeatgridView.svelte : barre d'outils (ZOOM 4/8/16 MES), Vernier de phase (±ms + LOCK%), CIBLE TAPE A|B + SET 1.1 / ◄► (±10ms) / ÷2×2 ; affiché dans MixerCenter quand onglet BEATGRID",
+          "completed": true
+        },
+        {
+          "id": "ALC-142-2",
+          "title": "Double onde superposée Tape A (émeraude) / Tape B (bleu) + mini-barres panoramiques + cadre doré zoomé + aiguille dorée MESURE XX.X + grille hiérarchisée dorée (défilé 60 fps) + 4 Hot Cues INTRO/DROP/ACAP/OUTRO par platine",
+          "completed": true
+        },
+        {
+          "id": "ALC-142-3",
+          "title": "Player.setQuantizedLoop(beats)/clearLoop (T_beat=60/BPM) ; barres AUTO-LOOP A/B (1/2,1,4,8,16,EXIT) + ▲ IN/OUT ; cartes Tapé Pivot / Récepteur + bouton ALIGNER TEMPO & PHASE",
+          "completed": true
+        },
+        {
+          "id": "ALC-142-4",
+          "title": "Validation : h-screen overflow-hidden sans ascenseur ; npm run check 0/0 ; aucun ticket Terminé modifié ; passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Atelier complet Beatgrid (maquette Alchemix2 0.7) intégré à la console centrale : formes d'onde en temps réel, hot cues, auto-loop quantifié et alignement tempo/phase.",
+      "createdAt": "2026-11-15T22:02:00.000+01:00",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-143",
+      "title": "Assistant de transition harmonique dans l'atelier Beatgrid (BridgeSuggester + Smart Filter)",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "UI / UX / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-143-1",
+          "title": "harmony.ts : helpers purs partagés (parseCamelot, relation ring/rel, affinité, verdict, intervalle, pivot, isDissonant) ; MixerCenter refactoré pour consommer la source unique",
+          "completed": true
+        },
+        {
+          "id": "ALC-143-2",
+          "title": "BridgeSuggester.svelte : bandeau d'alerte activé si écart ≥ 3 quintes — clé pivot suggérée + raccourci Roue de Camelot ; intégré dans BeatgridView",
+          "completed": true
+        },
+        {
+          "id": "ALC-143-3",
+          "title": "Smart Filter : bande médium (peaking ~900 Hz) dans Player + smartFilterDb store + toggle dans BridgeSuggester ; réduction auto médiums/basses si clés incompatibles × activé (via $effect DeckA/DeckB)",
+          "completed": true
+        },
+        {
+          "id": "ALC-143-4",
+          "title": "Validation : npm run check 0/0 ; aucun ticket Terminé modifié ; ALC-143 en En revue ; journaux horodatés + meta.updatedAt",
+          "completed": true
+        }
+      ],
+      "description": "Assistant de transition harmonique intégré à l'atelier Beatgrid : détection de l'écart harmonique (≥ 3 quintes Camelot), suggestion de clé pivot et raccourci Roue de Camelot, et mode Smart Filter réduisant automatiquement médiums/basses lors d'une superposition de clés incompatibles.",
+      "createdAt": "2026-11-15T22:30:00.000+01:00",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-144",
+      "title": "Waveform harmonique secondaire (heatmap camelot) intégrée à l'atelier Beatgrid",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "UI / UX / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-144-1",
+          "title": "Conserver la waveform rythmique principale (enveloppe brute, transitoires, grille hiérarchisée), l'aiguille dorée centrale partagée, le vernier ±X.X ms et les Hot Cues sur chaque Deck (A émeraude / B bleu)",
+          "completed": true
+        },
+        {
+          "id": "ALC-144-2",
+          "title": "Heatmap harmonique : analyse de la clé par fenêtres temporelles en Rust (key_timeline) exposée via TrackData/KeySeg + sous-piste ColorHeatmap sous chaque waveform (blocs colorés segmentés le long de la frise)",
+          "completed": true
+        },
+        {
+          "id": "ALC-144-3",
+          "title": "Intégration UI des deux flux dans BeatgridView.svelte sans défilement vertical (h-screen overflow-hidden préservé)",
+          "completed": true
+        },
+        {
+          "id": "ALC-144-4",
+          "title": "Validation : npm run check 0/0 + cargo check OK ; aucun ticket Terminé modifié ; ALC-144 en En revue ; journaux horodatés + meta.updatedAt",
+          "completed": true
+        }
+      ],
+      "description": "Ajout d'une waveform harmonique secondaire (heatmap Camelot) sous la waveform rythmique de chaque platine dans l'atelier Beatgrid : analyse de l'évolution des clés par segments temporels (backend) et affichage en blocs colorés pour repérer modulations tonales et zones de clash, sans introduire de défilement vertical.",
+      "createdAt": "2026-11-15T22:50:00.000+01:00",
+      "completedAt": null
+    },
+    {
+      "id": "ALC-145",
+      "title": "Corrections UI atelier Beatgrid : dynamique des barres, identité chromatique A/B, cartes compactes, Hot Cues dédoublés",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-145-1",
+          "title": "Dynamique des barres : fin des barres 100 % (piste A) et du bloc bleu plat → barres dorées saturées (piste B) — normalisation par percentile (92e) + compression douce (pow 1/1.6), seuil peak > 0.66, hauteur plafonnée à 92 % dans visibleBars",
+          "completed": true
+        },
+        {
+          "id": "ALC-145-2",
+          "title": "Identité chromatique rétablie : pics en émeraude clair (Tape A) / bleu clair (Tape B), sous-basses teintées du canal ; doré #edbf7a réservé à l'aiguille, grille, marqueurs et cadres panoramiques",
+          "completed": true
+        },
+        {
+          "id": "ALC-145-3",
+          "title": "Cartes comparatives compactes : une rangée dense (Tag • BPM • clé) avec ALIGNER TEMPO & PHASE centré — suppression de l'espace vide sous le crossfader, h-screen overflow-hidden préservé",
+          "completed": true
+        },
+        {
+          "id": "ALC-145-4",
+          "title": "Hot Cues dédoublés par piste : deux rangées étiquetées Tape A (émeraude) / Tape B (bleu), 4 repères INTRO/DROP/ACAP/OUTRO chacune, liées à deckA.hotCues / deckB.hotCues",
+          "completed": true
+        },
+        {
+          "id": "ALC-145-5",
+          "title": "Validation : npm run check 0/0 ; h-screen overflow-hidden ; aucun ticket Terminé modifié ; passage en En revue + journaux horodatés",
+          "completed": true
+        }
+      ],
+      "description": "Corriger l'atelier Beatgrid (BeatgridView.svelte) : rendre la dynamique des formes d'onde lisible (kick/snare/break distincts, sans saturation 100 % ni bascule brutale bleu→doré à droite), rétablir l'identité chromatique par piste (A émeraude / B bleu, au lieu du doré/cuivré), compacter les cartes comparatives PIVOT/RÉCEPTEUR pour supprimer l'espace vide sous le crossfader, et dédoubler les Hot Cues par platine.",
+      "createdAt": "2026-11-16T10:30:00.000+01:00",
+      "completedAt": "2026-11-16T11:20:00.000+01:00"
+    },
+    {
+      "id": "ALC-146",
+      "title": "Segmentation sonore (RMS 3 bandes + tempo/clé locaux) & waveform Canvas 2D 60fps avec calques TEMPO/CLÉS",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "UI / UX / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-146-1",
+          "title": "Extraction segmentée Rust : ajouter segments: Vec<TrackSegment> à AudioAnalysis + struct TrackSegment (startSec/endSec, rmsLow/rmsMid/rmsHigh normalisés 0..1, localBpm, localCamelot) via analyze_segments (fenêtre glissante ~4 s, hop 50 %) réutilisant estimate_tuning/hpcp_chroma/bass_chroma/detect_key_from/analyze_bpm ; exposer dans TrackData (commands/mod.rs)",
+          "completed": true
+        },
+        {
+          "id": "ALC-146-2",
+          "title": "État réactif : deckSegmentsA/B en $state.raw<TrackSegment[]> + beatgridOverlayMode = $state<'tempo'|'camelot'> dans mixer.svelte.ts ; sélecteur CALQUE [ TEMPO | CLÉS ] dans la barre d'outils BeatgridView ; Hot Cues A/B conservés dédoublés (émeraude/bleu, hérités d'ALC-145)",
+          "completed": true
+        },
+        {
+          "id": "ALC-146-3",
+          "title": "Rendu Canvas 2D 60fps : remplacer les barres SVG A/B par deux <canvas> haute densité (devicePixelRatio) autour de l'aiguille dorée — sculpture 3 bandes (sub cuivre #b87333, corps #10b981 A / #3b82f6 B, aigus or), calque TEMPO (courbe localBpm + halo ambré si dérive > ±0.5 BPM), calque CLÉS (ruban segmenté au pied + liseré cuivré si conflit harmonique) ; cartes comparatives resserrées, h-screen overflow-hidden conservé",
+          "completed": true
+        },
+        {
+          "id": "ALC-146-4",
+          "title": "Validation : cargo check 0 warning ; npm run check 0/0 ; tests backend 14/14 ; aucun ticket Terminé (dont ALC-143/144) modifié ; passage en En revue + journalisation horodatée (Europe/Paris)",
+          "completed": true
+        }
+      ],
+      "description": "Ajouter une segmentation sonore fine du morceau (RMS par bandes de fréquence sub/médium/aigus, tempo local et clé Camelot locale par fenêtre glissante ~4 s) côté Rust, la propager à l'état réactif Svelte en $state.raw, et remplacer la waveform en barres SVG par un rendu Canvas 2D haute densité 60fps sculptant la véritable dynamique fréquentielle avec deux calques au choix (TEMPO : dérive du tempo local ; CLÉS : modulations harmoniques via clés locales). NB : le périmètre originalement demandé sous l'ID ALC-143 a été renuméroté ALC-146 car ALC-143/144 sont des tickets Terminés immuables (règle de gouvenance).",
+      "createdAt": "2026-11-16T11:30:00.000+01:00",
+      "completedAt": "2026-11-16T12:10:00.000+01:00"
+    },
+    {
+      "id": "ALC-147",
+      "title": "Séparation visuelle : 2 pistes dédiées sous les waveforms principales pour l'évolution du Tempo et les Clés Camelot",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "UI / UX / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-147-1",
+          "title": "Épurer les 2 formes d'onde principales : retirer le ruban Camelot et la courbe de BPM des ondes du haut (sculpture fréquentielle 3 bandes seule : cuivre / émeraude-bleu / or) + grille rythmique + aiguille dorée centrale",
+          "completed": true
+        },
+        {
+          "id": "ALC-147-2",
+          "title": "Ajouter 2 pistes télémétriques dédiées sous les ondes principales (~36 px chacune : émeraude Tape A / bleu Tape B), traversées par la même aiguille dorée, synchro zoom (4/8/16 MES) et elapsedSeconds, branchées sur CALQUE [ TEMPO | CLÉS ] : TEMPO (courbe local_bpm + BPM instantané + halo ambré si variation > ±0.5 BPM) / CLÉS (blocs segmentés Camelot + surlignage d'alerte si clash A vs B)",
+          "completed": true
+        },
+        {
+          "id": "ALC-147-3",
+          "title": "Validation : h-screen overflow-hidden sans scroll ; npm run check 0/0 ; mise à jour docs/SPECIFICATIONS.md ; aucun ticket Terminé modifié (dont ALC-143/144) ; passage en En revue + journaux horodatés",
+          "completed": true
+        }
+      ],
+      "description": "Séparer l'affichage analytique des formes d'onde principales en créant 2 pistes dédiées supplémentaires juste en dessous (une Tape A émeraude, une Tape B bleu), porteuses de l'analyse Tempo (local_bpm) et Clés Camelot (blocs segmentés), branchées sur le sélecteur CALQUE [ TEMPO | CLÉS ], en exploitant l'espace vertical libre au-dessus du Crossfader et en conservant h-screen overflow-hidden. NB : le périmètre demandé sous l'ID ALC-144 a été renuméroté ALC-147 car ALC-143/144 sont des tickets Terminés immuables (règle de gouvenance).",
+      "createdAt": "2026-11-16T12:20:00.000+01:00",
+      "completedAt": "2026-11-16T12:45:00.000+01:00"
+    },
+    {
+      "id": "ALC-148",
+      "title": "Agrandissement des formes d'onde principales du Beatgrid (lisibilité transitoires / sub-basses / grille)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Moyenne",
+      "label": "UI / UX",
+      "subtasks": [
+        {
+          "id": "ALC-148-1",
+          "title": "Porter la hauteur des 2 conteneurs de forme d'onde principale (Tape A et Tape B) de h-16 (64 px) à 160 px, et aligner les canvas haute densité (devicePixelRatio) via une constante partagée WAVE_H",
+          "completed": true
+        },
+        {
+          "id": "ALC-148-2",
+          "title": "Vérifier/adapter le redimensionnement devicePixelRatio des canvas waveCanvasA/B à la nouvelle hauteur et le dessin des 3 bandes fréquentielles (rms_low / rms_mid / rms_high) pour occuper généreusement l'espace (scaling déjà proportionnel à cssH)",
+          "completed": true
+        },
+        {
+          "id": "ALC-148-3",
+          "title": "Validation : npm run check 0/0 ; h-screen overflow-hidden sans ascenseur conservé ; mise à jour docs/SPECIFICATIONS.md ; aucun ticket Terminé modifié ; passage en En revue + journaux horodatés",
+          "completed": true
+        }
+      ],
+      "description": "Agrandir nettement (160 px) les formes d'onde principales Tape A et Tape B de l'atelier Beatgrid pour rendre les transitoires, les sub-basses et les repères de grille beaucoup plus lisibles, en utilisant une constante hauteur partagée (WAVE_H) pour que le redimensionnement Canvas devicePixelRatio et l'amplitude des 3 bandes fréquentielles s'adaptent automatiquement, tout en conservant h-screen overflow-hidden sans ascenseur.",
+      "createdAt": "2026-11-16T12:50:00.000+01:00",
+      "completedAt": "2026-11-16T13:05:00.000+01:00"
+    },
+    {
+      "id": "ALC-149",
+      "title": "Lisibilité, ergonomie débutant & dimensionnement vertical du Beatgrid (hauteurs 200/60 px, octave BPM, vocabulaire Platine Maître/Synchro, conseil d'action)",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-149-1",
+          "title": "Agrandir les 4 pistes visuelles : formes d'onde principales à 200 px (WAVE_H) et pistes télémétriques à 60 px (TELE_H = 60), constants partagées markup+draw, scaling devicePixelRatio auto proportionnel à cssH",
+          "completed": true
+        },
+        {
+          "id": "ALC-149-2",
+          "title": "Cohérence BPM : normalisation d'octave du local_bpm par segment dans l'octave du BPM global de la platine (0.75×global ≤ local ≤ 1.35×global, ×2 ou ÷2) via normOctaveBpm appliqué à la courbe TEMPO et à la valeur instantanée",
+          "completed": true
+        },
+        {
+          "id": "ALC-149-3",
+          "title": "Vocabulaire débutant : cartes renommées Platine A • Maître / Platine B • Synchro, Set 1.1 → Caler Temps 1, indicateur LOCK → RYTHME VERROUILLÉ ✓ (écart ms en infobulle), micro-légende des 3 couleurs d'onde dans l'en-tête",
+          "completed": true
+        },
+        {
+          "id": "ALC-149-4",
+          "title": "Séparation symétrique Hot Cues + Auto-Loops en 2 colonnes (Platine A à gauche / B à droite) + bandeau contexte conseil d'action 1 ligne (guidage débutant par état des platines)",
+          "completed": true
+        },
+        {
+          "id": "ALC-149-5",
+          "title": "Validation : npm run check 0/0 ; h-screen overflow-hidden conservé ; docs/SPECIFICATIONS.md mis à jour ; aucun ticket Terminé modifié ; passage en En revue + journaux horodatés",
+          "completed": true
+        }
+      ],
+      "description": "Améliorer la lisibilité et l'ergonomie débutant de l'atelier Beatgrid : agrandir nettement (200 px / 60 px) les 2 formes d'onde et les 2 pistes télémétriques TEMPO/CLÉS, normaliser le local_bpm dans l'octave du BPM global (suppression des 240 BPM), renommer le vocabulaire (Platine A/Maître, Platine B/Synchro, Caler Temps 1, RYTHME VERROUILLÉ ✓), ajouter une micro-légende fréquentielle, séparer symétriquement Hot Cues/Auto-Loop en 2 colonnes et afficher un conseil d'action contextuel — en conservant h-screen overflow-hidden.",
+      "createdAt": "2026-11-16T13:10:00.000+01:00",
+      "completedAt": "2026-11-16T13:45:00.000+01:00"
+    },
+    {
+      "id": "ALC-150",
+      "title": "Lisibilité approfondie du Beatgrid : waveform miroir HD (barres fines, 3 couches), repères de phrasé M1/M5/M9, sens de lecture, vérité de synchronisation",
+      "status": "Terminé",
+      "agent": "Maître Horloger",
+      "priority": "Haute",
+      "label": "UI / UX / Audio",
+      "subtasks": [
+        {
+          "id": "ALC-150-1",
+          "title": "Waveform miroir haute définition : barres fines (2 px de large, ~1 px d'écart, NBARS 213) symétriques autour de l'axe central, contraste dynamique Math.pow(val, 1.5), 3 couches de l'intérieur vers l'extérieur (cuivre basses → émeraude/bleu voix → or aigus)",
+          "completed": true
+        },
+        {
+          "id": "ALC-150-2",
+          "title": "Repères de phrasé (M1, M5, M9…) sur les traits dorés toutes les 4 mesures dans les 2 grilles + mentions ◄ Passé / À venir ► de part et d'autre de l'aiguille centrale",
+          "completed": true
+        },
+        {
+          "id": "ALC-150-3",
+          "title": "Légende des couleurs déplacée en haut du cadre, sous forme claire : Cuivre : Basses • Vert/Bleu : Voix & Mélodie • Or : Aigus",
+          "completed": true
+        },
+        {
+          "id": "ALC-150-4",
+          "title": "Vérité de synchronisation : RYTHME VERROUILLÉ ✓ seulement si les 2 platines chargées et |ΔBPM| ≤ 0.2, sinon TEMPOS NON ALIGNÉS en ambre ; courbe télémétrique TEMPO recentrée sur le effectiveBpm de chaque platine",
+          "completed": true
+        },
+        {
+          "id": "ALC-150-5",
+          "title": "Validation : npm run check 0/0 ; h-screen overflow-hidden conservé ; docs/SPECIFICATIONS.md mis à jour ; aucun ticket Terminé modifié ; passage en En revue + journaux horodatés",
+          "completed": true
+        }
+      ],
+      "description": "Améliorer en profondeur la lisibilité de la vue Beatgrid pour un DJ débutant : remplacer les rectangles empilés par une waveform miroir haute définition (barres fines 2px, contraste dynamique, 3 couches de l'intérieur vers l'extérieur), afficher les repères de phrasé M1/M5/M9 sur les traits dorés et le sens de lecture ◄ Passé / À venir ►, déplacer la légende des couleurs en haut du cadre, et rendre la synchronisation honnête (RYTHME VERROUILLÉ seulement si platines chargées et tempos effectifs alignés ≤ 0.2 BPM, sinon TEMPOS NON ALIGNÉS en ambre) tout en recalant la courbe TEMPO sur le effectiveBpm.",
+      "createdAt": "2026-11-16T13:50:00.000+01:00",
+      "completedAt": "2026-11-16T14:20:00.000+01:00"
+    },
+    {
+      "id": "ALC-151",
+      "title": "Calibration & correction de précision de l'algorithme de détection de clé Camelot dans audio.rs",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / DSP",
+      "subtasks": [
+        {
+          "id": "ALC-151-1",
+          "title": "Auditer & corriger la projection HPCP & la table Camelot : repli des 36 bacs en 12 classes par DIVISION (b/3) et non modulo 12 (corrige le décalage de tonique, ex. A maj p=9 détecté D♯/E♭) ; bande harmonique 100–2500 Hz ; accordage fin sur 36 bacs avant repli ; normalisation Z-score des profils (KS/Temperley/Shaath/EDMA/BGATE) ; pénalité de quinte uniquement si la quinte domine la tonique ; chroma de MAGNITUDE prioritaire dans le composite (mode majeur/mineur)",
+          "completed": true
+        },
+        {
+          "id": "ALC-151-2",
+          "title": "Tests unitaires harmoniques : synthèse PCM riche en harmoniques pour La majeur (11B), Mi majeur (12B), Sol majeur (9B), La mineur (8A) + no_minor_bias_any_tonic (les 12 toniques majeures → B) et vérification des codes exacts via key_code",
+          "completed": true
+        },
+        {
+          "id": "ALC-151-3",
+          "title": "Validation : cargo test --lib 100 % vert (19 tests) ; cargo check 0 erreur/0 warning ; mise à jour docs/SPECIFICATIONS.md (§3.2 + historique) ; aucun ticket Terminé modifié ; passage en En revue + journaux horodatés",
+          "completed": true
+        }
+      ],
+      "description": "Corriger le biais systématique vers le mode mineur (2A/7A retournés au lieu de 11B/12B/9B sur des morceaux majeurs connus) de l'algorithme Camelot dans src-tauri/src/audio.rs : repli HPCP correct (division par 3 au lieu du modulo 12 qui décalait la tonique), bande harmonique 100–2500 Hz, normalisation Z-score des profils, pénalité conditionnelle de la quinte, et chroma de magnitude prioritaire pour préserver la tierce majeure/mineure. NB : le périmètre demandé sous l'ID ALC-150 a été renuméroté ALC-151 car ALC-150 existe déjà (En revue, Beatgrid UI) — règle de gouvenance.",
+      "createdAt": "2026-11-16T14:25:00.000+01:00",
+      "completedAt": "2026-11-16T14:55:00.000+01:00"
+    },
+    {
+      "id": "ALC-152",
+      "title": "Précision sub-BPM par interpolation parabolique et arbitrage Majeur/Mineur homonyme",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / DSP",
+      "subtasks": [
+        {
+          "id": "ALC-152-1",
+          "title": "Affiner la précision BPM : interpolation parabolique du pic d'autocorrélation (lag_exact = lag + 0.5·(r[lag-1]-r[lag+1])/(r[lag-1]-2·r[lag]+r[lag+1])) → BPM continu au 0.1 (fin des paliers 93.8/138.9) ; plage primaire [72, 162] BPM + prior gaussien 118 (empêche décrochages ternaires 208 vs 77) ; onset sur l'énergie des basses percussives 45–180 Hz (KICK_BANDS) pour suivre le kick",
+          "completed": true
+        },
+        {
+          "id": "ALC-152-2",
+          "title": "Corriger l'arbitrage Majeur/Mineur homonyme & la quinte : bande HPCP restreinte à 90–1400 Hz (repli harmonique aussi borné à 1400) ; arbitrage explicite tierce mineure (+3) vs tierce majeure (+4) pondéré par bass_chroma sur la tonique gagnante ; pénalité de quinte plus ferme quand l'écart tonique/quinte < 8 %",
+          "completed": true
+        },
+        {
+          "id": "ALC-152-3",
+          "title": "Tests & validation : 6A Sol mineur et 2A Mi♭ mineur (profile + PCM) même avec 5e harmonique forte ; précision 0.1 BPM (91.0 / 134.0) ; cargo test --lib 100 % (25 tests) ; cargo check 0 warning ; docs/SPECIFICATIONS.md à jour ; aucun ticket Terminé modifié ; passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Suite aux tests sur morceaux réels (alchemix_tests.xlsx) : (1) Tempo — le calcul 60/(lag·hop_s) sans interpolation crée des paliers (93.8/138.9) et la plage étendue autorise des décrochages ternaires (208 vs 77) ; ajout d'une interpolation parabolique, plage primaire [72,162] BPM + prior 118, et onsets sur l'énergie des basses percussives. (2) Tonalité — tous les mineurs (6A/2A) basculent sur leur Majeur homonyme (9B/5B, +3 h) et le rock glisse d'une quinte : bande HPCP réduite à 90–1400 Hz, arbitrage explicitement Majeur/Mineur sur la tierce pondérée du grave, et pénalité de quinte ferme si écart < 8 %.",
+      "createdAt": "2026-11-16T15:00:00.000+01:00",
+      "completedAt": "2026-11-16T15:40:00.000+01:00"
+    },
+    {
+      "id": "ALC-153",
+      "title": "Correction du biais d'harmoniques rythmiques BPM via tempogramme normalisé et pénalité de quinte Camelot",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / DSP",
+      "subtasks": [
+        {
+          "id": "ALC-153-1",
+          "title": "Éliminer le biais vers les tempos rapides : normalisation par paire (Pearson) explicite ; onset resserré aux sub-basses de grosse caisse 40–105 Hz (KICK_BANDS=2, ≈40–126 Hz) ; prior plat et large plané (gaussien 105/σ38 floored 0.7) + pénalité des sous-harmoniques rapides (T/1.5 ternaire, T/2 si ≥150) quand sub_corr > pic (77/85/91 préservés, pas 129/144/156)",
+          "completed": true
+        },
+        {
+          "id": "ALC-153-2",
+          "title": "Renforcer la pénalité de quinte (+1h) sur les guitares rock : bass_anchored_tonic — si bass_chroma[(p+5)%12] ≥ 85 % de bass_chroma[p], basculer la tonique sur la quinte inférieure (basse joue la fondamentale réelle) ; + convention majeure pour les power chords sans tierce",
+          "completed": true
+        },
+        {
+          "id": "ALC-153-3",
+          "title": "Tests & validation : rythme ternaire/syncopé 85 BPM (subdiv. 127.5/170) détecté à 85 ; power chord Do majeur (quinte forte) reste 8B ; cargo test --lib 27/27 verts ; cargo check 0 warning ; docs/SPECIFICATIONS.md à jour ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Suite campagne réelle (alchemix_tests.xlsx) : (1) la détection BPM s'accroche encore sur des multiples rythmiques hauts (129/144/156 au lieu de 77/85/91) ; on normalise le tempogramme par paire, on resserre l'onset aux sub-basses de grosse caisse (40–105 Hz), on fait un prior plat/large plané et on pénalise les sous-harmoniques rapides (T/1.5, T/2). (2) 2 morceaux glissent encore d'une quinte (+1h) ; on ancre la tonique par la basse (quinte inférieure ≥ 85 % de la tonique).",
+      "createdAt": "2026-11-16T15:45:00.000+01:00",
+      "completedAt": "2026-11-16T16:15:00.000+01:00"
+    },
+    {
+      "id": "ALC-154",
+      "title": "Moteur BPM multi-fenêtres par peigne métrique binaire et raffinement tonal par densité harmonique",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / DSP",
+      "subtasks": [
+        {
+          "id": "ALC-154-1",
+          "title": "Remplacer la règle T/1.5 par un peigne métrique binaire multi-fenêtres : suppression de la division /1.5 (qui cassait 118/133/146) ; fenêtres glissantes 10 s (pas 5 s) sur l'onset 40–135 Hz, filtrage des fenêtres < 35 % de la médiane (intros Spaceman/Ironic) ; score continu binaire score(bpm)=1.0·r(b)+0.45·r(2b)+0.35·r(b/2)−0.30·r(1.5b) sur [76..154] (pas 0.2 + interp parabolique) ; agrégation KDE pondérée par l'énergie",
+          "completed": true
+        },
+        {
+          "id": "ALC-154-2",
+          "title": "Raffinement tonal : pondérer chaque trame HPCP par son énergie harmonique nette (refrains/couplets > intros/ponts modulants, My Hometown/Julia) ; abaisser le seuil de bascule de quinte inférieure (p+5)%12 de 0.85 à 0.78 sur bass_chroma (corrige les +1h Ironic 1B / Spaceman 8B)",
+          "completed": true
+        },
+        {
+          "id": "ALC-154-3",
+          "title": "Tests & validation : intro calme + beat binaire à 146 et 133 BPM → non divisés ; morceau à 89 BPM avec croches pointées (133.5) → résolu à 89 grâce à −0.30·r(1.5b) ; cargo test --lib 31/31 verts ; cargo check 0 warning ; docs/SPECIFICATIONS.md à jour ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Campagne v1.2 : la tonalité atteint 75 % mais la règle T/1.5 d'ALC-153 divise à tort les vrais tempos rapides (133→85.2, 118→81.5, 146→76.5) et l'autocorrélation globale s'accroche sur des lags entiers (129.3, 138.9). Remplacement par un moteur BPM multi-fenêtres à peigne métrique BINAIRE (score = r(b) + 0.45·r(2b) + 0.35·r(b/2) − 0.30·r(1.5b)), filtrage des intros calmes, et raffinement tonal par densité harmonique (pondération des trames HPCP + seuil de quinte 0.78).",
+      "createdAt": "2026-11-16T16:20:00.000+01:00",
+      "completedAt": "2026-11-16T16:50:00.000+01:00"
+    },
+    {
+      "id": "ALC-155",
+      "title": "Verrouillage de phase temporelle par peigne d'impulsions sub-BPM et pondération des temps forts en tonalité",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / DSP",
+      "subtasks": [
+        {
+          "id": "ALC-155-1",
+          "title": "Éliminer le glissement +5 % par peigne d'impulsions en phase : raffinement par Comb Filter temporel autour du pic de chaque fenêtre (±12 %, pas 0.1 BPM + interp parabolique) mesurant l'énergie d'onset alignée sur la grille périodique (4 phases 0/T/4/T/2/3T/4, récompense 1×T & 2×T) qui décroche dès ±1 BPM ; bande KDE resserrée à σ=0.6 (corrige 85→93.8, 91→96, 123→129)",
+          "completed": true
+        },
+        {
+          "id": "ALC-155-2",
+          "title": "Pondérer les temps forts dans bass_chroma : poids ×1.8 sur les trames coïncidant avec les pics percussifs (fondamentale du temps 1 : A sur My Hometown, E sur Julia) ; ajuster le seuil de bascule de quinte inférieure (p+5)%12 à 0.82",
+          "completed": true
+        },
+        {
+          "id": "ALC-155-3",
+          "title": "Tests & validation : peigne d'impulsions distingue 91 BPM d'un candidat voisin 96 BPM (phase_lock_91_not_96 + impulse_comb_peaks_91_over_96) ; cargo test --lib 33/33 verts ; cargo check 0 warning ; docs/SPECIFICATIONS.md à jour ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Campagne v1.3 : le moteur multi-fenêtres (ALC-154) corrige la majorité des décrochages d'octave (71,4 % OK) mais introduit un glissement +4/+8 BPM vers le haut (85→93.8, 89→93.8, 91→96, 123→129, 146→163) car le peigne r(bpm)+0.45·r(2·bpm) manque de sélectivité de phase. Ajout d'un raffinement par peigne d'impulsions en phase (Comb Filter, énergie alignée sur la grille T=60/bpm avec 4 phases, récompense 1×T & 2×T) + bande KDE σ=0.6 ; et pondération des temps forts (×1.8) dans bass_chroma + seuil de quinte 0.82.",
+      "createdAt": "2026-11-16T16:55:00.000+01:00",
+      "completedAt": "2026-11-16T17:25:00.000+01:00"
+    },
+    {
+      "id": "ALC-156",
+      "title": "Peigne gaussien en temps continu et rejet des sous-harmoniques 2/3",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / DSP",
+      "subtasks": [
+        {
+          "id": "ALC-156-1",
+          "title": "Peigne gaussien continu : balayer tous les candidats [76..154] (pas 0.25 BPM) sans restriction ±12 %, aligner un noyau gaussien (σ_t=0.022 s) sur les instants t_k=φ+k·60/bpm (secondes flottantes, fin des paliers 7500/lag : 93.8/98.7/85.2) ; rejet des sous-harmoniques 2/3 (118→81.5, 125→85.2, 133→87.2) par comb_parity (impaires faibles) + comparaison explicite B vs 1.5·B (si 1.5·B ≥ 88 % du score de B et parité suspecte → 1.5·B)",
+          "completed": true
+        },
+        {
+          "id": "ALC-156-2",
+          "title": "Tonalité : ramener le facteur de pondération des pics percussifs dans bass_chroma de 1.8 à 1.15 (évite que les accents de quinte sur basse funk/rock fassent glisser 9A vers 10A, ex. Never There)",
+          "completed": true
+        },
+        {
+          "id": "ALC-156-3",
+          "title": "Tests & validation : beat binaire 125.0 et 118.0 non capturés par leur sous-multiple 2/3 (83.3/78.7), beat 91.0 résolu en continu sans palier entier (tous ±0.5) ; cargo test --lib 36/36 verts ; cargo check 0 warning ; docs/SPECIFICATIONS.md à jour ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Campagne v1.4 (15 titres) : (1) verrouillage sous-harmonique 2/3 sur les morceaux à 118–133 BPM (My Hometown 118→81.5, Cutting Crew 125→85.2, Julia 133→87.2) — un peigne lent à 2/3 aligne une impulsion sur deux avec les temps forts mais tombe dans le vide sur les impulsions impaires ; (2) re-quantification sur lags entiers (7500/lag : 98.7, 93.8, 89.3, 85.2, 83.3, 81.5) car les temps sont arrondis à l'indice de trame. Remplacement par un peigne gaussien en temps CONTINU (σ_t=0.022 s, secondes flottantes) + rejet explicite 2/3, et abaissement du poids percussif tonal à 1.15.",
+      "createdAt": "2026-11-16T17:30:00.000+01:00",
+      "completedAt": "2026-11-16T18:00:00.000+01:00"
+    },
+    {
+      "id": "ALC-157",
+      "title": "Extraction complète des métadonnées ID3/Vorbis/MP4 et suppression des valeurs de test dans l'affichage",
+      "status": "Terminé",
+      "agent": "Architecte Technique",
+      "priority": "Haute",
+      "label": "Métadonnées / IPC",
+      "subtasks": [
+        {
+          "id": "ALC-157-1",
+          "title": "Backend Rust : extraction systématique des tags via lofty (read_tags sur title/artist/album/genre/year/TBPM/TKEY, normalisation clé Camelot 1A-12B, conversion index ID3v1 numérique → libellé texte, None/'' si absent, ajout album+year+tagBpm+tagKey à TrackData, suppression des valeurs de test 'DJ Danoë'/'Venetian Clockwork / Electronic')",
+          "completed": true
+        },
+        {
+          "id": "ALC-157-2",
+          "title": "Frontend Svelte : suppression des valeurs fictives de genre/artiste, affichage exact des tags réels avec tiret '—' si absent (Artiste/Album/Genre/Année), extension du type TrackData & du store (album, tagBpm, tagKey), simplification de hasRealTags",
+          "completed": true
+        },
+        {
+          "id": "ALC-157-3",
+          "title": "Tests & validation : test unitaire Rust read_memory_tagged_metadata_without_test_values (title/artist/album/genre/TKEY/TBPM relus depuis un buffer tagué via lofty) + id3v1_numeric_genre_converted ; cargo test --lib 38/38 verts ; cargo check 0 warning ; npm run check 0 erreur/0 warning ; docs/SPECIFICATIONS.md à jour ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Les utilisateurs signalaient que les tags ID3 embarqués ne sont pas tous pris en compte dans l'affichage et qu'une valeur de test apparaît à la place du Genre. Remplacement des valeurs codées en dur ('DJ Danoë' / 'Venetian Clockwork / Electronic') par l'extraction réelle des tags via lofty sur tous les formats (MP3 ID3v2.3/v2.4, FLAC, WAV, OGG, M4A/AAC), affichage d'un tiret discret si le tag est réellement absent, et ajout de tests unitaires.",
+      "createdAt": "2026-11-16T18:30:00.000+01:00",
+      "completedAt": "2026-11-16T19:00:00.000+01:00"
+    },
+    {
+      "id": "ALC-158",
+      "title": "Interpolation linéaire continue de l'autocorrélation et suppression du biais de parité des lags pairs",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / DSP",
+      "subtasks": [
+        {
+          "id": "ALC-158-1",
+          "title": "audio.rs — helper interp_autocorr(r, exact_lag) (interpolation LINÉAIRE entre r[floor] et r[ceil]) branché sur le peigne harmonique r(bpm)/r(2·bpm)/r(bpm/2) et sur tempo_autocorr (peigne binaire continu r+0.45r(2b)+0.35r(b/2)−0.30r(1.5b) balayé [75..155] pas 0.1 + interp parabolique du sommet) ; neutralisation de la re-quantification DP (période réelle period_f + beats affinés sub-trame refine_beat_pos → BPM continu, fin des paliers 129.3/96.2/93.8/150.0) ; saut des 25 % initiaux d'intro ambiante (énergie percussive < 50 % de la médiane) dans tempo_comb_windowed (corrige Spaceman 146, Money for Nothing 134)",
+          "completed": true
+        },
+        {
+          "id": "ALC-158-2",
+          "title": "Tests & validation : interp_autocorr_parity_neutral, odd_lag_tempo_123/92_6/141_5_resolved (chemin réel analyze peigne→DP, ±0.5 sans sauter vers 129.3/96.2/150.0), autocorr_odd_lag_123_resolved, refine_dp_no_integer_plateau, ambient_intro_25pct_skipped ; cargo test --lib 45/45 verts ; cargo check 0 warning ; docs/SPECIFICATIONS.md à jour ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Glissement systématique de +4 à +9 BPM vers le haut sur alchemix_tests v1.5.xlsx : les valeurs retournées (150.0, 133.9, 129.3, 101.4, 98.7, 96.2, 93.8, 91.5, 89.3) correspondent à des lags entiers PAIRS (60/(lag·hop_s)). Causé par la re-quantification entière (tempo DP en trames arrondies + peigne autocorr non interpolé) : r(2·bpm) d'un candidat à lag impair (123.0 → lag/2≈15.25) tombe sur un demi-indice non interpolé et pénalise le lag impair → bascule vers le lag pair plus petit. Correction : intervention de l'autocorrélation à lag RÉEL (interp_autocorr), peigne binaire continu [75..155] pas 0.1 + interpolation parabolique, DP rendu continu (beat sub-trame), et saut des intros ambiantes des 25 % initiaux.",
+      "createdAt": "2026-11-16T19:10:00.000+01:00",
+      "completedAt": "2026-11-16T19:45:00.000+01:00"
+    },
+    {
+      "id": "ALC-159",
+      "title": "Accélération majeure du pipeline DSP audio.rs : décimation 12 kHz, peigne Coarse-to-Fine, DP linéaire O(N) et profil Cargo optimisé",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / DSP",
+      "subtasks": [
+        {
+          "id": "ALC-159-1",
+          "title": "Cargo.toml : [profile.dev] opt-level = 2 + [profile.dev.package.\"*\"] opt-level = 3 → symphonia/rustfft/boucles DSP à pleine vitesse en tauri dev (cargo check affiche « optimized + debuginfo », fin des >1 min)",
+          "completed": true
+        },
+        {
+          "id": "ALC-159-2",
+          "title": "audio.rs : décimation mono 48k→12k (facteur ENTIER 4, anti-repliement moyenne mobile) via decimate_to_analysis + AnalyzerCfg (fft/hop/bin_hz proportionnels → clé identique) appliquée à la clé GLOBALE ; fenêtre centrale active_window (90 s centrales, −20 % intro / −15 % outro pour piste > 110 s, waveform intégrale) ; peigne Coarse-to-Fine (scan 1.0 BPM [75..155] → top 3 → raffinement 0.1 ± 2.5) ; refine_with_dp borné [0.5·period..2.0·period] soit DP O(N)",
+          "completed": true
+        },
+        {
+          "id": "ALC-159-3",
+          "title": "Tests & validation : benchmark analyze_3min_under_1s5 (piste 3 min à 48 kHz : analyse complète < 1.5 s, clé décimée = pleine fréquence, tempo ~120 ±10 %) + active_window_skips_intro_outro ; cargo test --lib 47/47 verts ; cargo check 0 warning ; docs/SPECIFICATIONS.md à jour ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Le temps d'analyse d'un morceau dépassait 1 minute (dégradation UX au chargement bibliothèque/test). Causes : (1) en tauri dev, opt-level=0 sur symphonia/rustfft/boucles DSP ; (2) HPCP/FFT 4096 sur tout le buffer 48 kHz ; (3) peigne balayant [75..155] au pas 0.1 complet ; (4) DP historique non borné. Correctif : profil dev optimisé, décimation 12 kHz (facteur entier 4, Nyquist 6000 Hz ≥ bande 40–1400 Hz) ciblée sur la clé globale via AnalyzerCfg (bin_hz/fft/hop proportionnels → résultats de clé identiques), fenêtre centrale active 90 s (intros/outros ignorés), peigne Coarse-to-Fine, et DP linéaire O(N). La waveform reste sur la piste complète.",
+      "createdAt": "2026-11-16T19:50:00.000+01:00",
+      "completedAt": "2026-11-16T20:15:00.000+01:00"
+    },
+    {
+      "id": "ALC-160",
+      "title": "Normalisation par densité d'impulsions du peigne BPM et analyse tonale HPCP sur l'intégralité du morceau",
+      "status": "Terminé",
+      "agent": "Forgeron Système",
+      "priority": "Haute",
+      "label": "Audio / DSP",
+      "subtasks": [
+        {
+          "id": "ALC-160-1",
+          "title": "audio.rs — normalisation du peigne impulse_comb par DENSITÉ théorique (comb_score_normalized : moyenne par battement théorique N= durée_fenêtre/T, jamais somme brute → 98 BPM sans avantage numérique sur 91) + pénalité de HORS-PHASE (0.35 × énergie moyenne à t_k + T/2, vallées) → score maximal au vrai tempo 91.0)",
+          "completed": true
+        },
+        {
+          "id": "ALC-160-2",
+          "title": "audio.rs — découplage Tonalité/BPM : la fenêtre centrale (90 s) ne sert QU'AU TEMPO ; l'extraction HPCP/Camelot GLOBALE se fait sur le buffer full_dec décimé de TOUT le morceau (0 %-100 %, filtré par passe-bas Butterworth ordre 2 Lowpass2Stream avant décimation → restaure 6A sur Hand In My Pocket & Money for Nothing, corrige triton 4A Cutting Crew)",
+          "completed": true
+        },
+        {
+          "id": "ALC-160-3",
+          "title": "Tests & validation : comb_normalized_maximal_at_true_tempo_91 (score(91) > score(96.5)/(98)), comb_density_rejects_fast_tempo_on_fixed_window (91 > 99), tonality_uses_full_track_decimated (buffer complet 0-100 % → 8A) ; cargo test --lib 50/50 verts ; cargo check 0 warning ; docs/SPECIFICATIONS.md à jour ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Les tests v1.6 (18 titres) révèlent deux effets secondaires d'ALC-159 : (1) biais +3 à +10 % vers le haut sur 14 titres — un peigne sur fenêtre fixe (10 s) contient mécaniquement plus de dents à 98 BPM qu'à 91 BPM (durée/T plus grand), tirant la somme vers les tempos rapides ; (2) régression tonale sur Hand In My Pocket & Money for Nothing (6A→9B) — restreindre la tonalité à la fenêtre centrale 20 %–75 % a coupé intros/outros où la tonique mineure est établie. Corrections : normalisation du peigne par densité théorique d'impulsions + pénalité de hors-phase (vallées t+T/2), et découplage Tonalité sur TOUT le morceau décimé (passe-bas ordre 2).",
+      "createdAt": "2026-11-16T20:20:00.000+01:00",
+      "completedAt": "2026-11-16T20:45:00.000+01:00"
+    },
+    {
+      "id": "ALC-161",
+      "title": "Ajout des commandes de lecture synchronisée A+B et retour au point de calage dans BeatgridView",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "UI / Beatgrid",
+      "subtasks": [
+        {
+          "id": "ALC-161-1",
+          "title": "BeatgridView.svelte — bouton doré ▶ LANCER A + B (⇄ ⏸ PAUSE A + B) à droite d'« Aligner Tempo & Phase » : si ΔBPM>0.2 ou phase non verrouillée → alignTempoAndPhase() d'abord, mémorise startPosA/startPosB, démarre les deux lecteurs dans le même tick (positions + transport synchrones via getPlayer.seek + setTransport('playing')) ; bouton compact ↺ RETOUR CALAGE (mise en pause/reposition à la volée sur startPosA/startPosB) ; ligne CONSEIL mise à jour (« ▶ Lancer A + B » pour tester le mix)",
+          "completed": true
+        },
+        {
+          "id": "ALC-161-2",
+          "title": "Validation & documentation : barre centrale sur une seule ligne (h-screen overflow-hidden préservé) ; npm run check 0 erreur / 0 warning ; docs/SPECIFICATIONS.md §2.3 Beatgrid + historique ALC-161 à jour ; journals.json horodaté Europe/Paris ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Une fois « ALIGNER TEMPO & PHASE » exécuté dans la vue Beatgrid, le DJ n'a aucun contrôle direct pour lancer simultanément les deux platines synchronisées sans casser la phase à la souris. Ajout dans la barre d'action centrale (entre Platine A • MAÎTRE et Platine B • SYNCHRO) : un bouton principal doré ▶ LANCER A + B (basculant en ⏸ PAUSE A + B quand les deux platines jouent) qui rappelle l'alignement si nécessaire, mémorise les positions de départ (startPosA, startPosB) puis démarre les deux lecteurs dans le même tick ; et un bouton compact ↺ RETOUR CALAGE qui remet (pause ou reposition à la volée) les deux platines sur les positions de départ pour re-tester la transition en un clic. Ligne CONSEIL mise à jour.",
+      "createdAt": "2026-11-16T20:50:00.000+01:00",
+      "completedAt": "2026-11-16T21:05:00.000+01:00"
+    },
+    {
+      "id": "ALC-162",
+      "title": "Retour visuel de cible d'édition de grille sur les waveforms et unification des libellés Platine A/B dans BeatgridView",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Moyenne",
+      "label": "UI / Beatgrid",
+      "subtasks": [
+        {
+          "id": "ALC-162-1",
+          "title": "BeatgridView.svelte — « CIBLE : TAPE A | TAPE B » → « GRILLE CIBLE : PLATINE A | PLATINE B » ; bordure lumineuse active sur la waveform ciblée (emerald/400 + halo Platine A, blue/400 + halo Platine B) + badge « CIBLE GRILLE » dans l'en-tête ; clic sur le cadre de l'onde A ou B pour basculer la cible (handlers a11y clavier) ; CALER TEMPS 1 / ◄ / ► mettent à jour l'offset de la cible aussitôt redessinée par le canvas 60 fps (même tick), et offset courant (ex. +0 ms / +15 ms) affiché juste à droite de ×2",
+          "completed": true
+        },
+        {
+          "id": "ALC-162-2",
+          "title": "Validation & documentation : npm run check 0 erreur / 0 warning ; docs/SPECIFICATIONS.md §2.3 Beatgrid + historique ALC-162 à jour ; journals.json horodaté Europe/Paris ; h-screen overflow-hidden préservé ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Dans la vue Beatgrid, le sélecteur « CIBLE : TAPE A | TAPE B » n'offre aucun retour visuel sur les formes d'onde et utilise un libellé incohérent avec « PLATINE A / PLATINE B » (le reste de la vue parle de Platine A • Maître / Platine B • Synchro). Unification des libellés en « GRILLE CIBLE : PLATINE A | PLATINE B », illumination de la waveform ciblée (bordure + halo émeraude/bleu + badge « CIBLE GRILLE »), clic direct sur le cadre d'une onde pour basculer la cible, affichage de l'offset de grille courant (ex. +0 ms / +15 ms) juste à droite de ×2, et redessin immédiat du canvas (60 fps) après chaque action d'édition de grille.",
+      "createdAt": "2026-11-16T21:10:00.000+01:00",
+      "completedAt": "2026-11-16T21:25:00.000+01:00"
+    },
+    {
+      "id": "ALC-163",
+      "title": "Release GitHub & exécutable Windows autonome (récurrent)",
+      "recurrent": true,
+      "status": "En cours",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Release / Publication",
+      "subtasks": [
+        {
+          "id": "ALC-163-1",
+          "title": "Pré-contrôle qualité & synchronisation de version : git status, npm run check, cargo test --lib (0 erreur / 100 % verts) ; dernier tag + git log pour la nouvelle SemVer (v0.2.0) ; version alignée dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml et docs/SPECIFICATIONS.md (pas de numéro explicite → CHANGELOG.md à l'étape -3)",
+          "completed": true
+        },
+        {
+          "id": "ALC-163-2",
+          "title": "Compilation de l'exécutable Windows 100 % autonome : vérif bundle (nsis/portable) dans tauri.conf.json ; npm run tauri build (profil release) ; contrôle taille non nulle + copie versionnée (AlcheMix-II-v0.2.0-windows-x64.exe)",
+          "completed": true
+        },
+        {
+          "id": "ALC-163-3",
+          "title": "Commit, tag & push sur GitHub : notes de version (CHANGELOG.md) ; git add -A ; commit chore(release): v0.2.0 ; tag -a v0.2.0 ; git push && git push --tags",
+          "completed": false
+        },
+        {
+          "id": "ALC-163-4",
+          "title": "Publication GitHub Release avec exécutable attaché : gh release create v0.2.0 <exe> --title \"AlcheMix II v0.2.0\" --notes-file ; vérif via gh release view v0.2.0 (release + asset en ligne)",
+          "completed": false
+        },
+        {
+          "id": "ALC-163-5",
+          "title": "Journalisation & réarmement : URL release, nom exécutable et bilan consignés dans journals.json (Europe/Paris) ; ALC-163 remis en Backlog avec toutes ses subtasks à completed:false pour sa prochaine exécution",
+          "completed": false
+        }
+      ],
+      "description": "Ticket RÉCURRENT de publication GitHub + release Windows autonome. Marked \"recurrent\": true → après chaque exécution réussie, ALC-163 revient en Backlog avec ses subtasks réarmées à \"completed\": false (voir règle 5 de 02-kanban-et-journaux.md), prêt pour la prochaine release.",
+      "createdAt": "2026-11-16T21:30:00.000+01:00"
     }
   ]
 }

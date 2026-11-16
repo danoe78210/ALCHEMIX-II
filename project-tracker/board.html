@@ -51,6 +51,14 @@
     @keyframes flashCard { 0% { outline: 2px solid #edbf7a66; } 100% { outline: 2px solid transparent; } }
     .live-dot { animation: livePulse 1.2s ease-in-out infinite; }
     @keyframes livePulse { 0%,100% { opacity: 0.35; box-shadow: 0 0 0 rgba(156,209,198,0); } 50% { opacity: 1; box-shadow: 0 0 8px rgba(156,209,198,0.9); } }
+    /* Toast de notification (mouvements effectués par Cline, etc.) — bas à droite, 6 s */
+    .toast-stack { position: fixed; bottom: 18px; right: 18px; z-index: 60; display: flex; flex-direction: column; gap: 8px; max-width: 380px; }
+    .toast-item { display: flex; align-items: center; gap: 8px; background: #2f2925; border: 1px solid #4f4539; color: #ece0da; font-size: 12px; line-height: 1.4; padding: 9px 12px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); animation: toastIn 0.18s ease; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .toast-item.leaving { opacity: 0; transform: translateY(10px); transition: opacity 0.25s ease, transform 0.25s ease; }
+    /* Carte repliée des tâches « Terminé » : chevron pivoté quand le <details> est ouvert */
+    details[open] > summary .doc-chevron { transform: rotate(90deg); }
+    details > summary::-webkit-details-marker { display: none; }
   </style>
 </head>
 <body class="bg-surface text-on-surface font-body text-[14px] leading-5 min-h-screen">
@@ -79,6 +87,8 @@
         <button id="btn-export" class="px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-[11px] font-bold uppercase tracking-wider border border-surface-container-high transition-colors">Exporter JSON</button>
         <button id="btn-import" class="px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-[11px] font-bold uppercase tracking-wider border border-surface-container-high transition-colors">Importer</button>
         <button id="btn-sync" class="px-3 py-2 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary text-[11px] font-bold uppercase tracking-wider border border-primary/30 transition-colors">🔄 Sync tasks.json</button>
+        <button id="btn-save" title="Écrire l'état courant du Kanban (incluant vos passages en Terminé) directement dans project-tracker/tasks.json" class="px-3 py-2 rounded-lg bg-emerald-400/10 hover:bg-emerald-400/20 text-emerald-300 text-[11px] font-bold uppercase tracking-wider border border-emerald-400/30 transition-colors">💾 Sync disque</button>
+        <span id="override-badge" class="hidden px-2 py-2 rounded-lg bg-amber-400/15 border border-amber-400/40 text-amber-300 text-[11px] font-bold uppercase tracking-wider">⚠️ overrides</span>
         <input id="file-input" type="file" accept=".json,application/json" class="hidden" />
         <span id="status" class="font-mono text-[10px] text-tertiary"></span>
         <span id="live-pulse" class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-tertiary/10 border border-tertiary/20" title="Live Sync actif">
@@ -280,32 +290,37 @@
 
     let loaded = false;
 
-    // 1) Source : tasks.json (serveur / dev)
+    // 1) Source : tasks.json (serveur / dev) — cache-busting HTTP + no-store.
     try {
-      const res = await fetch('tasks.json', { cache: 'no-store' });
+      const res = await fetch('tasks.json?t=' + Date.now(), { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.tasks) && data.tasks.length) { state.tasks = data.tasks; loaded = true; }
+        if (Array.isArray(data.tasks) && data.tasks.length) {
+          state.tasks = data.tasks;
+          loaded = true;
+          baselineHash = tasksHash(data.tasks);
+          // ALC-139/board : invalidation automatique du localStorage — dès que la version ou
+          // l'updatedAt distant diffère du cache, on écrase le cache par les données distantes.
+          const meta = (data.meta && (data.meta.updatedAt || '') && (data.meta.version || '')) ? data.meta : null;
+          writeRemoteCache(data.tasks, (meta && meta.version) || DATA_VERSION, (meta && meta.updatedAt) || new Date().toISOString());
+        }
       }
     } catch (e) { /* fetch indisponible (file://) */ }
 
-    // 2) Fallback fichier absent → données locales intégrées (affichage immédiat en file://)
+    // 2) Fallback fichier absent → données locales intégrées (affichage immédiat en file://).
+    //    Le cache localStorage n'est appliqué QUE quand le fetch a échoué (file://).
     if (!loaded) {
       state.tasks = defaultTasks();
       flash('Mode local (file://) : données intégrées ✓');
-    }
-
-    // 3) Un cache LOCAL n'est appliqué QUE s'il porte EXACTEMENT la version courante.
-    //    Tout cache obsolète (sans version, ou version antérieure) est IGNORÉ :
-    //    on garde la source de vérité (tasks.json / globalData) → évite un vieux "Backlog".
-    const cached = localStorage.getItem('alchemix-board');
-    if (cached) {
-      try {
-        const c = JSON.parse(cached);
-        if (Array.isArray(c.tasks) && c.tasks.length && c.version === DATA_VERSION) {
-          state.tasks = c.tasks; // cache à jour : respecte uniquement les interactions locales récentes
-        }
-      } catch (e) { /* cache illisible : on ignore */ }
+      const cached = localStorage.getItem('alchemix-board');
+      if (cached) {
+        try {
+          const c = JSON.parse(cached);
+          if (Array.isArray(c.tasks) && c.tasks.length && c.version === DATA_VERSION) {
+            state.tasks = c.tasks;
+          }
+        } catch (e) { /* cache illisible : on ignore */ }
+      }
     }
   }
 
@@ -325,6 +340,33 @@
   let lastLocalEdit = 0;        // timestamp de la dernière édition locale
   let pollBusy = false;         // évite les chevauchements d'appels de poll
   let storageBusy = false;      // évite les boucles cross-tab
+  // Référence externe : hash du tasks.json tel que chargé. Non modifiée par les éditions
+  // locales, elle permet de savoir si une divergence vient de nos propres actions (plutôt
+  // qu'une modification externe du fichier) → la carte garde sa nouvelle position (ALC-107).
+  let baselineHash = '';        // hash du dossier de référence (source `tasks.json`)
+  let diskHandle = null;         // FileSystemFileHandle persistant (💾 Sync disque) pour écritures auto
+  let dirtyLocal = false;        // un déplacement manuel vient d'avoir lieu → à écrire sur disque
+
+  // ===== Mémorisation globale des déplacements manuels (toutes colonnes) =====
+  // alchemix_status_overrides → { [ticketId]: { status, updatedAt } }.
+  // Enregistré à chaque déplacement (data-move) ; appliqué par-dessus tasks.json ; nettoyé
+  // uniquement quand tasks.json confirme exactement le même statut.
+  const STATUS_OVERRIDES_KEY = 'alchemix_status_overrides';
+  function readStatusOverrides() {
+    try { const c = JSON.parse(localStorage.getItem(STATUS_OVERRIDES_KEY) || '{}'); return (c && typeof c === 'object') ? c : {}; }
+    catch (e) { return {}; }
+  }
+  function writeStatusOverrides(o) {
+    try { localStorage.setItem(STATUS_OVERRIDES_KEY, JSON.stringify(o)); } catch (e) { /* stockage indisponible */ }
+  }
+  function markStatusOverride(id, status) {
+    const o = readStatusOverrides();
+    o[id] = { status: status, updatedAt: new Date().toISOString() };
+    writeStatusOverrides(o);
+  }
+  function removeStatusOverride(id) {
+    const o = readStatusOverrides(); if (id in o) { delete o[id]; writeStatusOverrides(o); }
+  }
 
   function signalInteraction(on) {
     interacting = on;
@@ -351,8 +393,20 @@
     catch (e) { return null; }
   }
 
+  // ALC-139/board : écrase le cache local avec les données distantes (invalidation dès divergence).
+  function writeRemoteCache(tasks, version, updatedAt) {
+    try {
+      localStorage.setItem('alchemix-board', JSON.stringify({
+        tasks,
+        updatedAt: updatedAt || new Date().toISOString(),
+        lastHash: tasksHash(tasks),
+        version: version || DATA_VERSION()
+      }));
+    } catch (e) { /* stockage indisponible */ }
+  }
+
   // ---- Fusion d'un jeu de tâches entrant, sans écraser une édition locale récente ----
-  function applyRemoteTasks(remoteTasks) {
+  function applyRemoteTasks(remoteTasks, remoteUpdatedAt) {
     const remoteHash = tasksHash(remoteTasks);
     const localHash = tasksHash(state.tasks);
     if (remoteHash === localHash) return false; // aucun changement
@@ -360,13 +414,39 @@
     // Si une édition locale vient d'avoir lieu, on laisse l'utilisateur finir (différé)
     if (Date.now() - lastLocalEdit < 1000) return 'defer';
 
+    // Fichier inchangé par rapport à la référence (baselineHash) : la divergence ne provient
+    // que de nos propres éditions locales (flèches de déplacement). On les préserve pour que
+    // le ticket ne « saute » pas instantanément à son ancienne position (ALC-107).
+    if (baselineHash && remoteHash === baselineHash) return false;
+
     const agent = state.agent; // préserve le filtre agent
+
+    // Délectation des mouvements envoyés par Cline (changement de colonne dans tasks.json) → toast.
+    const prevBy = {};
+    state.tasks.forEach((x) => { prevBy[x.id] = x.status; });
+    const moved = remoteTasks.filter((x) => prevBy[x.id] && prevBy[x.id] !== x.status);
+
     state.tasks = remoteTasks;
+
+    // ALC-139/board : applique les statuts manuels (alchemix_status_overrides) par-dessus les données
+    // distantes, et nettoie un override uniquement quand tasks.json confirme exactement le même statut.
+    const overrides = readStatusOverrides();
+    state.tasks.forEach((t) => {
+      const entry = overrides[t.id];
+      if (entry && entry.status) {
+        if (t.status === entry.status) removeStatusOverride(t.id);
+        else t.status = entry.status;
+      }
+    });
+
     render();
     state.agent = agent;
     lastHash = remoteHash;
+    baselineHash = remoteHash; // nouvelle référence externe
     writeShared();
     flashLive();
+    // Toast : signale les tickets déplacés par Cline (rechargement Live Sync), 6 s.
+    moved.slice(0, 6).forEach((m) => showToast('🤖 Cline a déplacé ' + m.id + ' vers ' + m.status));
     return true;
   }
 
@@ -376,11 +456,12 @@
     if (pollBusy) return 'busy';
     pollBusy = true;
     try {
-      const res = await fetch('tasks.json', { cache: 'no-store' });
+      const res = await fetch('tasks.json?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data.tasks) || !data.tasks.length) return false;
-      return applyRemoteTasks(data.tasks);
+      writeRemoteCache(data.tasks, (data.meta && data.meta.version) || DATA_VERSION(), (data.meta && data.meta.updatedAt) || new Date().toISOString());
+      return applyRemoteTasks(data.tasks, data.meta && data.meta.updatedAt);
     } catch (e) {
       // file:// : fetch inaccessible → on retombe sur un éventuel cache cross-tab
       const remote = readShared();
@@ -398,6 +479,54 @@
     lastLocalEdit = Date.now();
     lastHash = tasksHash(state.tasks);
     writeShared();
+    saveToFile(); // synchronise aussi tasks.json (serveur écrivable), si possible (ALC-107)
+    // ALC-139/board : écriture directe et persistante après autorisation unique (💾 Sync disque).
+    if (dirtyLocal) {
+      dirtyLocal = false;
+      autoWriteToDisk();
+      tryHttpPost(); // silencieux si servi en HTTP local
+    }
+  }
+
+  async function autoWriteToDisk() {
+    if (!diskHandle) return;
+    try {
+      const payload = JSON.stringify({
+        meta: { project: 'AlcheMix II', agents: Object.keys(AGENT_COLORS), columns: COLUMNS, version: DATA_VERSION(), updatedAt: new Date().toISOString() },
+        tasks: state.tasks
+      }, null, 2);
+      const w = await diskHandle.createWritable();
+      await w.write(payload);
+      await w.close();
+      showToast('💾 Sauvegardé automatiquement sur disque');
+    } catch (e) { /* poignée invalide — l'utilisateur devra re-cliquer sur Sync disque */ }
+  }
+
+  function tryHttpPost() {
+    if (location.protocol.startsWith('file')) return;
+    try {
+      fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tasks: state.tasks })
+      }).catch(() => {});
+    } catch (e) { /* serveur statique : non pris en charge */ }
+  }
+
+  // Tente d'écrire l'état courant dans tasks.json (persistance durable). Sur un serveur
+  // statique (http-server) l'écriture n'est pas disponible : l'appel échoue silencieusement
+  // et la persistance repose sur localStorage + la sauvegarde de la position locale (baseline).
+  function saveToFile() {
+    try {
+      fetch('tasks.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          meta: { project: 'AlcheMix II', agents: Object.keys(AGENT_COLORS), columns: COLUMNS, version: DATA_VERSION(), updatedAt: new Date().toISOString() },
+          tasks: state.tasks
+        }, null, 2)
+      }).catch(() => {});
+    } catch (e) { /* environnement statique : persistance via localStorage uniquement */ }
   }
 
   function currentTasks() {
@@ -411,6 +540,7 @@
     const doneCount = subs.filter((s) => s.completed).length;
     const progress = subs.length ? Math.round((doneCount / subs.length) * 100) : 0;
     const idx = COLUMNS.indexOf(t.status);
+    const isDone = t.status === 'Terminé';
 
     const subtasksHtml = subs.map((s) => {
       const cbId = 'sub-' + t.id + '-' + s.id;
@@ -426,12 +556,8 @@
     const prioBadge = prio ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ' +
       (prio === 'Haute' ? 'bg-error/10 text-[#ffb4ab]' : prio === 'Moyenne' ? 'bg-primary/10 text-primary' : 'bg-tertiary/10 text-tertiary') + '">' + escapeHtml(prio) + '</span>' : '';
 
-    return '<article class="fade-in bg-surface-container rounded-xl shadow-[0_6px_20px_rgba(0,0,0,0.6)] border border-surface-container-high p-3 flex flex-col gap-2" data-id="' + t.id + '">' +
-      '<div class="flex items-start justify-between gap-2">' +
-        '<span class="font-mono text-[10px] font-bold tracking-wider text-outline">' + escapeHtml(t.id) + '</span>' +
-        '<span class="text-[10px] font-bold uppercase tracking-wider" style="color:' + color + '">● ' + escapeHtml(agent) + '</span>' +
-      '</div>' +
-      '<h3 class="font-display text-[13px] font-bold leading-snug text-on-surface">' + escapeHtml(t.title) + '</h3>' +
+    // Corps partagé (badges, journal, description, micro-tâches, déplacement) — sous l'en-tête de la carte.
+    const mid =
       '<div class="flex items-center gap-2 flex-wrap">' + prioBadge +
         '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style="background:' + color + '1f;color:' + color + '">' + escapeHtml(t.label || '') + '</span>' +
       '</div>' +
@@ -449,7 +575,34 @@
           ' class="flex-1 text-center text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-md bg-surface-low hover:bg-surface-container-high transition-colors disabled:opacity-30">←</button>' +
         '<button data-move data-dir="right" data-id="' + t.id + '"' + (idx < COLUMNS.length - 1 ? '' : ' disabled') +
           ' class="flex-1 text-center text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-md bg-surface-low hover:bg-surface-container-high transition-colors disabled:opacity-30">→</button>' +
+      '</div>';
+
+    // --- Tâches terminées : carte repliable (<details>) pour alléger la colonne « Terminé » ---
+    if (isDone) {
+      return '<details class="fade-in group bg-surface-container rounded-xl shadow-[0_6px_20px_rgba(0,0,0,0.6)] border border-surface-container-high p-3 my-1" data-id="' + t.id + '">' +
+        '<summary class="flex items-center justify-between gap-3 list-none cursor-pointer select-none">' +
+          '<div class="flex items-center gap-2 min-w-0">' +
+            '<span class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_6px_#9cd1c6] shrink-0"></span>' +
+            '<span class="font-mono text-[10px] font-bold tracking-wider text-outline shrink-0">' + escapeHtml(t.id) + '</span>' +
+            '<h3 class="font-display text-[12px] font-bold leading-snug text-on-surface truncate">' + escapeHtml(t.title) + '</h3>' +
+          '</div>' +
+          '<div class="flex items-center gap-2 shrink-0">' +
+            '<span class="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-tertiary/10 text-tertiary">Terminé</span>' +
+            '<span class="doc-chevron text-outline transition-transform duration-200">▸</span>' +
+          '</div>' +
+        '</summary>' +
+        '<div class="mt-3 pt-3 border-t border-surface-container-high flex flex-col gap-2">' + mid + '</div>' +
+      '</details>';
+    }
+
+    // --- Autres statuts : carte classique à plat ---
+    return '<article class="fade-in bg-surface-container rounded-xl shadow-[0_6px_20px_rgba(0,0,0,0.6)] border border-surface-container-high p-3 flex flex-col gap-2" data-id="' + t.id + '">' +
+      '<div class="flex items-start justify-between gap-2">' +
+        '<span class="font-mono text-[10px] font-bold tracking-wider text-outline">' + escapeHtml(t.id) + '</span>' +
+        '<span class="text-[10px] font-bold uppercase tracking-wider" style="color:' + color + '">● ' + escapeHtml(agent) + '</span>' +
       '</div>' +
+      '<h3 class="font-display text-[13px] font-bold leading-snug text-on-surface">' + escapeHtml(t.title) + '</h3>' +
+      mid +
       '</article>';
   }
 
@@ -465,12 +618,25 @@
         (items.map(cardHtml).join('') || '<p class="text-[12px] text-outline text-center italic py-4">Aucune tâche</p>') +
       '</div></section>';
   }
-function render() {
+function updateOverrideBadge() {
+    const el = document.getElementById('override-badge');
+    if (!el) return;
+    const n = Object.keys(readStatusOverrides()).length;
+    if (n > 0) {
+      el.textContent = '⚠️ ' + n + ' déplacement(s) local(/aux) — cliquer sur 💾 Sync disque';
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  function render() {
     const board = document.getElementById('board');
     board.innerHTML = COLUMNS.map(columnHtml).join('');
     updateStats();
     renderSidebar();
     persist();
+    updateOverrideBadge();
   }
 
   function updateStats() {
@@ -542,6 +708,54 @@ function render() {
     setTimeout(() => { el.textContent = ''; }, 2400);
   }
 
+  // ---- Toast de notification en bas à droite (6 s) ----
+  function showToast(msg, ms) {
+    const duration = ms || 6000;
+    let stack = document.getElementById('toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.id = 'toast-stack';
+      stack.className = 'toast-stack';
+      document.body.appendChild(stack);
+    }
+    const el = document.createElement('div');
+    el.className = 'toast-item';
+    el.textContent = msg;
+    stack.appendChild(el);
+    setTimeout(() => { el.classList.add('leaving'); setTimeout(() => el.remove(), 300); }, duration);
+  }
+
+  // ---- Sync disque : écrit l'état courant (y c. passages en Terminé) directement dans tasks.json ----
+  async function saveTasksToDisk() {
+    const payload = JSON.stringify({
+      meta: { project: 'AlcheMix II', agents: Object.keys(AGENT_COLORS), columns: COLUMNS, version: DATA_VERSION(), updatedAt: new Date().toISOString() },
+      tasks: state.tasks
+    }, null, 2);
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: 'tasks.json',
+          types: [{ description: 'Fichier JSON', accept: { 'application/json': ['.json'] } }]
+        });
+        const w = await handle.createWritable();
+        await w.write(payload);
+        await w.close();
+        diskHandle = handle; // conserve la poignée : prochains déplacements sauvegardés automatiquement
+        showToast('✅ Écrit dans project-tracker/tasks.json — sauvegarde auto activée');
+      } catch (err) {
+        showToast('Synchronisation disque annulée/refusée : ' + (err && err.message ? err.message : 'fermeture'));
+      }
+    } else {
+      // Repli navigateur sans File System Access API : téléchargement du JSON à replacer manuellement.
+      const blob = new Blob([payload], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'tasks.json';
+      a.click();
+      showToast('⟳ Repli : tasks.json téléchargé — replace-le dans project-tracker/');
+    }
+  }
+
   // ---- Événements (délégation) ----
   document.addEventListener('click', (e) => {
     // Clic sur un ticket de la sidebar → défilement fluide + surbrillance
@@ -563,7 +777,13 @@ function render() {
       if (t) {
         const idx = COLUMNS.indexOf(t.status);
         const next = moveBtn.dataset.dir === 'left' ? idx - 1 : idx + 1;
-        if (next >= 0 && next < COLUMNS.length) { t.status = COLUMNS[next]; commit(); flash('Déplacé → ' + COLUMNS[next]); }
+        if (next >= 0 && next < COLUMNS.length) {
+          t.status = COLUMNS[next];
+          // ALC-139/board : mémorise le déplacement manuel (toute colonne) pour survivre au Live Sync.
+          markStatusOverride(t.id, t.status);
+          dirtyLocal = true;
+          commit(); flash('Déplacé → ' + COLUMNS[next]);
+        }
       }
       return;
     }
@@ -575,6 +795,8 @@ function render() {
       if (sub) { sub.completed = cb.checked; updateMacroStatus(task); commit(); }
       return;
     }
+
+    if (e.target.closest('#btn-save')) { saveTasksToDisk(); return; }
 
     if (e.target.closest('#btn-export')) {
       const blob = new Blob([JSON.stringify({ meta: { project: 'AlcheMix II', agents: Object.keys(AGENT_COLORS), columns: COLUMNS, updatedAt: new Date().toISOString() }, tasks: state.tasks }, null, 2)], { type: 'application/json' });
@@ -629,7 +851,7 @@ function render() {
         // ré-très important : éviter d'écraser une édition locale fraîche
         if (Date.now() - lastLocalEdit < 500) return;
         const h = c.lastHash || tasksHash(c.tasks);
-        if (h !== lastHash) { applyRemoteTasks(c.tasks); }
+        if (h !== lastHash) { applyRemoteTasks(c.tasks, c.updatedAt); }
       }
     } catch (err) { /* ignore */ }
     finally { setTimeout(() => { storageBusy = false; }, 150); }

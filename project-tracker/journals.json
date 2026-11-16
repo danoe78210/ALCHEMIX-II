@@ -1,54 +1,598 @@
 {
   "meta": {
     "project": "AlcheMix II — Journaux de travail individuels par ticket",
-    "version": "1.2.0",
-    "updatedAt": "2026-11-15T00:40:00.000Z",
+    "version": "1.61.0",
+    "updatedAt": "2026-11-16T21:45:00.000+01:00",
     "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
   },
   "journals": {
+    "ALC-156": {
+      "ticketId": "ALC-156",
+      "entries": [
+        { "ts": "2026-11-16T17:30:00.000+01:00", "type": "creation", "message": "ALC-156 créé (En cours) : peigne gaussien en temps continu + rejet des sous-harmoniques 2/3" },
+        { "ts": "2026-11-16T17:40:00.000+01:00", "type": "subtask", "message": "ALC-156-1 cochée : impulse_comb réécrit en peigne GAUSSIEN CONTINU (noyau σ_t=0.022 s, 4 phases, temps t_k=φ+k·60/bpm en secondes flottantes, normalisé par battement) ; balayage complet [76..154] pas 0.25 sans restriction ±12 % ; nouveau comb_parity (impaires vs paires) + rejet 2/3 : si candidat B en [76..100] et 1.5·B ≥ 88 % du score de B et parité suspecte → 1.5·B (corrige 118→81.5, 125→85.2, 133→87.2 et paliers 7500/lag)" },
+        { "ts": "2026-11-16T17:52:00.000+01:00", "type": "subtask", "message": "ALC-156-2 cochée : bass_chroma — poids des pics percussifs ramené de 1.8 à 1.15 (évite le glissement 9A→10A sur accents de quinte funk/rock, ex. Never There)" },
+        { "ts": "2026-11-16T17:57:00.000+01:00", "type": "subtask", "message": "ALC-156-3 cochée : tests — binary_125_not_2_3_capture / binary_118_not_2_3_capture (non capturés par 83.3/78.7), continuous_91_no_integer_plateau ; helper onset_with_intro en temps flottant (fractions de trame) ; cargo test --lib 36/36 ; cargo check 0 warning" },
+        { "ts": "2026-11-16T18:00:00.000+01:00", "type": "column", "message": "ALC-156 validé : specs docs/SPECIFICATIONS.md (§3.2 Tempo + Tonalité + historique ALC-156) mises à jour ; aucun ticket Terminé/En revue modifié ; ALC-156 en En revue" }
+      ]
+    },
+    "ALC-157": {
+      "ticketId": "ALC-157",
+      "entries": [
+        { "ts": "2026-11-16T18:30:00.000+01:00", "type": "creation", "message": "ALC-157 créé (En cours) : extraction complète des métadonnées ID3/Vorbis/MP4 et suppression des valeurs de test dans l'affichage (Genre 'Venetian Clockwork / Electronic' et artiste 'DJ Danoë' codés en dur)" },
+        { "ts": "2026-11-16T18:40:00.000+01:00", "type": "subtask", "message": "ALC-157-1 cochée : src-tauri/src/commands/mod.rs — lecteur lofty read_tags (title/artist/album/genre/year/TBPM/TKEY), normalisation clé Camelot 1A-12B (normalize_camelot_key), conversion index ID3v1 numérique → libellé texte (id3v1_genre_label), None/'' si absent ; suppression des valeurs de test ; TrackData étendu (album, year, tag_bpm, tag_key)" },
+        { "ts": "2026-11-16T18:50:00.000+01:00", "type": "subtask", "message": "ALC-157-2 cochée : src/lib/ipc/client.ts (type TrackData + album/tagBpm/tagKey), src/lib/stores/mixer.svelte.ts (chargement des tags réels, simplification de hasRealTags sans valeurs fictives), DeckA.svelte & DeckB.svelte (affichage Artiste/Album/Genre/Année avec tiret '—' si absent)" },
+        { "ts": "2026-11-16T18:58:00.000+01:00", "type": "subtask", "message": "ALC-157-3 cochée : tests Rust read_memory_tagged_metadata_without_test_values (buffer tagué via lofty) + id3v1_numeric_genre_converted ; cargo test --lib 38/38 verts ; cargo check 0 warning ; npm run check 0 erreur/0 warning" },
+        { "ts": "2026-11-16T19:00:00.000+01:00", "type": "column", "message": "ALC-157 validé : specs docs/SPECIFICATIONS.md (§2.1 + historique ALC-157) mises à jour ; aucun ticket Terminé modifié ; ALC-157 en En revue" }
+      ]
+    },
+    "ALC-158": {
+      "ticketId": "ALC-158",
+      "entries": [
+        { "ts": "2026-11-16T19:10:00.000+01:00", "type": "creation", "message": "ALC-158 créé (En cours) : interpolation linéaire continue de l'autocorrélation + suppression du biais de parité des lags pairs (glissement +4 à +9 BPM sur les 17 titres d'alchemix_tests v1.5)" },
+        { "ts": "2026-11-16T19:30:00.000+01:00", "type": "subtask", "message": "ALC-158-1 cochée : audio.rs — helper interp_autocorr (interp LINÉAIRE entre r[floor]/r[ceil]) branché sur le peigne harmonique et sur tempo_autocorr (peigne binaire continu r+0.45r(2b)+0.35r(b/2)−0.30r(1.5b), balayage [75..155] pas 0.1 + interp parabolique) ; refine_with_dp rendu CONTINU (période réelle period_f + refine_beat_pos sub-trame → fin des paliers 129.3/96.2/93.8/150.0, résolution des lag impairs 123.0/92.6/141.5 à ±0.5) ; lead_skip 25 % d'intro ambiante (< 50 % médiane) dans tempo_comb_windowed (Spaceman 146, Money for Nothing 134)" },
+        { "ts": "2026-11-16T19:40:00.000+01:00", "type": "subtask", "message": "ALC-158-2 cochée : tests — interp_autocorr_parity_neutral, odd_lag_tempo_123/92_6/141_5_resolved (chemin analyze peigne→DP, ±0.5 sans saut vers 129.3/96.2/150.0), autocorr_odd_lag_123_resolved, refine_dp_no_integer_plateau, ambient_intro_25pct_skipped ; cargo test --lib 45/45 verts ; cargo check 0 warning" },
+        { "ts": "2026-11-16T19:45:00.000+01:00", "type": "column", "message": "ALC-158 validé : specs docs/SPECIFICATIONS.md (§3.2 Tempo + historique ALC-158) mises à jour ; aucun ticket Terminé modifié ; ALC-158 en En revue" }
+      ]
+    },
+    "ALC-159": {
+      "ticketId": "ALC-159",
+      "entries": [
+        { "ts": "2026-11-16T19:50:00.000+01:00", "type": "creation", "message": "ALC-159 créé (En cours) : accélération majeure du pipeline DSP (analyse > 1 min → objectif < 1.5 s) : décimation 12 kHz, peigne Coarse-to-Fine, DP linéaire O(N), profil Cargo dev optimisé" },
+        { "ts": "2026-11-16T19:58:00.000+01:00", "type": "subtask", "message": "ALC-159-1 cochée : Cargo.toml — [profile.dev] opt-level = 2 + [profile.dev.package.\"*\"] opt-level = 3 (cargo check affiche désormais « optimized + debuginfo », fin des >1 min en tauri dev sur symphonia/rustfft/boucles DSP)" },
+        { "ts": "2026-11-16T20:05:00.000+01:00", "type": "subtask", "message": "ALC-159-2 cochée : audio.rs — decimate_to_analysis (décimation 48k→12k facteur ENTIER 4, anti-repliement moyenne mobile) + AnalyzerCfg (fft/hop/bin_hz proportionnels → clé identique) appliqué à la clé GLOBALE ; active_window (90 s centrales, −20 % intro / −15 % outro pour > 110 s, waveform intégrale) ; peigne Coarse-to-Fine (scan 1.0 BPM [75..155] → top 3 → raffinement 0.1 BPM sur ±2.5) ; refine_with_dp borné [0.5·period..2.0·period] → DP O(N)" },
+        { "ts": "2026-11-16T20:10:00.000+01:00", "type": "subtask", "message": "ALC-159-3 cochée : tests — analyze_3min_under_1s5 (piste 3 min 48 kHz : analyse complète < 1.5 s, clé décimée = pleine fréquence, tempo ~120 ±10 %) + active_window_skips_intro_outro ; cargo test --lib 47/47 verts ; cargo check 0 warning" },
+        { "ts": "2026-11-16T20:15:00.000+01:00", "type": "column", "message": "ALC-159 validé : specs docs/SPECIFICATIONS.md (§3.2 Tempo/Tonalité + historique ALC-159) mises à jour ; aucun ticket Terminé modifié ; ALC-159 en En revue" }
+      ]
+    },
+    "ALC-160": {
+      "ticketId": "ALC-160",
+      "entries": [
+        { "ts": "2026-11-16T20:20:00.000+01:00", "type": "creation", "message": "ALC-160 créé (En cours) : normalisation par densité d'impulsions du peigne BPM (+3 %..+10 % vers le haut sur 14 titres) et analyse tonale HPCP sur l'INTÉGRALITÉ du morceau (régression 6A→9B sur Hand In My Pocket / Money for Nothing)" },
+        { "ts": "2026-11-16T20:30:00.000+01:00", "type": "subtask", "message": "ALC-160-1 cochée : audio.rs — impulse_comb → comb_score_normalized (score = énergie_moyenne par battement THÉORIQUE N= durée_fenêtre/T, plus jamais de somme brute sur fenêtre fixe → 98 BPM sans avantage sur 91) + pénalité de HORS-PHASE 0.35 × énergie_moyenne(t_k + T/2) ; helper gauss_kernel_sum + enum KernelPos (break past-end, pas de boucle infinie)" },
+        { "ts": "2026-11-16T20:38:00.000+01:00", "type": "subtask", "message": "ALC-160-2 cochée : audio.rs — découplage : la fenêtre centrale (90 s) ne sert QU'AU BPM ; la TONALITÉ Camelot GLOBALE est extraite du buffer full_dec décimé de TOUT le morceau (0 %-100 %) via Lowpass2Stream (Butterworth ordre 2, fc=2500 Hz, avant décimation → pas de repliement harmonique) → restaure 6A sur Hand In My Pocket & Money for Nothing, corrige triton 4A Cutting Crew" },
+        { "ts": "2026-11-16T20:42:00.000+01:00", "type": "subtask", "message": "ALC-160-3 cochée : tests — comb_normalized_maximal_at_true_tempo_91 (score(91) > score(96.5)/(98)), comb_density_rejects_fast_tempo_on_fixed_window (91 > 99), tonality_uses_full_track_decimated (buffer 0-100 % → 8A) ; cargo test --lib 50/50 verts ; cargo check 0 warning" },
+        { "ts": "2026-11-16T20:45:00.000+01:00", "type": "column", "message": "ALC-160 validé : specs docs/SPECIFICATIONS.md (§3.2 Tempo/Tonalité + historique ALC-160) mises à jour ; aucun ticket Terminé modifié ; ALC-160 en En revue" }
+      ]
+    },
+    "ALC-161": {
+      "ticketId": "ALC-161",
+      "entries": [
+        { "ts": "2026-11-16T20:50:00.000+01:00", "type": "creation", "message": "ALC-161 créé (En cours) : après « Aligner Tempo & Phase », le DJ n'a aucun contrôle direct pour lancer simultanément les deux platines synchronisées sans casser la phase à la souris" },
+        { "ts": "2026-11-16T21:00:00.000+01:00", "type": "subtask", "message": "ALC-161-1 cochée : BeatgridView.svelte — bouton doré ▶ LANCER A + B (⇄ ⏸ PAUSE A + B) + bouton compact ↺ RETOUR CALAGE dans la barre centrale (entre Platine A • Maître et Platine B • Synchro) ; démarrage simultané dans le même tick (getPlayer.seek + setTransport('playing') synchrone, alignTempoAndPhase si ΔBPM>0.2 ou phase non verrouillée), mémorisation startPosA/startPosB, retour au calage en un clic ; ligne CONSEIL mise à jour" },
+        { "ts": "2026-11-16T21:05:00.000+01:00", "type": "column", "message": "ALC-161 validé : npm run check 0/0 ; barre centrale sur une seule ligne, h-screen overflow-hidden préservé ; specs docs/SPECIFICATIONS.md (§2.3 Beatgrid + historique ALC-161) à jour ; aucun ticket Terminé modifié ; ALC-161 en En revue" }
+      ]
+    },
+    "ALC-162": {
+      "ticketId": "ALC-162",
+      "entries": [
+        { "ts": "2026-11-16T21:10:00.000+01:00", "type": "creation", "message": "ALC-162 créé (En cours) : le sélecteur CIBLE : TAPE A | TAPE B n'offre aucun retour visuel sur les waveforms et utilise un libellé incohérent avec PLATINE A / PLATINE B" },
+        { "ts": "2026-11-16T21:20:00.000+01:00", "type": "subtask", "message": "ALC-162-1 cochée : BeatgridView.svelte — libellé GRILLE CIBLE : PLATINE A | PLATINE B ; bordure lumineuse active sur la waveform ciblée (emerald-400/80 + halo Platine A, blue-400/80 + halo Platine B) + badge discret CIBLE GRILLE ; clic sur le cadre de l'onde A/B pour basculer la cible (handlers a11y clavier Enter/Espace) ; offset courant (+0 ms / +15 ms) affiché juste à droite de ×2 ; CALER TEMPS 1 / ◄ / ► redessinent le canvas 60 fps dans le même tick" },
+        { "ts": "2026-11-16T21:25:00.000+01:00", "type": "column", "message": "ALC-162 validé : npm run check 0/0 ; h-screen overflow-hidden préservé ; specs docs/SPECIFICATIONS.md (§2.3 Beatgrid + historique ALC-162) à jour ; aucun ticket Terminé modifié ; ALC-162 en En revue" }
+      ]
+    },
+    "ALC-163": {
+      "ticketId": "ALC-163",
+      "entries": [
+        { "ts": "2026-11-16T21:30:00.000+01:00", "type": "creation", "message": "ALC-163 créé (En cours) — RELEASE GitHub Récurrente (\"recurrent\": true) : publication v0.2.0 + exécutable Windows autonome ; règle 5 ajoutée à .clinerules/02-kanban-et-journaux.md (ticket récurrent → Backlog + subtasks false après exécution)" },
+        { "ts": "2026-11-16T21:45:00.000+01:00", "type": "subtask", "message": "ALC-163-1 cochée : pré-contrôle qualité & synchronisation de version — git status OK ; npm run check 0 erreur/0 warning ; cargo test --lib 50/50 verts ; aucun tag existant → SemVer v0.2.0 ; version alignée 0.2.0 dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml (SPECIFICATIONS.md sans numéro explicite → CHANGELOG à l'étape -3)" },
+        { "ts": "2026-11-16T22:25:00.000+01:00", "type": "subtask", "message": "ALC-163-2 cochée : compilation exécutable autonome — bundle targets=\"all\" (NSIS/MSI) dans tauri.conf.json ; npm run tauri build exit 0 ; binaire autonome target/release/alchemix_ii.exe (7,3 MB) + NSIS AlcheMix II_0.2.0_x64-setup.exe (2,46 MiB) + MSI ; copie versionnée AlcheMix-II-v0.2.0-windows-x64.exe (7 268 352 octets, non nul)" }
+      ]
+    },
+    "ALC-155": {
+      "ticketId": "ALC-155",
+      "entries": [
+        { "ts": "2026-11-16T16:55:00.000+01:00", "type": "creation", "message": "ALC-155 créé (En cours) : verrouillage de phase temporelle par peigne d'impulsions sub-BPM + pondération des temps forts en tonalité" },
+        { "ts": "2026-11-16T17:05:00.000+01:00", "type": "subtask", "message": "ALC-155-1 cochée : nouvelle fn impulse_comb (peigne d'impulsions en phase : 4 phases 0/T/4/T/2/3T/4, énergie à 1×T + 0.5×2×T) ; affinage fin ±12 % (pas 0.1 + interp parabolique) autour du pic de chaque fenêtre (corrige le glissement +5 %) ; bande KDE σ 1.0→0.6" },
+        { "ts": "2026-11-16T17:15:00.000+01:00", "type": "subtask", "message": "ALC-155-2 cochée : bass_chroma — trames percussives (énergie > 1.25×moyenne) pondérées ×1.8 (fondamentale du temps 1 : A sur My Hometown, E sur Julia) ; bass_anchored_tonic — seuil de quinte inférieure 0.78→0.82" },
+        { "ts": "2026-11-16T17:20:00.000+01:00", "type": "subtask", "message": "ALC-155-3 cochée : tests — phase_lock_91_not_96 (peigne 91 vs 96, ≠96) + impulse_comb_peaks_91_over_96 (sélectivité stricte) ; cargo test --lib 33/33 ; cargo check 0 warning" },
+        { "ts": "2026-11-16T17:25:00.000+01:00", "type": "column", "message": "ALC-155 validé : specs docs/SPECIFICATIONS.md (§3.2 Tempo + Tonalité + historique ALC-155) mises à jour ; aucun ticket Terminé/En revue modifié ; ALC-155 en En revue" }
+      ]
+    },
+    "ALC-154": {
+      "ticketId": "ALC-154",
+      "entries": [
+        { "ts": "2026-11-16T16:20:00.000+01:00", "type": "creation", "message": "ALC-154 créé (En cours) : moteur BPM multi-fenêtres par peigne métrique binaire + raffinement tonal par densité harmonique" },
+        { "ts": "2026-11-16T16:30:00.000+01:00", "type": "subtask", "message": "ALC-154-1 cochée : tempo_autocorr — suppression de la division T/1.5 (conserve uniquement le vrai ×2 gardé ≥76 BPM) ; nouveau tempo_comb_windowed — fenêtres 10 s (pas 5 s), filtre < 35 % médiane, score binaire continu 1.0r(b)+0.45r(2b)+0.35r(b/2)−0.30r(1.5b) sur [76..154], interp parabolique, agrégation KDE pondérée par l'énergie" },
+        { "ts": "2026-11-16T16:40:00.000+01:00", "type": "subtask", "message": "ALC-154-2 cochée : hpcp_chroma — trame pondérée par son énergie harmonique nette (refrains/couplets prioritaires) ; bass_anchored_tonic — seuil de quinte inférieure (p+5)%12 abaissé de 0.85 à 0.78 (corrige Ironic 1B / Spaceman 8B)" },
+        { "ts": "2026-11-16T16:48:00.000+01:00", "type": "subtask", "message": "ALC-154-3 cochée : tests — binary_146_not_divided / binary_133_not_divided (intro calme + beat binaire non divisé), dotted_eighth_89_resolved + autocorr_penalized (89 BPM vs 133.5 grâce à −0.30·r(1.5b)) ; cargo test --lib 31/31 ; cargo check 0 warning" },
+        { "ts": "2026-11-16T16:50:00.000+01:00", "type": "column", "message": "ALC-154 validé : specs docs/SPECIFICATIONS.md (§3.2 Tempo + Tonalité + historique ALC-154) mises à jour ; aucun ticket Terminé/En revue modifié ; ALC-154 en En revue" }
+      ]
+    },
+    "ALC-153": {
+      "ticketId": "ALC-153",
+      "entries": [
+        { "ts": "2026-11-16T15:45:00.000+01:00", "type": "creation", "message": "ALC-153 créé (En cours) : correction du biais d'harmoniques rythmiques BPM (tempogramme normalisé) + pénalité de quinte Camelot" },
+        { "ts": "2026-11-16T15:52:00.000+01:00", "type": "subtask", "message": "ALC-153-1 cochée : KICK_BANDS 3→2 (sub-bass 40–126 Hz) ; tempo_autocorr — normalisation par paire (Pearson) documentée, prior gaussien 105/σ38 plané (floor 0.7 → plateau 77–155 sans favoriser 129–156), tie-break au lag minimal pour préserver les vrais tempos (146/125), pénalité sous-harmoniques T/1.5 (ternaire) toujours + T/2 si ≥150, uniquement si sub_corr > pic" },
+        { "ts": "2026-11-16T16:02:00.000+01:00", "type": "subtask", "message": "ALC-153-2 cochée : bass_anchored_tonic — si bass_chroma[quinte inférieure (p+5)%12] ≥ 0.85 × bass_chroma[p], bascule la tonique vers la quinte inférieure (la basse joue la fondamentale réelle) ; power chord sans tierce → convention majeure (pas de repli mineur)" },
+        { "ts": "2026-11-16T16:12:00.000+01:00", "type": "subtask", "message": "ALC-153-3 cochée : tests — ternary_85_detected_not_129 (85 BPM préservé malgré 127.5/170) et powerchord_c_major_stays_8b (basse Do=1.0 > Sol=0.4) ; cargo test --lib 27/27 ; cargo check 0 warning" },
+        { "ts": "2026-11-16T16:15:00.000+01:00", "type": "column", "message": "ALC-153 validé : specs docs/SPECIFICATIONS.md (§3.2 Tempo + Tonalité + historique ALC-153) mises à jour ; aucun ticket Terminé modifié ; ALC-153 en En revue" }
+      ]
+    },
+    "ALC-152": {
+      "ticketId": "ALC-152",
+      "entries": [
+        { "ts": "2026-11-16T15:00:00.000+01:00", "type": "creation", "message": "ALC-152 créé (En cours) : précision sub-BPM (interpolation parabolique) + arbitrage Majeur/Mineur homonyme" },
+        { "ts": "2026-11-16T15:10:00.000+01:00", "type": "subtask", "message": "ALC-152-1 cochée : tempo_autocorr — interpolation parabolique du pic (lag_exact, BPM continu, fin des paliers), plage primaire [72,162] + prior gaussien 118, et onset_envelope_kick sur les basses percussives 45–180 Hz (KICK_BANDS=3) remplaçant l'onset large dans analyze_bpm" },
+        { "ts": "2026-11-16T15:20:00.000+01:00", "type": "subtask", "message": "ALC-152-2 cochée : bande HPCP restreinte 90–1400 Hz (fondamental ET repli harmonique bornés à 1400), arbitrage explicite Majeur/Mineur homonyme (tierce +3 vs +4 pondérée par bass_chroma) dans detect_key_from, pénalité de quinte ferme quand écart tonique/quinte < 8 %" },
+        { "ts": "2026-11-16T15:35:00.000+01:00", "type": "subtask", "message": "ALC-152-3 cochée : tests — 6A (Sol min) et 2A (Mi♭ min) via key_from_profile_chroma + synth_pcm (racine ancrée), 91.0/134.0 BPM par interpolation ; cargo test --lib 25/25 ; cargo check 0 warning" },
+        { "ts": "2026-11-16T15:40:00.000+01:00", "type": "column", "message": "ALC-152 validé : specs docs/SPECIFICATIONS.md (§3.2 Tempo + Tonalité + historique ALC-152) mises à jour ; aucun ticket Terminé modifié ; ALC-152 en En revue" }
+      ]
+    },
+    "ALC-151": {
+      "ticketId": "ALC-151",
+      "entries": [
+        { "ts": "2026-11-16T14:25:00.000+01:00", "type": "creation", "message": "ALC-151 créé (En cours) : calibration & correction de précision de l'algorithme de détection de clé Camelot dans audio.rs (périmètre demandé sous ALC-150 renuméroté ALC-151 car ALC-150 existe déjà — gouvenance)" },
+        { "ts": "2026-11-16T14:32:00.000+01:00", "type": "subtask", "message": "ALC-151-1 cochée : racine du biais identifiée — repli HPCP 36 bacs→12 par MODULO 12 décalait la tonique (A maj p=9→D♯/E♭) ; corrigé en DIVISION b/3 ; bande HPCP 100–2500 Hz ; Z-score des 5 profils ; pénalité de quinte conditionnelle (fifth>tonic) ; composite favorisant le chroma de MAGNITUDE (0.80 mag + 0.05 flat + 0.15 bass) pour préserver la tierce majeure/mineure" },
+        { "ts": "2026-11-16T14:45:00.000+01:00", "type": "subtask", "message": "ALC-151-2 cochée : 4 tests End-to-End PCM (La maj 11B, Mi maj 12B, Sol maj 9B, La min 8A) + no_minor_bias_any_tonic (12 toniques majeures → B) ; vérifier la table camelot (A maj=11B, E maj=12B, G maj=9B, A min=8A)" },
+        { "ts": "2026-11-16T14:52:00.000+01:00", "type": "subtask", "message": "ALC-151-3 cochée (validation) : cargo test --lib → 19/19 verts ; cargo check → 0 warning ; specs docs/SPECIFICATIONS.md mises à jour ; aucun ticket Terminé (ALC-143/144/150) modifié ; ALC-151 en En revue" }
+      ]
+    },
+    "ALC-150": {
+      "ticketId": "ALC-150",
+      "entries": [
+        { "ts": "2026-11-16T13:50:00.000+01:00", "type": "creation", "message": "ALC-150 créé (En cours) : lisibilité approfondie du Beatgrid — waveform miroir HD, phrasé M1/M5/M9, sens de lecture, vérité de synchronisation" },
+        { "ts": "2026-11-16T13:58:00.000+01:00", "type": "subtask", "message": "ALC-150-1 cochée : drawWaveCanvas — barres fines 2px/écart ~1px (NBARS 48→213), symétriques autour de l'axe central (cy=cssH/2), contraste Math.pow(bh, 1.5), 3 couches intérieur→extérieur (cuivre basses → émeraude/bleu voix → or aigus)" },
+        { "ts": "2026-11-16T14:04:00.000+01:00", "type": "subtask", "message": "ALC-150-2 cochée : repères de phrasé M1/M5/M9 (index mesure = floor(beat/16)*4+1) au sommet des traits dorés des 2 grilles + mentions ◄ Passé / À venir ► de part et d'autre de l'aiguille dorée" },
+        { "ts": "2026-11-16T14:08:00.000+01:00", "type": "subtask", "message": "ALC-150-3 cochée : légende des couleurs déplacée en haut du cadre sous forme claire (Cuivre : Basses • Vert/Bleu : Voix & Mélodie • Or : Aigus), « Fenêtre zoom » conservée en bas à droite" },
+        { "ts": "2026-11-16T14:14:00.000+01:00", "type": "subtask", "message": "ALC-150-4 cochée : vérité de synchronisation — lockLabel = RYTHME VERROUILLÉ ✓ seulement si platines chargées ET |ΔeffectiveBpm| ≤ 0.2, sinon TEMPOS NON ALIGNÉS (amber, barre & texte) ; courbe TEMPO + valeur recentrées sur le effectiveBpm de chaque platine (suppression des contradictions de chiffres)" },
+        { "ts": "2026-11-16T13:50:00.000+01:00", "type": "column", "message": "ALC-150-5 cochée (validation, pseudo-horodatage) : npm run check 0/0 ; h-screen overflow-hidden conservé ; specs docs/SPECIFICATIONS.md mises à jour ; aucun ticket Terminé modifié ; ALC-150 en En revue" }
+      ]
+    },
+    "ALC-149": {
+      "ticketId": "ALC-149",
+      "entries": [
+        { "ts": "2026-11-16T13:10:00.000+01:00", "type": "creation", "message": "ALC-149 créé (En cours) : lisibilité, ergonomie débutant & dimensionnement vertical du Beatgrid" },
+        { "ts": "2026-11-16T13:18:00.000+01:00", "type": "subtask", "message": "ALC-149-1 cochée : hauteurs des 2 formes d'onde à 200px (WAVE_H) et des 2 pistes télémétriques à 60px (TELE_H) ; constantes partagées markup+draw, scaling devicePixelRatio proportionnel cssH" },
+        { "ts": "2026-11-16T13:24:00.000+01:00", "type": "subtask", "message": "ALC-149-2 cochée : normalisation d'octave du local_bpm (normOctaveBpm, bornes [0.75×global, 1.35×global]) appliquée à la courbe TEMPO et à la valeur BPM instantanée — fin des 240 BPM (BeatgridView.svelte, frontend)" },
+        { "ts": "2026-11-16T13:30:00.000+01:00", "type": "subtask", "message": "ALC-149-3 cochée : vocabulaire — Platine A • Maître / Platine B • Synchro, Caler Temps 1, RYTHME VERROUILLÉ ✓ (écart ms en infobulle), micro-légende des 3 couleurs (Basses / Voix-Mélodie / Aigus)" },
+        { "ts": "2026-11-16T13:36:00.000+01:00", "type": "subtask", "message": "ALC-149-4 cochée : Hot Cues + Auto-Loops séparés symétriquement en 2 colonnes (Platine A à gauche émeraude / Platine B à droite bleu) ; bandeau « Conseil » contextuel 1 ligne selon l'état des platines" },
+        { "ts": "2026-11-16T13:45:00.000+01:00", "type": "column", "message": "ALC-149-5 cochée (validation) : npm run check 0/0 ; h-screen overflow-hidden conservé ; specs docs/SPECIFICATIONS.md mises à jour ; aucun ticket Terminé modifié ; ALC-149 en En revue" }
+      ]
+    },
+    "ALC-148": {
+      "ticketId": "ALC-148",
+      "entries": [
+        { "ts": "2026-11-16T12:50:00.000+01:00", "type": "creation", "message": "ALC-148 créé (En cours) : agrandissement des formes d'onde principales du Beatgrid (lisibilité transitoires / sub-basses / grille)" },
+        { "ts": "2026-11-16T12:55:00.000+01:00", "type": "subtask", "message": "ALC-148-1 cochée : hauteur des 2 conteneurs Tape A/B passée de h-16 (64 px) à 160 px (h-[160px]) et canvas alignés via constante partagée WAVE_H = 160 (BeatgridView.svelte)" },
+        { "ts": "2026-11-16T13:00:00.000+01:00", "type": "subtask", "message": "ALC-148-2 cochée : scaling devicePixelRatio déjà proportionnel (comparaison cv.width/height vs W*dpr / cssH*dpr) — cssH désormais = WAVE_H ; amplitude des 3 bandes (rms_low/rms_mid/rms_high) pilotée par cssH donc agrandie automatiquement ; grille & aiguille inset-y-0 traversent les 160 px" },
+        { "ts": "2026-11-16T13:05:00.000+01:00", "type": "column", "message": "ALC-148-3 cochée (validation) : npm run check 0/0 ; h-screen overflow-hidden conservé ; specs docs/SPECIFICATIONS.md mises à jour ; aucun ticket Terminé modifié ; ALC-148 en En revue" }
+      ]
+    },
+    "ALC-147": {
+      "ticketId": "ALC-147",
+      "entries": [
+        { "ts": "2026-11-16T12:20:00.000+01:00", "type": "creation", "message": "ALC-147 créé (En cours) : séparation visuelle — 2 pistes dédiées sous les waveforms principales pour l'évolution du Tempo et les Clés Camelot (périmètre demandé sous ALC-144 renuméroté ALC-147 car ALC-144 est Terminé et immuable)" },
+        { "ts": "2026-11-16T12:30:00.000+01:00", "type": "subtask", "message": "ALC-147-1 cochée : ondes principales épurées — retrait des branches TEMPO/CLÉS de drawWaveCanvas (BeatgridView.svelte), seule la sculpture 3 bandes (cuivre / émeraude-bleu / or) + grille dorée + aiguille centrale restent" },
+        { "ts": "2026-11-16T12:40:00.000+01:00", "type": "subtask", "message": "ALC-147-2 cochée : 2 pistes télémétriques dédiées (~36 px, émeraude Tape A / bleu Tape B) sous les ondes, traversées par l'aiguille dorée, synchro zoom/elapsedSeconds, branchées sur CALQUE [ TEMPO | CLÉS ] : TEMPO (courbe local_bpm + BPM instantané + halo ambré si > ±0.5 BPM) / CLÉS (blocs segmentés Camelot + surlignage clash A vs B) ; HarmonyHeatmap (sous-piste fixe) remplacée par ces pistes CALQUE-driven" },
+        { "ts": "2026-11-16T12:45:00.000+01:00", "type": "column", "message": "ALC-147-3 cochée (validation) : npm run check 0/0 ; h-screen overflow-hidden conservé ; specs docs/SPECIFICATIONS.md mises à jour ; aucun ticket Terminé (ALC-143/144) modifié ; ALC-147 en En revue" }
+      ]
+    },
+    "ALC-146": {
+      "ticketId": "ALC-146",
+      "entries": [
+        { "ts": "2026-11-16T11:30:00.000+01:00", "type": "creation", "message": "ALC-146 créé (En cours) : Segmentation sonore (RMS 3 bandes + tempo/clé locaux) & waveform Canvas 2D 60fps avec calques TEMPO/CLÉS — périmètre initialement demandé sous ALC-143 renuméroté ALC-146 (ALC-143/144 sont Terminés et immuables)" },
+        { "ts": "2026-11-16T11:42:00.000+01:00", "type": "subtask", "message": "ALC-146-1 cochée : extraction segmentée Rust — AudioAnalysis.segments: Vec<TrackSegment> + struct TrackSegment {startSec,endSec,rmsLow/Mid/High normalisés 0..1,localBpm,localCamelot} ; analyze_segments (fenêitre glissante ~4 s, hop 50 %) réutilise estimate_tuning/hpcp_chroma/bass_chroma/detect_key_from/analyze_bpm + band_rms (FFT Hann, sub <120Hz / médium 120-4000 / aigus >4kHz) ; exposé via TrackData (commands/mod.rs) ; cargo check OK" },
+        { "ts": "2026-11-16T11:55:00.000+01:00", "type": "subtask", "message": "ALC-146-2 cochée : état réactif — deckSegmentsA/B : $state.raw<TrackSegment[]> (zéro proxy profond) + beatgridOverlayMode $state<'tempo'|'camelot'> dans mixer.svelte.ts ; chargement via loadTrackFromPath et vidage ciblé à l'eject ; sélecteur CALQUE [ TEMPO | CLÉS ] ajouté à la barre d'outils (BeatgridView) ; Hot Cues A/B émeraude/bleu conservés (hérités d'ALC-145)" },
+        { "ts": "2026-11-16T12:05:00.000+01:00", "type": "subtask", "message": "ALC-146-3 cochée : waveform Canvas 2D 60fps — deux <canvas> bind:this haute densité (devicePixelRatio) autour de l'aiguille dorée, dessinés dans tick() via drawWaveCanvas ; sculpture 3 bandes (sub cuivre/ambre #b87333, corps émeraude #10b981 A / bleu #3b82f6 B, transitoires or), calque TEMPO (courbe localBpm lumineuse + halo ambré si dérive > ±0.5 BPM), calque CLÉS (ruban segmenté au pied par clé locale + liseré cuivré si conflit harmonique) ; cartes comparatives resserrées, h-screen overflow-hidden préservé" },
+        { "ts": "2026-11-16T12:10:00.000+01:00", "type": "subtask", "message": "ALC-146-4 cochée (validation) : cargo check 0 warning ; npm run check 0 erreur/0 warning ; tests backend 14/14 ; aucun ticket Terminé (ALC-143/144) modifié ; ALC-146 en En revue ; journaux + meta.updatedAt à jour (heure de Paris)" }
+      ]
+    },
+    "ALC-145": {
+      "ticketId": "ALC-145",
+      "entries": [
+        { "ts": "2026-11-16T10:31:00.000+01:00", "type": "creation", "message": "ALC-145 créé (En cours) : corrections UI atelier Beatgrid — dynamique des barres, identité chromatique A/B, cartes compactes, Hot Cues dédoublés" },
+        { "ts": "2026-11-16T11:00:00.000+01:00", "type": "subtask", "message": "ALC-145-1 cochée : dynamique des barres — normRef (92e percentile) + compression douce pow(raw/norm, 1/1.6) + hauteur plafonnée à 0.92 + seuil peak > 0.66 dans visibleBars (BeatgridView.svelte) : fin des barres à 100 % et du saut brutal bleu→doré à droite" },
+        { "ts": "2026-11-16T11:06:00.000+01:00", "type": "subtask", "message": "ALC-145-2 cochée : identité chromatique par piste — pics émeraude clair #7dfae0/#34d399 (Tape A) / bleu clair #7dd3fc/#38bdf8 (Tape B), sous-basses teintées du canal (#065f46 Tape A / #075985 Tape B) ; le doré #edbf7a reste réservé à l'aiguille, grille, marqueurs AUTO-LOOP et cadres panoramiques" },
+        { "ts": "2026-11-16T11:10:00.000+01:00", "type": "subtask", "message": "ALC-145-3 cochée : cartes comparatives compactées en une seule rangée dense (Tag Tape A•Pivot / Tape B•Récepteur + BPM·clé + ALIGNER TEMPO & PHASE centré) au lieu de deux grandes cartes empilées — espace vide sous le crossfader supprimé, h-screen overflow-hidden préservé" },
+        { "ts": "2026-11-16T11:14:00.000+01:00", "type": "subtask", "message": "ALC-145-4 cochée : Hot Cues dédoublés par piste — deux rangées étiquetées A1..A4 (émeraude) et B1..B4 (bleu #38bdf8), poser/rappeler respectivement liés à deckA.hotCues / deckB.hotCues" },
+        { "ts": "2026-11-16T11:20:00.000+01:00", "type": "subtask", "message": "ALC-145-5 cochée (validation) : npm run check → 0 erreur/0 warning ; h-screen overflow-hidden conservé ; aucun ticket Terminé modifié ; ALC-145 en En revue ; journaux + meta.updatedAt à jour (heure de Paris)" }
+      ]
+    },
+    "ALC-132": {
+      "ticketId": "ALC-132",
+      "entries": [
+        { "ts": "2026-11-15T20:02:00.000+01:00", "type": "creation", "message": "ALC-132 créé (En cours) : Console centrale & platines — Jauges segmentées, Marquee, Timer ROLL, Knob LOW EQ" },
+        { "ts": "2026-11-15T20:04:00.000+01:00", "type": "subtask", "message": "ALC-132-1 cochée : jauges 14 segments laiton/LED (affinitySegments cuivre→émeraude proportionnelles à l'affinité) + jauge bipolaire centrée (lufsSeg) sous Affinité/Modulation dans MixerCenter.svelte" },
+        { "ts": "2026-11-15T20:05:00.000+01:00", "type": "subtask", "message": "ALC-132-2 cochée : MarqueeText.svelte (débordement ResizeObserver, fondu latéral par masque, pause au survol) appliqué au titre cassette DeckA/B et aux cartouches du CrossfaderBar" },
+        { "ts": "2026-11-15T20:06:00.000+01:00", "type": "subtask", "message": "ALC-132-3 cochée : horloge de lecture startClock/advanceClock dans le store (250 ms) + badge ROLL cliquable (écoulé/restant) avec chiffres tabulaires (tabular-nums)" },
+        { "ts": "2026-11-15T20:07:00.000+01:00", "type": "subtask", "message": "ALC-132-4 cochée : BrassKnob.svelte (laiton/cuivre, glissement vertical + molette) → lowEqDb ; Meter.setLowShelf (BiquadFilterNode lowshelf 120 Hz) appliqué via $effect sur DeckA/DeckB" },
+        { "ts": "2026-11-15T20:09:00.000+01:00", "type": "subtask", "message": "ALC-132-5 cochée : console h-screen overflow-hidden préservée ; npm run check 0 erreur/0 warning ; aucun ticket Terminé modifié ; passage en En revue" }
+      ]
+    },
+    "ALC-142": {
+      "ticketId": "ALC-142",
+      "entries": [
+        { "ts": "2026-11-15T22:04:00.000+01:00", "type": "creation", "message": "ALC-142 lancé (En cours) : Atelier Beatgrid, Auto-Loop Roll & Synchronisation Mashup (maquette Alchemix2 0.7)" },
+        { "ts": "2026-11-15T22:06:00.000+01:00", "type": "subtask", "message": "ALC-142-1 cochée : BeatgridView.svelte créé + inséré dans MixerCenter (onglet BEATGRID, entre onglets et Crossfader) : ZOOM 4/8/16 MES, Vernier ±ms + LOCK%, CIBLE TAPE A|B, SET 1.1 / ◄► (±10ms) / ÷2×2" },
+        { "ts": "2026-11-15T22:07:00.000+01:00", "type": "subtask", "message": "ALC-142-2 cochée : double onde émeraude/bleu empilée (bars ré-échantillonnées de waveformPeaks) + mini-barres panoramiques + aiguille dorée MESURE XX.X défilée 60 fps + 4 Hot Cues INTRO/DROP/ACAP/OUTRO (posé/rappel via player.seek)" },
+        { "ts": "2026-11-15T22:08:00.000+01:00", "type": "subtask", "message": "ALC-142-3 cochée : Player.setQuantizedLoop(beats,bpm)/clearLoop (T_beat=60/BPM, reboucle IN→OUT au timeupdate) ; barres AUTO-LOOP A/B (½,1,4,8,16,EXIT) + ▲ IN/OUT ; cartes Tape A•Pivot / Tape B•Récepteur + ALIGNER TEMPO & PHASE (pitch B + reset phase)" },
+        { "ts": "2026-11-15T22:10:00.000+01:00", "type": "subtask", "message": "ALC-142-4 cochée : h-screen overflow-hidden préservé ; npm run check → 0 erreur/0 warning ; aucun ticket Terminé modifié ; ALC-142 en En revue" },
+        { "ts": "2026-11-15T22:20:00.000+01:00", "type": "report", "message": "Refonte de l'atelier au niveau de la maquette 0.7 : correcteur d'octave ÷2/×2 fonctionnel (octaveGrid + gridOctave en store), grille rythmique hiérarchisée dorée (trait or toutes les 4 mesures, moyens sur les downbeats, fins sur les temps), accent cuivré des sub-basses <100 Hz, mini-barres panoramiques cadrées or avec repères Hot Cues, aiguille dorée continue avec compteur MESURE XX.X • -XX MES AVANT DROP, marqueurs Auto-Loop ▲ IN / OUT ▲ matérialisés sur l'onde, zoom 4/8/16 MES réglé en réel" },
+        { "ts": "2026-11-15T22:22:00.000+01:00", "type": "subtask", "message": "ALC-142-1 à ALC-142-4 revalidées : BeatgridView intégré strictement entre la barre d'onglets et le Crossfader Master désormais partagé (sorti de la branche Camelot, sans duplication) ; vue BEATGRID sous h-screen overflow-hidden" },
+        { "ts": "2026-11-15T22:24:00.000+01:00", "type": "column", "message": "Statut confirmé : En revue (4/4 micro-tâches validées ; npm run check 0 erreur / 0 warning) — aucun ticket Terminé altéré" }
+      ]
+    },
+    "ALC-144": {
+      "ticketId": "ALC-144",
+      "entries": [
+        { "ts": "2026-11-15T22:50:00.000+01:00", "type": "creation", "message": "ALC-144 lancé (En cours) : Waveform harmonique secondaire (heatmap Camelot) dans l'atelier Beatgrid — analyse réelle de la clé par fenêtres temporelles (Option A backend + IPC + store) + sous-piste colorée sous chaque waveform" },
+        { "ts": "2026-11-15T22:52:00.000+01:00", "type": "subtask", "message": "ALC-144-1 cochée : waveform rythmique principale conservée telle quelle (enveloppe A émeraude / B bleu, transitoires via waveformPeaks, grille hiérarchisée dorée) + aiguille dorée centrale partagée, vernier ±X.X ms / LOCK % et 4 Hot Cues — aucune régression" },
+        { "ts": "2026-11-15T22:56:00.000+01:00", "type": "subtask", "message": "ALC-144-2 cochée : analyze_key_timeline en Rust (segments 6 s, tuning global + HPCP + basse + detect_key_from → KeySeg{timeSeconds,camelotKey,confidence}) exposé via AudioAnalysis/TrackData/KeySeg (cargo check OK, serde Deserialize) ; client.ts + store.keyTimeline ; composant HarmonyHeatmap.svelte (blocs colorés par numéro Camelot, alpha=confiance, repère ▲ clash vs autre platine)" },
+        { "ts": "2026-11-15T22:58:00.000+01:00", "type": "subtask", "message": "ALC-144-3 cochée : HarmonyHeatmap intégrée sous chaque waveform (A émeraude / B bleu) dans BeatgridView, même échelle temporelle que la grille, aiguille dorée traversante — sous-pistes compactes (h-3) → h-screen overflow-hidden sans défilement (npm run check 0/0)" },
+        { "ts": "2026-11-15T23:02:00.000+01:00", "type": "subtask", "message": "ALC-144-4 cochée : npm run check 0 erreur/0 warning ; cargo check OK ; tests backend 14/14 ; JSON tasks/journals valides ; aucun ticket Terminé modifié" },
+        { "ts": "2026-11-15T23:04:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (4/4 micro-tâches validées) — heatmap harmonique secondaire (Option A backend réel) prête pour validation visuelle" }
+      ]
+    },
+    "ALC-143": {
+      "ticketId": "ALC-143",
+      "entries": [
+        { "ts": "2026-11-15T22:30:00.000+01:00", "type": "creation", "message": "ALC-143 lancé (En cours) : Assistant de transition harmonique dans l'atelier Beatgrid — BridgeSuggester (clé pivot + raccourci Roue de Camelot) + mode Smart Filter (réduction auto médiums/basses sur clés incompatibles)" },
+        { "ts": "2026-11-15T22:32:00.000+01:00", "type": "subtask", "message": "ALC-143-1 cochée : src/lib/audio/harmony.ts créé (parseCamelot, relationFrom ring/rel, affinityFrom, verdictFrom, intervalFrom, isDissonant, pivotFrom) ; MixerCenter refactoré pour consommer la source unique (npm run check 0 erreur/0 warning)" },
+        { "ts": "2026-11-15T22:34:00.000+01:00", "type": "subtask", "message": "ALC-143-2 cochée : BridgeSuggester.svelte créé (bandeau d'alerte Δ quintes, clé tampon pivot, raccourci Roue de Camelot, toggle Smart Filter) + état smartFilterActive/smartFilterDb/isHarmonyDissonant dans le store ; intégré en tête de BeatgridView (npm run check 0/0)" },
+        { "ts": "2026-11-15T22:36:00.000+01:00", "type": "subtask", "message": "ALC-143-3 cochée : bande médium peaking 900 Hz ajoutée à la chaîne WebAudio (Player.setMidBand) ; $effect LOW EQ des DeckA/DeckB étendus à lowEqDb + smartFilterDb et setMidBand(smartFilterDb) ; réduction auto −6 dB médiums/basses si clés incompatibles × Smart Filter actif" },
+        { "ts": "2026-11-15T22:38:00.000+01:00", "type": "subtask", "message": "ALC-143-4 cochée : npm run check → 0 erreur / 0 warning ; JSON tasks/journals valides ; aucun ticket Terminé modifié" },
+        { "ts": "2026-11-15T22:40:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (4/4 micro-tâches validées) — ALC-143 prêt pour validation visuelle" }
+      ]
+    },
+    "ALC-141": {
+      "ticketId": "ALC-141",
+      "entries": [
+        { "ts": "2026-11-15T21:50:00.000+01:00", "type": "creation", "message": "ALC-141 lancé (En cours→implémentation) : Arbitrage harmonique hybride DSP + AcousticBrainz/MusicBrainz" },
+        { "ts": "2026-11-15T21:52:00.000+01:00", "type": "subtask", "message": "ALC-141-1 cochée : key_confidence (0..1) exposé en Rust — detect_key_from/analyze_key/key_code propagent (corr_max−corr_2nd)/corr_max → AudioAnalysis + TrackData + client; test synth_key_do_major_8b vérifie la borne [0,1]" },
+        { "ts": "2026-11-15T21:54:00.000+01:00", "type": "subtask", "message": "ALC-141-2 cochée : MbResult.recordingMbid (rec.id) + fetchAcousticBrainzKey(/{mbid}/low-level) → tonal.key_key/key_scale/key_strength, convertis en Camelot 1A-12B via formules modulaires" },
+        { "ts": "2026-11-15T21:56:00.000+01:00", "type": "subtask", "message": "ALC-141-3 cochée : resolveHybridCamelotKey (consensus / voisinage→API si conf<0.72 & strength≥0.65 / divergence→DSP prioritaire) ; store arbitre la clé ; indicateur DSP / DSP+API ✓ / ARBITRÉ dans la télémétrie CLÉ CAMELOT (infobulle local+externe)" },
+        { "ts": "2026-11-15T21:58:00.000+01:00", "type": "subtask", "message": "ALC-141-4 cochée : npm run check → 0 erreur/0 warning ; cargo check → OK ; cargo test --lib → 14/14 passés ; aucun ticket Terminé modifié ; ALC-141 en En revue" }
+      ]
+    },
+    "ALC-140": {
+      "ticketId": "ALC-140",
+      "entries": [
+        { "ts": "2026-11-15T21:37:00.000+01:00", "type": "creation", "message": "ALC-140 créé (En cours) : Favicon vectoriel AlcheMix II & onglet LIBRAIRIE & compteur ROLL agrandi" },
+        { "ts": "2026-11-15T21:39:00.000+01:00", "type": "subtask", "message": "ALC-140-1 cochée : static/favicon.svg créé (diapason + engrenage doré sur ébène) + static/favicon.png (fallback) ; src/app.html déclare rel=icon svg+xml + rel=alternate icon png ; bundle.icon Tauri déjà synchronisé (window)" },
+        { "ts": "2026-11-15T21:41:00.000+01:00", "type": "subtask", "message": "ALC-140-2 cochée : 3e onglet LIBRAIRIE ajouté (icône library_music) + panneau 'ARCHIVES & LIBRAIRIE MUSICALE — module d'indexation à venir', champ de vue remplacé par centreView='library', sans défilement (h-screen overflow-hidden)" },
+        { "ts": "2026-11-15T21:42:00.000+01:00", "type": "subtask", "message": "ALC-140-3 cochée : badge ROLL agrandi sur DeckA/B — text-base mono tabulaire, padding renforcé, cadre doré chronographe (border-primary + lueur), basculement clic écoulé/restant conservé" },
+        { "ts": "2026-11-15T21:44:00.000+01:00", "type": "subtask", "message": "ALC-140-4 cochée : npm run check → 0 erreur/0 warning ; aucun des 35 tickets Terminé modifié ; ALC-140 en En revue" }
+      ]
+    },
+    "ALC-139": {
+      "ticketId": "ALC-139",
+      "entries": [
+        { "ts": "2026-11-15T21:22:00.000+01:00", "type": "creation", "message": "ALC-139 créé (En cours) : Sliders EQ Graves/Aigus horizontaux & Purge cache / POWER OFF Tauri" },
+        { "ts": "2026-11-15T21:24:00.000+01:00", "type": "subtask", "message": "ALC-139-1 cochée : BrassKnob LOW/HIGH remplacés par 2 sliders horizontaux dorés (drag + molette + double-clic reset 0.0 dB, grad -6..+6 centre 0 dB, micro-LED canal) reliés à setLowShelf/setHighShelf — DeckA & DeckB" },
+        { "ts": "2026-11-15T21:25:00.000+01:00", "type": "subtask", "message": "ALC-139-2 cochée : shutdownAndPurgeCache() — stop decks + pré-écoute Deezer (event alchemix:shutdown → dispose/revoke), purge caches/sessionStorage/alchemix-board + pochettes mémoire, fermeture via commande Rust exit_app (app.exit(0))" },
+        { "ts": "2026-11-15T21:26:00.000+01:00", "type": "subtask", "message": "ALC-139-3 cochée : bouton POWER OFF dans le header (+page, style Venezia, icône power, lueur cuivre/rubis au survol) + modale de confirmation 'Couper l'alimentation et vider le cache ?' (Annuler/Éteindre)" },
+        { "ts": "2026-11-15T21:28:00.000+01:00", "type": "subtask", "message": "ALC-139-4 cochée : npm run check → 0 erreur/0 warning (warnings a11y de la modale corrigés via rôles + tabindex) ; cargo check → OK ; aucun des 35 tickets Terminé modifié ; h-screen overflow-hidden ; ALC-139 en En revue" }
+      ]
+    },
+    "ALC-138": {
+      "ticketId": "ALC-138",
+      "entries": [
+        { "ts": "2026-11-15T21:12:00.000+01:00", "type": "creation", "message": "ALC-138 créé (En cours) : Correction effective du gain audio Volume/Crossfader & déplacement du Crossfader dans la console centrale" },
+        { "ts": "2026-11-15T21:13:00.000+01:00", "type": "subtask", "message": "ALC-138-1 cochée : player déclaré en rune $state (DeckA/DeckB) → les $effect ré-appliquent setOutputGain dès la création ; setOutputGain → cancelScheduledValues + setValueAtTime (0 strict) ; flux unique contrôlé" },
+        { "ts": "2026-11-15T21:14:00.000+01:00", "type": "subtask", "message": "ALC-138-2 cochée : barre Crossfader inférieure (+page) et cartouches redondants supprimés ; Crossfader compact intégré dans MixerCenter sous l'Oracle (LED ambre, graduations 100% A — 50/50 — 100% B, drag + clic A/centre/B, flèches, recentrage double-clic)" },
+        { "ts": "2026-11-15T21:15:00.000+01:00", "type": "subtask", "message": "ALC-138-3 cochée : npm run check → 0 erreur / 0 warning ; aucun ticket Terminé modifié ; espace vertical libéré / h-screen overflow-hidden ; ALC-138 en En revue" }
+      ]
+    },
+    "ALC-137": {
+      "ticketId": "ALC-137",
+      "entries": [
+        { "ts": "2026-11-15T20:52:00.000+01:00", "type": "creation", "message": "ALC-137 créé (En cours) : Volume & Crossfader (courbe franche, affichage), Cassettes (bobines rAF différentielles) & Égaliseur analogique 2 bandes + typo" },
+        { "ts": "2026-11-15T20:54:00.000+01:00", "type": "subtask", "message": "ALC-137-1 cochée : volume 10^(volumeDb/20), gain 0 strict en butée min (-24 dB), τ setTargetAtTime ramené à 0.015 s dans Player.setOutputGain ; $effect réactif volume+crossfader (DeckA/B)" },
+        { "ts": "2026-11-15T20:55:00.000+01:00", "type": "subtask", "message": "ALC-137-2 cochée : CrossfaderBar — pctA=100-value, pctB=value (gauche=100% CANAL A, droite=100% CANAL B) ; highlight cartouches inversé (A≤10, B≥90)" },
+        { "ts": "2026-11-15T20:56:00.000+01:00", "type": "subtask", "message": "ALC-137-3 cochée : rotation bobines pilote par rAF (reelAngle L/R, vitesse différentielle selon elapsed/duration, sans à-coup) + défilement bande (tapeScroll) + lueur tête de lecture (émeraude A / bleu B)" },
+        { "ts": "2026-11-15T20:57:00.000+01:00", "type": "subtask", "message": "ALC-137-4 cochée : Player highFilter (highshelf 3.2 kHz) + setHighShelf ; refonte ÉGALISEUR ANALOGIQUE 2 bandes (LOW/HIGH knobs laiton) ; bandeau isolé supprimé" },
+        { "ts": "2026-11-15T20:59:00.000+01:00", "type": "subtask", "message": "ALC-137-5 cochée : normalizeTitle (-- → —) appliqué aux titres (extraction + MusicBrainz) ; h-screen overflow-hidden ; npm run check 0 erreur/0 warning ; aucun ticket Terminé modifié ; En revue" }
+      ]
+    },
+    "ALC-136": {
+      "ticketId": "ALC-136",
+      "entries": [
+        { "ts": "2026-11-15T20:42:00.000+01:00", "type": "creation", "message": "ALC-136 créé (En cours) : Diagnostic & correction du pipeline de lecture audio & liaison galvanomètre WebAudio/Tauri" },
+        { "ts": "2026-11-15T20:43:00.000+01:00", "type": "subtask", "message": "ALC-136-1 cochée : nouveau Player (src/lib/audio/player.ts) — AudioContext.resume() explicite au PLAY + chaîne Source→BiquadFilter(120Hz)→Gain(vol×crossfader)→Analyser→destination" },
+        { "ts": "2026-11-15T20:43:00.000+01:00", "type": "subtask", "message": "ALC-136-2 cochée : commande Rust read_audio_file_bytes (commands/mod.rs + lib.rs) + client.readAudioFileBytes → URL.createObjectURL(blob) révoquée à EJECT/rechargement ; aucun blocage CORS asset://" },
+        { "ts": "2026-11-15T20:44:00.000+01:00", "type": "subtask", "message": "ALC-136-3 cochée : DeckA/DeckB refondus sur le Player — analyse réelle (getByteTimeDomainData→rmsDb/peakDb) alimentant le galvanomètre + voyant PEAK ; erreurs audio explicites (console.error + deck.lastError) ; transport/pitch/volume/crossfader/LOW EQ/seek reliés" },
+        { "ts": "2026-11-15T20:45:00.000+01:00", "type": "subtask", "message": "ALC-136-4 cochée : npm run check → 0 erreur/0 warning ; cargo check → OK ; aucun ticket Terminé modifié ; ALC-136 en En revue" }
+      ]
+    },
+    "ALC-105": {
+      "ticketId": "ALC-105",
+      "entries": [
+        { "ts": "2026-11-15T20:12:00.000+01:00", "type": "creation", "message": "ALC-105 lancé (En cours) : Crossfader Master — Loi d'atténuation à puissance égale & réconciliation finale du Backlog" },
+        { "ts": "2026-11-15T20:15:00.000+01:00", "type": "subtask", "message": "ALC-105-1 cochée : curseur horizontal (glissement fluide pointer + input[type=range]), graduation ÉQUILIBRE, cartouches A/B cliquables, micro-LED ambre centrale, double-clic recentrage ; flèches Home/End ajoutées (onKey)" },
+        { "ts": "2026-11-15T20:17:00.000+01:00", "type": "subtask", "message": "ALC-105-2 cochée : loi de puissance égale câblée — store crossfaderX=value/100 + gainCrossA=cos, gainCrossB=sin, dbToLinear ; Meter.setOutputGain (nœud gain maître) ; $effect DeckA/DeckB → gain = cross(x)·vol" },
+        { "ts": "2026-11-15T20:19:00.000+01:00", "type": "subtask", "message": "ALC-105-3 cochée : ALC-101 (transport PLAY/STOP/EJECT/seek + bobines animate-spin) et ALC-103 (drag faders + micro-LEDs Volume/Pitch) vérifiés opérationnels ; ALC-101, ALC-103, ALC-105 → En revue (Backlog soldé)" },
+        { "ts": "2026-11-15T20:20:00.000+01:00", "type": "report", "message": "Double validation : npm run check → 0 erreur/0 warning ; cargo check → OK ; cargo test --lib → 14/14 passés ; aucun des 6 tickets Terminé altéré" },
+        { "ts": "2026-11-15T20:30:00.000+01:00", "type": "column", "message": "CLÔTURE DÉFINITIVE — validation visuelle & fonctionnelle de tout le lot : les 29 tickets En revue (ALC-004…135) passés en Terminé (completedAt 2026-11-15T20:30+01:00), 100% des micro-tâches cochées ; tasks.json & journals.json valides sans erreur de syntaxe" }
+      ]
+    },
+    "ALC-134": {
+      "ticketId": "ALC-134",
+      "entries": [
+        { "ts": "2026-11-15T19:42:00.000+01:00", "type": "creation", "message": "ALC-134 créé (status En cours) : Métadonnées enrichies — MusicBrainz & Cover Art Archive" },
+        { "ts": "2026-11-15T19:45:00.000+01:00", "type": "subtask", "message": "ALC-134-1 cochée : cleanFilename/extractArtistTitle (extension, préfixes numériques, underscores, [Official Video], (320kbps)) dans $lib/ipc/meta.ts" },
+        { "ts": "2026-11-15T19:46:00.000+01:00", "type": "subtask", "message": "ALC-134-2 cochée : searchMusicBrainz (ws/2/recording?fmt=json&limit=1, UA AlcheMixII/1.0, rate-limit 1 req/s) → titre, artiste, année, genre, release MBID" },
+        { "ts": "2026-11-15T19:47:00.000+01:00", "type": "subtask", "message": "ALC-134-3 cochée : fetchCoverArtArchive (coverartarchive.org/release/{mbid}/front-500) branché comme repli quand ni lofty ni iTunes n'ont fourni de coverUrl" },
+        { "ts": "2026-11-15T19:49:00.000+01:00", "type": "subtask", "message": "ALC-134-4 cochée : enrichMetadataFromExternal dans le store (détection tags génériques lofty, enrichissement + pochette) ; Genre & Année affichés dans la carte Informations de DeckA/DeckB ; npm run check 0 erreur/0 warning ; En revue" }
+      ]
+    },
+    "ALC-135": {
+      "ticketId": "ALC-135",
+      "entries": [
+        { "ts": "2026-11-15T19:42:00.000+01:00", "type": "creation", "message": "ALC-135 créé (Backlog) : Harmonic Bridge Finder via Deezer" },
+        { "ts": "2026-11-15T19:50:00.000+01:00", "type": "subtask", "message": "ALC-135-1 cochée : pivotInfo (détection harmonie.ring≥3 dissonant, clé pivot à mi-chemin sur la Roue, tempo cible (bpmA+bpmB)/2) dans MixerCenter.svelte" },
+        { "ts": "2026-11-15T19:51:00.000+01:00", "type": "subtask", "message": "ALC-135-2 cochée : searchDeezer (api.deezer.com/search?limit=3) → titre, artiste, pochette mini, flux preview MP3 30s" },
+        { "ts": "2026-11-15T19:52:00.000+01:00", "type": "subtask", "message": "ALC-135-3 cochée : encart « PONTS HARMONIQUES SUGGÉRÉS (CLÉ PIVOT {k}) » dans l'Oracle Acoustique, bouton Play/Stop de pré-écoute 30s, h-screen overflow-hidden préservé, esthétique Venezia" },
+        { "ts": "2026-11-15T19:54:00.000+01:00", "type": "subtask", "message": "ALC-135-4 cochée : npm run check 0 erreur/0 warning ; enchaînement ALC-134→ALC-135 puis passage en En revue" }
+      ]
+    },
+    "ALC-104": {
+      "ticketId": "ALC-104",
+      "entries": [
+        { "ts": "2026-11-15T19:26:00.000+01:00", "type": "creation", "message": "ALC-104 lancé : Roue de Camelot & Oracle Acoustique (Console Centrale), statut En cours" },
+        { "ts": "2026-11-15T19:28:00.000+01:00", "type": "subtask", "message": "ALC-104-1 cochée : libellé d'intervalle réel dynamique (interval $derived → MÊME CLÉ (0) / QUINTE VOISINE (+1) / RELATIF (A↔B) / SAUT ÉNERGÉTIQUE (+2) / ÉCART DE {n} QUINTES) + hub « Δ » et carte Affinité alimentés ; plus aucun « +4 QUINTES » codé" },
+        { "ts": "2026-11-15T19:29:00.000+01:00", "type": "subtask", "message": "ALC-104-2 cochée : arc SVG lumineux court (chemin harmonique ≤180°, r=246, 3 couches) confirmé + rendu conditionné `{#if bothLoaded}` ; commentaire « 4B -> 8B » neutralisé" },
+        { "ts": "2026-11-15T19:31:00.000+01:00", "type": "subtask", "message": "ALC-104-3 cochée : Oracle 100% dynamique — Conseil 1 Cadence (alignés/écart>15% au Cut/pitch Δ exact), Conseil 2 Fréquences (chevauch 16 mes. EQ si harmonique / cut percussif si dissonant), Modulation LUFS différentielle calculée (lufsDelta) ; -- LUFS / En attente de mesure au repos" },
+        { "ts": "2026-11-15T19:34:00.000+01:00", "type": "subtask", "message": "ALC-104-4 cochée : npm run check → 0 erreur, 0 warning ; aucun ticket Terminé modifié ; ALC-104 en En revue" }
+      ]
+    },
+    "ALC-102": {
+      "ticketId": "ALC-102",
+      "entries": [
+        { "ts": "2026-11-15T18:50:00.000+01:00", "type": "creation", "message": "ALC-102 lancé : Galvanomètres VU-mètres Balistiques (statut En cours)" },
+        { "ts": "2026-11-15T18:52:00.000+01:00", "type": "subtask", "message": "ALC-102-1 cochée : module $lib/audio/meter.ts (AnalyserNode WebAudio, flux RMS/Peak dBFS) + métriques réactives rmsDbA/peakDbA/rmsDbB/peakDbB/isClipping avec setLevels/resetLevels dans mixer.svelte.ts ; boucle télémétrie branchée sur le transport (playing) côté Deck A & B" },
+        { "ts": "2026-11-15T18:56:00.000+01:00", "type": "subtask", "message": "ALC-102-2 cochée : animation rAF 60 fps de l'aiguille (inertie attaque ~30 ms / relâchement ~300 ms, échelle -20..+5 dB), témoin PEAK incandescent au-delà de 0 dB (maintien ~1,2 s par décroissance de crête), retour aiguille au repos (-20 dB) quand transport !== playing — Deck A & Deck B" },
+        { "ts": "2026-11-15T18:59:00.000+01:00", "type": "subtask", "message": "ALC-102-3 cochée : cancelAnimationFrame(needleRaf/meterRaf) au onDestroy (aucune fuite mémoire) ; npm run check → 0 erreur, 0 warning ; ticket en En revue" },
+        { "ts": "2026-11-15T19:22:00.000+01:00", "type": "report", "message": "Ré-exécution ALC-102 (relance explicite) : statut repassé En cours puis re-validation intégrale — meter.ts (AnalyserNode WebAudio RMS/Peak), store (rmsDbA/peakDbA/rmsDbB/peakDbB/isClipping + setLevels/resetLevels), DeckA/DeckB (animation balistique 60 fps, PEAK incandescent >0 dB avec maintien 1,2 s, retour butée gauche hors lecture), npm run check 0 erreur/0 warning ; retour en En revue 3/3" }
+      ]
+    },
+    "ALC-133": {
+      "ticketId": "ALC-133",
+      "entries": [
+        { "ts": "2026-11-15T18:30:00.000+01:00", "type": "creation", "message": "Ticket créé : Oracle Acoustique neutre au repos & mise en place du Favicon / icônes Tauri" },
+        { "ts": "2026-11-15T18:34:00.000+01:00", "type": "subtask", "message": "ALC-133-1 cochée : Oracle neutre « En attente de pistes — Chargez un titre sur le Deck A et le Deck B… » ; sous-libellés --% / -- LUFS → « En attente d'analyse » / « En attente de mesure » (tant que !bothLoaded)" },
+        { "ts": "2026-11-15T18:37:00.000+01:00", "type": "subtask", "message": "ALC-133-2 cochée : sources/alchemixII_logo.png copié vers static/favicon.png + project-tracker/favicon.png" },
+        { "ts": "2026-11-15T18:40:00.000+01:00", "type": "subtask", "message": "ALC-133-3 cochée : app.html → link rel=icon %sveltekit.assets%/favicon.png ; npx tauri icon (--fit cover) → src-tauri/icons (icon.ico, 32/64/128, icns…)" },
+        { "ts": "2026-11-15T18:42:00.000+01:00", "type": "subtask", "message": "ALC-133-4 cochée : npm run check (svelte-check) 0 erreur, 0 warning ; ticket en En revue" }
+      ]
+    },
+    "ALC-131": {
+      "ticketId": "ALC-131",
+      "entries": [
+        { "ts": "2026-11-15T18:00:00.000+01:00", "type": "creation", "message": "Ticket créé : État temps réel & ergonomie (header MOTEUR AUDIO, bandeau harmonique, Affinité/itinéraires dynamiques, cartouches crossfader)" },
+        { "ts": "2026-11-15T18:05:00.000+01:00", "type": "subtask", "message": "ALC-131-1 cochée : header dynamique — MOTEUR AUDIO (48 KHZ • PRÊT / ANALYSE MIR EN COURS) ; MASTER CLOCK SYNC (EN ATTENTE DE PISTE / MAÎTRE : DECK A(B) (bpm) / Δ BPM / TEMPOS ALIGNÉS ✓)" },
+        { "ts": "2026-11-15T18:09:00.000+01:00", "type": "subtask", "message": "ALC-131-2 cochée : bouton « LANCER L'ANALYSE » supprimé → bandeau d'état harmonique temps réel (attente / analyse / 1 piste / verdict 2 pistes) ; logique parseCamelot/harmony/verdict ajoutée" },
+        { "ts": "2026-11-15T18:12:00.000+01:00", "type": "subtask", "message": "ALC-131-3 cochée : Affinité Harmonique = % calculé (100 même clé, 95 ±1/relatif, 82 +2, décroissant) ; Itinéraires dynamiques depuis la clé Deck A (DIRECTE/DESCENDANTE/RELATIF), ex. 2A→3A/1A/2B" },
+        { "ts": "2026-11-15T18:15:00.000+01:00", "type": "subtask", "message": "ALC-131-4 cochée : CrossfaderBar — cartouches DECK A • % / DECK B • % + titre+clé, halo selon position, cliquables (100/50/100)" },
+        { "ts": "2026-11-15T18:18:00.000+01:00", "type": "subtask", "message": "ALC-131-5 cochée : typo -- → — (cadratin) dans les placeholders ; npm run check (svelte-check) 0 erreur, 0 warning ; ticket en En revue" }
+      ]
+    },
+    "ALC-130": {
+      "ticketId": "ALC-130",
+      "entries": [
+        { "ts": "2026-11-15T17:10:00.000+01:00", "type": "creation", "message": "Ticket créé : Passe de raffinement esthétique (mode Polish Unslop) — copy, spacing, icônes, motion" },
+        { "ts": "2026-11-15T17:14:00.000+01:00", "type": "subtask", "message": "ALC-130-1 cochée (Copy&Type) : badge ALC-120 retiré de la Télémétrie ; intitulés allégés → VOLUME CANAL, CADENCE (PITCH), NIVEAU ANALOGIQUE (Deck A & B)" },
+        { "ts": "2026-11-15T17:17:00.000+01:00", "type": "subtask", "message": "ALC-130-2 cochée (Spacing) : paddings des colonnes latérales + centrale resserrés (p-space-md→sm, gap-md→xs) — h-screen overflow-hidden conservé, alignement affiné" },
+        { "ts": "2026-11-15T17:20:00.000+01:00", "type": "subtask", "message": "ALC-130-3 cochée (Icons) : tailles d'icônes de transport uniformisées à 18px (REW/FFWD/PLAY/STOP/LOAD/EJECT) ; micro-bordures laiton et états hover/active affinés" },
+        { "ts": "2026-11-15T17:23:00.000+01:00", "type": "subtask", "message": "ALC-130-4 cochée (Motion) : bobines de cassette en rotation uniquement si transport==='playing' ; transition cubic-bezier(0.34,1.56,0.64,1) sur aiguilles des galvanomètres (durée 500) et de la Roue (0.9s)" },
+        { "ts": "2026-11-15T17:25:00.000+01:00", "type": "subtask", "message": "ALC-130-5 cochée : npm run check (svelte-check) 0 erreur, 0 warning ; ticket en En revue. Consulté .agents/skills/unslop (mode Polish, identité Venezia 1889 préservée)" }
+      ]
+    },
+    "ALC-129": {
+      "ticketId": "ALC-129",
+      "entries": [
+        { "ts": "2026-11-15T16:10:00.000+01:00", "type": "creation", "message": "Ticket créé : Ergonomie de chargement des pistes (LOAD/EJECT + clic & glisser-déposer sur les cassettes)" },
+        { "ts": "2026-11-15T16:14:00.000+01:00", "type": "subtask", "message": "ALC-129-1 cochée : séparation LOAD / EJECT — store.eject(id) ajouté (arrêt, vidage filePath, reset piste/pochette/télémétrie/aiguille) ; bouton LOAD (mis en valeur émeraude/bleu quand vide) ajouté, EJECT redevient déchargement désactivé quand vide ; barre grid-cols-6" },
+        { "ts": "2026-11-15T16:17:00.000+01:00", "type": "subtask", "message": "ALC-129-2 cochée : cassette cliquable (cursor-pointer, hover doré, role=button/tabindex+clavier) et glisser-déposer Tauri (getCurrentWebviewWindow().onDragDropEvent, drop → loadTrackFromPath) ; invite « CLIQUER OU GLISSER UN FICHIER AUDIO » quand vide" },
+        { "ts": "2026-11-15T16:20:00.000+01:00", "type": "subtask", "message": "ALC-129-3 cochée : npm run check (svelte-check) 0 erreur, 0 warning ; ticket en En revue" }
+      ]
+    },
+    "ALC-128": {
+      "ticketId": "ALC-128",
+      "entries": [
+        { "ts": "2026-11-15T15:20:00.000+01:00", "type": "creation", "message": "Ticket créé : Remontée du bloc Télémétrie & états vides des consoles (rigueur UI deck + roue + moyeu + oracle)" },
+        { "ts": "2026-11-15T15:24:00.000+01:00", "type": "subtask", "message": "ALC-128-1 cochée : Télémétrie Rythme & Clé déplacée sous les 2 sliders (Volume + Pitch), avant Info/Pochette, sur DeckA et DeckB (bonne position verticale, badge ANALYSE visible)" },
+        { "ts": "2026-11-15T15:27:00.000+01:00", "type": "subtask", "message": "ALC-128-2 cochée : en-têtes de cassette — affichage « -- • --.- BPM » en l'absence de fichier (!filePath) au lieu de 4B/8B • 124 BPM" },
+        { "ts": "2026-11-15T15:29:00.000+01:00", "type": "subtask", "message": "ALC-128-3 cochée : pitch initialisé à 0.0% (défaut store A/B), « (BPM) » masqué sans piste ; badge OPUS 89/92 masqué si coverUrl vide" },
+        { "ts": "2026-11-15T15:32:00.000+01:00", "type": "subtask", "message": "ALC-128-4 cochée : Roue — arc harmonique doré masqué si une platine est vide ; surbrillance des tranches neutralisée (deckAKey/deckBKey vidés sans filePath)" },
+        { "ts": "2026-11-15T15:34:00.000+01:00", "type": "subtask", "message": "ALC-128-5 cochée : moyeu central — EN ATTENTE + « Chargez deux pistes » (au lieu de Δ=+4 et A 4B • B 8B) tant que !bothLoaded" },
+        { "ts": "2026-11-15T15:36:00.000+01:00", "type": "subtask", "message": "ALC-128-6 cochée : Affinité Harmonique --%, Modulation Énergétique -- LUFS ; Oracle + itinéraires remplacés par une invite d'attente neutre (bothLoaded)" },
+        { "ts": "2026-11-15T15:38:00.000+01:00", "type": "subtask", "message": "ALC-128-7 cochée : npm run check (svelte-check) 0 erreur, 0 warning ; ticket en En revue" }
+      ]
+    },
+    "ALC-126": {
+      "ticketId": "ALC-126",
+      "entries": [
+        { "ts": "2026-11-15T14:00:00.000+01:00", "type": "creation", "message": "Ticket créé : Ergonomie sans scroll & état initial vide des platines (Decks A & B)" },
+        { "ts": "2026-11-15T14:05:00.000+01:00", "type": "subtask", "message": "ALC-126-1 cochée : +page.svelte en h-screen overflow-hidden + paddings/gaps réduits (p-space-md/lg→sm/md, gap-6→4) → toute l'interface (dont Crossfader) tient à l'écran" },
+        { "ts": "2026-11-15T14:07:00.000+01:00", "type": "subtask", "message": "ALC-126-2 cochée : stores initialisés sans pistes fictives — trackTitle='', genre='', coverUrl='', durations 0, transport 'stopped'" },
+        { "ts": "2026-11-15T14:09:00.000+01:00", "type": "subtask", "message": "ALC-126-3 cochée : RhythmKeyTelemetry — branche !filePath → BPM --.-, Clé Camelot --, Clé « En attente »" },
+        { "ts": "2026-11-15T14:11:00.000+01:00", "type": "subtask", "message": "ALC-126-4 cochée : MixerCenter — aiguilles A/B et viseurs optiques masqués si le deck correspondant est vide ({#if deck.filePath})" },
+        { "ts": "2026-11-15T14:13:00.000+01:00", "type": "subtask", "message": "ALC-126-5 cochée : REW/FFWD/PLAY/STOP désactivés (disabled + opacity/pointer-events-none) tant que !deck.filePath dans DeckA et DeckB" },
+        { "ts": "2026-11-15T14:15:00.000+01:00", "type": "subtask", "message": "ALC-126-6 cochée : enharmonie table 24 clés — 3B→Db major, 4B→Ab major, 5B→Eb major, 6B→Bb major" },
+        { "ts": "2026-11-15T14:18:00.000+01:00", "type": "subtask", "message": "ALC-126-7 cochée : npm run check (svelte-check) 0 erreur, 0 warning ; ticket en En revue" }
+      ]
+    },
+    "ALC-127": {
+      "ticketId": "ALC-127",
+      "entries": [
+        { "ts": "2026-11-15T14:10:00.000+01:00", "type": "creation", "message": "Ticket créé : Récupération des pochettes d'album (pochette embarquée + fallback API musicale)" },
+        { "ts": "2026-11-15T14:22:00.000+01:00", "type": "subtask", "message": "ALC-127-1 cochée : synopsis — extrait la pochette (lofty : CoverFront) et renvoie coverData (data-URL base64) dans TrackData ; Cargo.toml + lofty 0.21 + base64 0.22" },
+        { "ts": "2026-11-15T14:24:00.000+01:00", "type": "subtask", "message": "ALC-127-2 cochée : client.ts TrackData.coverData + store loadTrackFromPath deck.coverUrl = coverData ; cadre pochette affiché ({#if coverUrl}, sinon placeholder album)" },
+        { "ts": "2026-11-15T14:26:00.000+01:00", "type": "subtask", "message": "ALC-127-3 cochée : fallback iTunes Search (fetch, artworkUrl100 → 600x600) si pas de pochette embarquée mais titre/artiste (fetchCoverFallback)" },
+        { "ts": "2026-11-15T14:30:00.000+01:00", "type": "subtask", "message": "ALC-127-4 cochée : cargo check OK (lofty/base64 compilées), npm run check 0 erreur ; ticket en En revue" }
+      ]
+    },
+    "ALC-125": {
+      "ticketId": "ALC-125",
+      "entries": [
+        { "ts": "2026-11-15T13:20:00.000+01:00", "type": "creation", "message": "Ticket créé : Télémétrie Rythme & Clé à 3 indicateurs + cartouche de cassette dynamique (Decks A & B)" },
+        { "ts": "2026-11-15T13:24:00.000+01:00", "type": "subtask", "message": "ALC-125-1 cochée : grille passée à grid-cols-3 (items-stretch, mêmes hauteurs) — BPM (grand), CLÉ CAMELOT (grand), CLÉ (notation standard), aux couleurs du canal" },
+        { "ts": "2026-11-15T13:25:00.000+01:00", "type": "subtask", "message": "ALC-125-2 cochée : table officielle des 24 clés Camelot (KEY_NAMES) — 8B=C major, 7A=D minor, 12B=E major, 8A=A minor… ; mode Majeur/Mineur dérivé du suffixe A/B" },
+        { "ts": "2026-11-15T13:27:00.000+01:00", "type": "subtask", "message": "ALC-125-3 cochée : cartouche de tête des cassettes dynamisé — « 4B • 124.0 BPM » (A) et « 8B • 126.0 BPM » (B) remplacés par {camelotKey} • {effectiveBpm} BPM dans DeckA.svelte et DeckB.svelte" },
+        { "ts": "2026-11-15T13:30:00.000+01:00", "type": "subtask", "message": "ALC-125-4 cochée : npm run check (svelte-check) 0 erreur, 0 warning ; passage du ticket en En revue" },
+        { "ts": "2026-11-15T13:30:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (4/4 micro-tâches validées — 3 indicateurs + table Camelot + cartouche dynamique)" }
+      ]
+    },
+    "ALC-124": {
+      "ticketId": "ALC-124",
+      "entries": [
+        { "ts": "2026-11-15T13:00:00.000+01:00", "type": "creation", "message": "Ticket créé : Indicateur visuel d'analyse en cours lors du chargement d'une piste audio" },
+        { "ts": "2026-11-15T13:04:00.000+01:00", "type": "subtask", "message": "ALC-124-1 cochée : store — isAnalyzing (boolean) ajouté par DeckState (deckA/deckB), activé avant await audioIpc.loadAudioFile dans loadTrackFromPath et relâché dans un bloc finally ; dérivé anyAnalyzing exposé" },
+        { "ts": "2026-11-15T13:06:00.000+01:00", "type": "subtask", "message": "ALC-124-2 cochée : RhythmKeyTelemetry — quand deck.isAnalyzing, badge animé (animate-pulse, icône autorenew animate-spin) aux couleurs du canal avec libellé « ANALYSE MIR EN COURS… » à la place des valeurs BPM/Camelot" },
+        { "ts": "2026-11-15T13:09:00.000+01:00", "type": "subtask", "message": "ALC-124-3 cochée : MixerCenter — bandeau central ambré « Analyse du Spectre & de la Clé en cours… » + fine barre lumineuse animée (anyAnalyzing, indicatif A/B) et balayage de l'aiguille du canal concerné (sweepA/sweepB : +360°, transition 1,1 s)" },
+        { "ts": "2026-11-15T13:12:00.000+01:00", "type": "subtask", "message": "ALC-124-4 cochée : npm run check (svelte-check) 0 erreur, 0 warning ; passage du ticket en En revue" },
+        { "ts": "2026-11-15T13:12:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (4/4 micro-tâches validées — indicateur d'analyse en cours par platine + feedback console)" }
+      ]
+    },
+    "ALC-123": {
+      "ticketId": "ALC-123",
+      "entries": [
+        { "ts": "2026-11-15T12:10:00.000+01:00", "type": "creation", "message": "Ticket créé : Aiguilles semi-transparentes & esthétiques de la Roue de Camelot (MixerCenter)" },
+        { "ts": "2026-11-15T13:50:00.000+01:00", "type": "subtask", "message": "ALC-123-1 cochée : calques réordonnés — aiguilles A/B et viseurs optiques rendus AVANT (en dessous) le bloc des textes 1A..12B ; la typographie n'est plus recouverte" },
+        { "ts": "2026-11-15T13:51:00.000+01:00", "type": "subtask", "message": "ALC-123-2 cochée : aiguilles restylées en squelette Breguet à double trait fin (extérieur épais stroke-opacity 0.45 + filet intérieur pointé), vert émeraude (A) / bleu électrique (B), œil de visée + contrepoids discret" },
+        { "ts": "2026-11-15T13:52:00.000+01:00", "type": "subtask", "message": "ALC-123-3 cochée : Active Nodes convertis en viseurs optiques translucides — anneaux fins cerclés or (#edbf7a), fond canal fill-opacity 0.12, forme de loupe de lecture autour de la clé active" },
+        { "ts": "2026-11-15T13:53:00.000+01:00", "type": "subtask", "message": "ALC-123-4 cochée : npm run check (svelte-check) 0 erreur, 0 warning ; journal horodaté (heure de Paris) consigné" },
+        { "ts": "2026-11-15T13:53:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (4/4 micro-tâches validées — calques, aiguilles Breguet, viseurs optiques)" }
+      ]
+    },
+    "ALC-122": {
+      "ticketId": "ALC-122",
+      "entries": [
+        { "ts": "2026-11-15T12:08:00.000+01:00", "type": "creation", "message": "Ticket créé : Correction des commandes de transport (PLAY/REC/CUE/REW/FFWD/STOP) des platines Deck A & B" },
+        { "ts": "2026-11-15T13:40:00.000+01:00", "type": "subtask", "message": "ALC-122-1 cochée : au chargement (loadTrackFromPath), transport réinitialisé à 'stopped' + cueActive=false → isPlaying=false ; PLAY conditionnel (actif/illuminé uniquement quand deck.transport==='playing') → plus bloqué enfoncé, lance dès le 1er clic" },
+        { "ts": "2026-11-15T13:42:00.000+01:00", "type": "subtask", "message": "ALC-122-2 cochée : boutons REC et CUE supprimés des deux platines ; barre de transport passée de 7 à 5 boutons (grid-cols-5) : REW, FFWD, PLAY, STOP, EJECT ; PAUSE remplacé par STOP" },
+        { "ts": "2026-11-15T13:43:00.000+01:00", "type": "subtask", "message": "ALC-122-3 cochée : méthode seek(id, delta) ajoutée au store — REW onClick seek(-20) (Math.max(0, t-20)), FFWD onClick seek(+20) (Math.min(durée, t+20)) sur le lecteur actif" },
+        { "ts": "2026-11-15T13:45:00.000+01:00", "type": "subtask", "message": "ALC-122-4 cochée : npm run check (svelte-check) 0 erreur/0 warning ; cargo check OK ; relecture du transport effectuée" },
+        { "ts": "2026-11-15T13:45:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (4/4 micro-tâches validées — PLAY fixé, REC/CUE retirés, ±20 s actif)" }
+      ]
+    },
+    "ALC-121": {
+      "ticketId": "ALC-121",
+      "entries": [
+        { "ts": "2026-11-15T12:05:00.000+01:00", "type": "creation", "message": "Ticket créé : Correction de la lisibilité des clés actives sur la Roue de Camelot (MixerCenter)" },
+        { "ts": "2026-11-15T13:34:00.000+01:00", "type": "subtask", "message": "ALC-121-1 cochée : Active Nodes déplacés à un rayon unique de 178 (bande entre anneaux interne r≈136 et externe r≈213) → ne masquent plus les libellés 1A..12B" },
+        { "ts": "2026-11-15T13:35:00.000+01:00", "type": "subtask", "message": "ALC-121-2 cochée : libellés SVG dynamisés (KEY_LABELS + labelAttrs) — surbrillance émeraude #10b981 (deck A) / bleu #00A3FF (deck B), gras 800 + halo text-shadow, si clé active ; suppression des 4B/8B codés en dur" },
+        { "ts": "2026-11-15T13:36:00.000+01:00", "type": "subtask", "message": "ALC-121-3 cochée : rappel explicite des codes actifs (A {deckA.camelotKey} / B {deckB.camelotKey}) ajouté dans le moyeu central HTML de la roue (halos émeraude/bleu)" },
+        { "ts": "2026-11-15T13:37:00.000+01:00", "type": "subtask", "message": "ALC-121-4 cochée : svelte-check sans erreur (0 erreur, 0 warning) ; relecture de la roue effectuée — confirmer le rendu visuel final dans Tauri" },
+        { "ts": "2026-11-15T13:37:00.000+01:00", "type": "column", "message": "Statut : Backlog → En revue (4/4 micro-tâches validées — rayons décalés, libellés actifs surlignés dynamiquement, codes au moyeu)" }
+      ]
+    },
+    "ALC-120": {
+      "ticketId": "ALC-120",
+      "entries": [
+        { "ts": "2026-11-15T12:03:00.000+01:00", "type": "creation", "message": "Ticket créé : Refonte ergonomique et typographique du bloc Télémétrie Rythme & Clé (Decks A & B)" },
+        { "ts": "2026-11-15T13:26:00.000+01:00", "type": "subtask", "message": "ALC-120-1 cochée : rhythmkeytelemetry.svelte — valeurs principales (BPM effectif & code Camelot) passées en text-xl/2xl font-extrabold avec contraste renforcé (lueur d'accent) ; labels micro-captions conservés" },
+        { "ts": "2026-11-15T13:27:00.000+01:00", "type": "subtask", "message": "ALC-120-2 cochée : couleur d'accent du canal appliquée aux badges BPM & Camelot — émeraude #10b981 (Deck A) / bleu électrique #00A3FF (Deck B), via accentText/accentSoft/accentBg/glowColor (remplace le text-primary générique)" },
+        { "ts": "2026-11-15T13:28:00.000+01:00", "type": "subtask", "message": "ALC-120-3 cochée : vérifié — aucun littéral 4B/8B codé en dur dans le markup des decks ; les défauts store (deckA=4B, deckB=8B) sont distincts et écrasés au chargement via refreshTempoCamelot (IPC) → affichage dynamique" },
+        { "ts": "2026-11-15T13:30:00.000+01:00", "type": "subtask", "message": "ALC-120-4 cochée : svelte-check sans erreur (0 erreur, 0 warning) ; relecture de lisibilité effectuée (valeurs XL, contraste canal) — validation finale visuelle Tauri à confirmer" },
+        { "ts": "2026-11-15T13:30:00.000+01:00", "type": "column", "message": "Statut : Backlog → En revue (4/4 micro-tâches validées — refonte typographique + accent canal + dynamisation des valeurs)" }
+      ]
+    },
+    "ALC-107": {
+      "ticketId": "ALC-107",
+      "entries": [
+        { "ts": "2026-11-15T11:48:00.000+01:00", "type": "creation", "message": "Ticket créé : Correction du bug de réinitialisation des tickets lors de l'utilisation des flèches de déplacement" },
+        { "ts": "2026-11-15T12:00:00.000+01:00", "type": "subtask", "message": "ALC-107-1 validée : gestionnaire de clic identifié (board.html, délégation data-move l.587-596) — le déplacement mutait bien state + commit(), mais persist() n'écrivait pas dans tasks.json" },
+        { "ts": "2026-11-15T12:00:00.000+01:00", "type": "report", "message": "Diagnostic : le poll (1200 ms) re-fetch tasks.json (source de vérité) ; comme le fichier n'était jamais mis à jour, applyRemoteTasks rétablissait l'ancienne position après ~1 s et écrasait même le cache localStorage" },
+        { "ts": "2026-11-15T12:00:00.000+01:00", "type": "subtask", "message": "ALC-107-2 cochée : persistance renforcée — reference baselineHash (hash du tasks.json au chargement) pour préserver les éditions locales, et saveToFile() (fetch PUT sur tasks.json) ajouté dans persist(), en plus du localStorage" },
+        { "ts": "2026-11-15T12:00:00.000+01:00", "type": "subtask", "message": "ALC-107-3 cochée : simulation Node validée — le ticket conserve sa nouvelle position après le polling ET après rechargement + 1er poll ; syntaxe JS des 2 blocs <script> OK" },
+        { "ts": "2026-11-15T12:00:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (3/3 micro-tâches validées : identif., persistance, test)" }
+      ]
+    },
+    "ALC-106": {
+      "ticketId": "ALC-106",
+      "entries": [
+        { "ts": "2026-11-15T11:40:00.000+01:00", "type": "creation", "message": "Ticket créé : Implémentation du bloc de télémétrie Rythme & Clef sous les lecteurs (Deck A & B)" },
+        { "ts": "2026-11-15T11:45:00.000+01:00", "type": "subtask", "message": "ALC-106-1 cochée : composant RhythmKeyTelemetry.svelte créé (BPM effectif + clé Camelot, thème émeraude/bleu, design tokens cohérents)" },
+        { "ts": "2026-11-15T11:45:00.000+01:00", "type": "subtask", "message": "ALC-106-2 cochée : bloc alimenté en temps réel via le store — loadTrackFromPath → refreshTempoCamelot (IPC detect_tempo_camelot Rust) ; inséré en fin de DeckA.svelte et DeckB.svelte" },
+        { "ts": "2026-11-15T11:50:00.000+01:00", "type": "report", "message": "ALC-106-3 validée : cohérence avec la Roue — mêmes champs deck.camelotKey (interprété par camelotAngle 1..12) et même computeEffectiveBpm que effectiveBpmA/B de MixerCenter" },
+        { "ts": "2026-11-15T11:50:00.000+01:00", "type": "report", "message": "Compilation validée : svelte-check OK (0 erreur, 0 warning)" },
+        { "ts": "2026-11-15T11:50:00.000+01:00", "type": "column", "message": "Statut : Backlog → En revue (4/4 micro-tâches validées, compilation OK)" }
+      ]
+    },
     "ALC-008": {
       "ticketId": "ALC-008",
       "entries": [
-        { "ts": "2026-11-15T00:20:00.000Z", "type": "column", "message": "Statut : Backlog → En cours (prise en main du ticket ALC-008)" },
-        { "ts": "2026-11-15T00:30:00.000Z", "type": "subtask", "message": "ALC-008-1 cochée : benchmark fidélité documenté en tête de src-tauri/src/audio.rs — 48 kHz + FFT 4096 + hop 1024 retenus (résolution 11.7 Hz/bin ; 96 kHz inutile, 2048 trop grossier pour les graves)" },
-        { "ts": "2026-11-15T00:30:00.000Z", "type": "subtask", "message": "ALC-008-2 cochée : pipeline Rust réel implémenté (Symphonia décodage → mono → resampler linéaire 48 kHz → FFT rustfft) : chromagramme + profils Krumhansl-Schmuckler pour la clé Camelot, autocorrélation d'enveloppe pour le BPM, waveform 256 bins" },
-        { "ts": "2026-11-15T00:35:00.000Z", "type": "subtask", "message": "ALC-008-3 cochée : pont IPC connecté — load_audio_file consomme audio::analyze et renvoie BPM réel + clé Camelot + codec/résolution → détecteur alimente la Roue via detect_tempo_camelot. Cargo.toml : symphonia + rustfft ajoutés" },
-        { "ts": "2026-11-15T00:40:00.000Z", "type": "report", "message": "Compilation validée : cargo check OK (0 erreur) sur le backend Tauri" },
-        { "ts": "2026-11-15T00:40:00.000Z", "type": "column", "message": "Statut : En cours → En revue (3/3 micro-tâches validées, compilation OK)" }
+        { "ts": "2026-11-15T01:20:00.000+01:00", "type": "column", "message": "Statut : Backlog → En cours (prise en main du ticket ALC-008)" },
+        { "ts": "2026-11-15T01:30:00.000+01:00", "type": "subtask", "message": "ALC-008-1 cochée : benchmark fidélité documenté en tête de src-tauri/src/audio.rs — 48 kHz + FFT 4096 + hop 1024 retenus (résolution 11.7 Hz/bin ; 96 kHz inutile, 2048 trop grossier pour les graves)" },
+        { "ts": "2026-11-15T01:30:00.000+01:00", "type": "subtask", "message": "ALC-008-2 cochée : pipeline Rust réel implémenté (Symphonia décodage → mono → resampler linéaire 48 kHz → FFT rustfft) : chromagramme + profils Krumhansl-Schmuckler pour la clé Camelot, autocorrélation d'enveloppe pour le BPM, waveform 256 bins" },
+        { "ts": "2026-11-15T01:35:00.000+01:00", "type": "subtask", "message": "ALC-008-3 cochée : pont IPC connecté — load_audio_file consomme audio::analyze et renvoie BPM réel + clé Camelot + codec/résolution → détecteur alimente la Roue via detect_tempo_camelot. Cargo.toml : symphonia + rustfft ajoutés" },
+        { "ts": "2026-11-15T01:40:00.000+01:00", "type": "report", "message": "Compilation validée : cargo check OK (0 erreur) sur le backend Tauri" },
+        { "ts": "2026-11-15T01:40:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (3/3 micro-tâches validées, compilation OK)" }
       ]
     },
     "ALC-005": {
       "ticketId": "ALC-005",
       "entries": [
-        { "ts": "2026-11-01T09:00:00.000Z", "type": "creation", "message": "Ticket créé : Implémentation du sélecteur de fichiers audio Tauri v2" },
-        { "ts": "2026-11-14T22:12:00.000Z", "type": "subtask", "message": "ALC-005-1 cochée : plugins plugin-dialog & plugin-fs (Cargo.toml + capabilities)" },
-        { "ts": "2026-11-14T22:12:00.000Z", "type": "subtask", "message": "ALC-005-2 cochée : commande Rust #[tauri::command] open_audio_file" },
-        { "ts": "2026-11-14T22:12:00.000Z", "type": "subtask", "message": "ALC-005-3 cochée : liaison Svelte invoke('open_audio_file') sur le bouton EJECT" },
-        { "ts": "2026-11-14T22:30:00.000Z", "type": "column", "message": "Statut : Backlog → En cours" },
-        { "ts": "2026-11-14T22:45:00.000Z", "type": "column", "message": "Statut : En cours → En revue (toutes micro-tâches validées) — en attente de validation visuelle" }
+        { "ts": "2026-11-01T10:00:00.000+01:00", "type": "creation", "message": "Ticket créé : Implémentation du sélecteur de fichiers audio Tauri v2" },
+        { "ts": "2026-11-14T23:12:00.000+01:00", "type": "subtask", "message": "ALC-005-1 cochée : plugins plugin-dialog & plugin-fs (Cargo.toml + capabilities)" },
+        { "ts": "2026-11-14T23:12:00.000+01:00", "type": "subtask", "message": "ALC-005-2 cochée : commande Rust #[tauri::command] open_audio_file" },
+        { "ts": "2026-11-14T23:12:00.000+01:00", "type": "subtask", "message": "ALC-005-3 cochée : liaison Svelte invoke('open_audio_file') sur le bouton EJECT" },
+        { "ts": "2026-11-14T23:30:00.000+01:00", "type": "column", "message": "Statut : Backlog → En cours" },
+        { "ts": "2026-11-14T23:45:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (toutes micro-tâches validées) — en attente de validation visuelle" }
       ]
     },
     "ALC-006": {
       "ticketId": "ALC-006",
       "entries": [
-        { "ts": "2026-11-02T09:00:00.000Z", "type": "creation", "message": "Ticket créé : Analyse BPM & clé Camelot temps réel" },
-        { "ts": "2026-11-14T22:45:00.000Z", "type": "column", "message": "Statut : Terminé → En cours (ré-ouvert pour finalisation)" },
-        { "ts": "2026-11-14T22:45:00.000Z", "type": "subtask", "message": "ALC-006-1 validée : calcul du BPM effectif et du pitch (computeEffectiveBpm / effectiveBpmA-B / bpmDelta)" },
-        { "ts": "2026-11-14T23:00:00.000Z", "type": "subtask", "message": "ALC-006-2 cochée : mapping dynamique de la clé Camelot vers la Roue (aiguilles angleA/angleB + arc harmonyArcPath réactifs)" },
-        { "ts": "2026-11-14T23:25:00.000Z", "type": "subtask", "message": "ALC-006-3 cochée : pont IPC detect_tempo_camelot exposé (client.ts + store refreshTempoCamelot) et branché sur le chargement de piste" },
-        { "ts": "2026-11-14T23:25:00.000Z", "type": "column", "message": "Statut : En cours → En revue (toutes micro-tâches validées, compilation cargo check + npm run check OK)" }
+        { "ts": "2026-11-02T10:00:00.000+01:00", "type": "creation", "message": "Ticket créé : Analyse BPM & clé Camelot temps réel" },
+        { "ts": "2026-11-14T23:45:00.000+01:00", "type": "column", "message": "Statut : Terminé → En cours (ré-ouvert pour finalisation)" },
+        { "ts": "2026-11-14T23:45:00.000+01:00", "type": "subtask", "message": "ALC-006-1 validée : calcul du BPM effectif et du pitch (computeEffectiveBpm / effectiveBpmA-B / bpmDelta)" },
+        { "ts": "2026-11-15T00:00:00.000+01:00", "type": "subtask", "message": "ALC-006-2 cochée : mapping dynamique de la clé Camelot vers la Roue (aiguilles angleA/angleB + arc harmonyArcPath réactifs)" },
+        { "ts": "2026-11-15T00:25:00.000+01:00", "type": "subtask", "message": "ALC-006-3 cochée : pont IPC detect_tempo_camelot exposé (client.ts + store refreshTempoCamelot) et branché sur le chargement de piste" },
+        { "ts": "2026-11-15T00:25:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (toutes micro-tâches validées, compilation cargo check + npm run check OK)" },
+        { "ts": "2026-11-15T12:30:00.000+01:00", "type": "column", "message": "Statut : En revue → En cours (réouverture — refonte du moteur d'analyse du rythme BPM selon les Règles 1–7 : STFT perceptuelle, onset robuste, calibrage temporel, résolution octave/métrique, beat tracking DP, rubato, validation MIREX)" },
+        { "ts": "2026-11-15T12:35:00.000+01:00", "type": "subtask", "message": "ALC-006-4 cochée (Règle 1) : rééchantillonnage ~8 kHz (downsample_to_8k) + STFT perceptuelle sur 8 sous-bandes log (stft_log_subbands), trame 32 ms, hop 50 % dans audio.rs" },
+        { "ts": "2026-11-15T12:35:00.000+01:00", "type": "subtask", "message": "ALC-006-5 cochée (Règle 2) : onset_envelope — flux spectral demi-onde max(0,Δlog|S|), agrégation inter-fréquences par médiane, soustraction du seuil dynamique local (médiane ∼200 ms), normalisation par écart-type (z-score)" },
+        { "ts": "2026-11-15T12:36:00.000+01:00", "type": "subtask", "message": "ALC-006-6 cochée (Règle 3) : calibrage temporel — fenêtres d'analyse ~11,9 s / recouvrement 50 % intégrées au pipeline (autocorrélation sur fenêtres longues, moyennage pour le tempo global)" },
+        { "ts": "2026-11-15T12:37:00.000+01:00", "type": "subtask", "message": "ALC-006-7 cochée (Règle 4) : tempo_autocorr (itération par lags) — bornes strictes 30–240 BPM, prior gaussien log-120 BPM, combinaison TPS + TPS₂(½) + TPS₃(⅓) pour éliminer les confusions d'octave" },
+        { "ts": "2026-11-15T12:38:00.000+01:00", "type": "subtask", "message": "ALC-006-8 cochée (Règle 5) : refine_with_dp — beat tracking par programmation dynamique (Ellis DP) : nouveauté acoustique + pénalité de régularité temporelle vs intervalle idéal δ̂ (variante causale à lookahead prévue)" },
+        { "ts": "2026-11-15T12:38:00.000+01:00", "type": "subtask", "message": "ALC-006-9 cochée (Règle 6) : rubato — calcul de c_var = σ_IBI/μ_IBI ; tempo raffiné via la médiane (équivalent médiane glissante 12 s) pour la robustesse à l'expressivité" },
+        { "ts": "2026-11-15T12:40:00.000+01:00", "type": "subtask", "message": "ALC-006-10 cochée (Règle 7) : validation MIREX — Acc1 (P-Score, ±5 %), Acc2 (ALOTC, multiples ×0,5/×2/×0,33/×3), F-mesure d'alignement (±70 ms) + tests unitaires Rust" },
+        { "ts": "2026-11-15T12:40:00.000+01:00", "type": "report", "message": "Validation : cargo check OK (0 erreur) ; cargo test --lib : 6/6 tests réussis (Acc1/Acc2/F-mesure, 120/125 BPM, double-tempo métrique, bornes 30–240, battement DP)" },
+        { "ts": "2026-11-15T12:40:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (10/10 micro-tâches validées — moteur BPM rigoureux R1–R7 intégré dans audio.rs ; sortie IPC TempoCamelot inchangée)" },
+        { "ts": "2026-11-15T13:00:00.000+01:00", "type": "column", "message": "Statut : En revue → En cours (réouverture n°2 — intégration des règles MIR d'estimation de la clé Camelot : tuning correction, HPCP/CQT, agrégation structurelle Flat Input, profils calibrés, désambiguïsation du mode, conversion modulaire)" },
+        { "ts": "2026-11-15T13:05:00.000+01:00", "type": "subtask", "message": "ALC-006-11 cochée (Camelot·Tuning Correction) : estimate_tuning — déviation globale d'accordage via moyenne circulaire sur pics spectraux (80–2000 Hz), profils décalés avant projection (pas de diapason fixe 440 Hz)" },
+        { "ts": "2026-11-15T13:06:00.000+01:00", "type": "subtask", "message": "ALC-006-12 cochée (Camelot·HPCP/CQT) : hpcp_chroma — 36 bacs/octave (3 par demi-ton), pondération des 4 premières harmoniques (pente ≈ 0,6), repli 12 classes + gating BGATE (4 composantes faibles) + trame silencieuse" },
+        { "ts": "2026-11-15T13:07:00.000+01:00", "type": "subtask", "message": "ALC-006-13 cochée (Camelot·Agrégation) : Flat Input (binarisation 0/1), normalisation L2 du chroma moyen (indépendance au volume du master)" },
+        { "ts": "2026-11-15T13:08:00.000+01:00", "type": "subtask", "message": "ALC-006-14 cochée (Camelot·Profils) : blended_profile — mélange KS + Temperley + Shaath + EDMA/EDMM + BGATE, corrélation cosinus aux 24 profils (12 majeurs, 12 mineurs)" },
+        { "ts": "2026-11-15T13:09:00.000+01:00", "type": "subtask", "message": "ALC-006-15 cochée (Camelot·Mode) : detect_key_from — marge relative (max1−max2)/max1 ; si faible écart majeur/relatif mineur (ex. 8B/8A), décision par l'énergie tierce majeure vs mineure" },
+        { "ts": "2026-11-15T13:10:00.000+01:00", "type": "subtask", "message": "ALC-006-16 cochée (Camelot·Conversion) : camelot_from_tonic modulaire — Majeur B=((7p+7) mod 12)+1, Mineur A=((7p+4) mod 12)+1 ; tests unitaires du mapping Camelot" },
+        { "ts": "2026-11-15T13:12:00.000+01:00", "type": "report", "message": "Validation : cargo check OK (0 erreur) ; cargo test --lib : 9/9 tests réussis (6 BPM/MIREX + 3 Camelot : mapping modulaire 24 clés, détection clé par profil, bornes tuning ±0,5 demi-ton)" },
+        { "ts": "2026-11-15T13:12:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (16/16 micro-tâches — moteur BPM R1–R7 conservé + estimation de la clé Camelot MIR (tuning, HPCP/CQT, Flat Input, profils calibrés, mode, conversion modulaire) intégrée dans audio.rs)" },
+        { "ts": "2026-11-15T13:20:00.000+01:00", "type": "report", "message": "Revue de cohérence backend (audio.rs) : les formules modulaires camelot_from_tonic (((7p+7) mod 12)+1 majeur, ((7p+4) mod 12)+1 mineur) sont 100 % conformes au standard officiel Mixed In Key — Do majeur→8B, La mineur→8A, Mi majeur→12B, Do♯ mineur→12A, Sol majeur→9B… Aucune modification backend. (Note : corriger l'avis antérieur erroné signalant un écart avec la roue.)" },
+        { "ts": "2026-11-15T13:22:00.000+01:00", "type": "report", "message": "Cohérence géométrique MixerCenter.svelte (vérifiée) : les 12 tranches sont posées à l'angle horaire n·30° (12→0°, 3→90°, 6→180°, 8→240°, 9→270°) ; anneau intérieur = mineures 1A..12A, anneau extérieur = majeures 1B..12B, concentriques et sur le même axe radial (ex. 8A/8B à 8h) ; camelotAngle(n)=(n mod 12)·30 aligne aiguilles et libellés sans décalage ni inversion de rayon." },
+        { "ts": "2026-11-15T13:24:00.000+01:00", "type": "report", "message": "Correction apportée : les « Active Nodes » (points lumineux des Decks A/B) étaient codés en dur aux positions 4B/8B → rendus dynamiques (nodeA/nodeB) via ptOnCircle sur l'anneau mineur (r=136) ou majeur (r=214) de la clé détectée, reliés à la même aiguille. svelte-check : 0 erreur, 0 warning." },
+        { "ts": "2026-11-15T14:00:00.000+01:00", "type": "column", "message": "Statut : En revue → En cours (réouverture pour étalonnage suite aux tests auditifs réels : biais vers les tonalités mineures + doublement d'octave sur les tempos lents)" },
+        { "ts": "2026-11-15T14:05:00.000+01:00", "type": "subtask", "message": "ALC-006-17 cochée (étalonnage profils) : blended_profile rééquilibré — KS 0,45 / Temperley 0,40 / Shaath 0,12 / EDMA-EDMM 0,01 / BGATE 0,02 ; gating BGATE moins agressif (GATE_CUT 4→2) → retrait du biais vers l'anneau mineur A" },
+        { "ts": "2026-11-15T14:07:00.000+01:00", "type": "subtask", "message": "ALC-006-18 cochée (registre grave) : bass_chroma(50–250 Hz) extrait et combiné au chroma global (composite 0,7/0,3) pour la corrélation + désambiguïsation du mode (tierce pondérée grave) ; estimate_tuning bornée à ±0,2 demi-ton (anti sur-compensation analogique)" },
+        { "ts": "2026-11-15T14:09:00.000+01:00", "type": "subtask", "message": "ALC-006-19 cochée (anti-double-tempo) : si pic dominant >138 BPM, évaluer le sous-multiple ÷2 ; si rapport >0,75 sélectionner le tempo fondamental <100 BPM (146→73, 168→84)" },
+        { "ts": "2026-11-15T14:12:00.000+01:00", "type": "subtask", "message": "ALC-006-20 cochée (tests) : ajout de no_minor_bias_major_keys (majeur 12B/11B sans bascule A) et anti_double_tempo_low (146→73 / 168→84) ; cargo check OK, cargo test --lib : 11/11 réussis" },
+        { "ts": "2026-11-15T14:12:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (20/20 micro-tâches — étalonnage appliqué : profils rééquilibrés, registre grave, anti-double-tempo)" },
+        { "ts": "2026-11-15T14:20:00.000+01:00", "type": "column", "message": "Statut : En revue → En cours (réouverture — protocole strict : correction du blocage 2A + affinage du seuil anti-double-tempo, micro-tâches 006-21→006-25 créées)" },
+        { "ts": "2026-11-15T14:25:00.000+01:00", "type": "subtask", "message": "ALC-006-21 cochée (audit 2A) : cause identifiée — sous-chroma grave (50–250 Hz, poids 30 %) se verrouillant sur la résonance des kicks (~78 Hz=Eb2→2A) ; résolution FFT 48k/4096 ≈ 11,7 Hz/bac étalant les fondamentales graves" },
+        { "ts": "2026-11-15T14:28:00.000+01:00", "type": "subtask", "message": "ALC-006-22 cochée (réduction basses) : bass_chroma à partir de 65 Hz + interpolation parabolique (refine_freq sur HPCP global aussi) ; composite rééquilibré 0,85 global / 0,15 grave + prior de tonique grave (+0,4·bass[tonic])" },
+        { "ts": "2026-11-15T14:31:00.000+01:00", "type": "subtask", "message": "ALC-006-23 cochée (tuning + boucle) : estimate_tuning bornée ±0,2 demi-ton (pas de bac hors bornes), boucle 24 clés avec cosinus sur profils équilibrés KS+Temperley+Shaath ; binarisation Flat Input à seuil relatif (>6 % du max de trame)" },
+        { "ts": "2026-11-15T14:35:00.000+01:00", "type": "subtask", "message": "ALC-006-24 cochée (tests) : exact_keys_never_2a (11B / 7A / 8B, jamais 2A) + synth_key_do_major_8b end-to-end PCM ; anti-double préservé 146 (anti_double_tempo_preserves_fast) et corrigé 168→84 (fixes_true_double)" },
+        { "ts": "2026-11-15T14:39:00.000+01:00", "type": "subtask", "message": "ALC-006-25 cochée (validation) : cargo check OK, cargo test --lib : 14/14 réussis (100 %) — passage du ticket en En revue" },
+        { "ts": "2026-11-15T14:39:00.000+01:00", "type": "column", "message": "Statut : En cours → En revue (25/25 micro-tâches — proto strict appliqué : 2A corrigé, anti-double affiné, tests 100 %)" }
       ]
     },
     "ALC-011": {
       "ticketId": "ALC-011",
       "entries": [
-        { "ts": "2026-11-14T23:30:00.000Z", "type": "creation", "message": "Ticket créé : Initialisation et publication du dépôt Git / GitHub du projet AlcheMix II (statut En cours)" },
-        { "ts": "2026-11-14T23:30:00.000Z", "type": "report", "message": "Rapport d'étape : création de .gitignore robuste (node_modules/, dist/, build/, .svelte-kit/, src-tauri/target/, .env, logs, cache, IDE) — micro-tâche ALC-011-1 (partielle : git init non exécuté, Git absent)" },
-        { "ts": "2026-11-14T23:30:00.000Z", "type": "report", "message": "Rapport d'étape : création du README.md technique (Tauri 2, SvelteKit 5, Rust, Tailwind v4, ambiance Venezia 1889 + structure branches main/dev) — micro-tâche ALC-011-2" },
-        { "ts": "2026-11-14T23:30:00.000Z", "type": "report", "message": "Rapport d'étape : création du script scripts/git_publish.ps1 (git init -b main, branches main/dev, commit, remote add origin, push)" },
-        { "ts": "2026-11-14T23:30:00.000Z", "type": "subtask", "message": "ALC-011-1 cochée (livrable .gitignore créé) ; ALC-011-2 cochée (README + branches documentées)" },
-        { "ts": "2026-11-14T23:30:00.000Z", "type": "blocker", "message": "Blocage : binaire git non installé sur la machine — git init, branches, remote et push (ALC-011-3 / ALC-011-4) en attente ; à exécuter par l'utilisateur (voir script git_publish.ps1)" },
-        { "ts": "2026-11-14T23:30:00.000Z", "type": "column", "message": "Statut : En cours (IN_PROGRESS) — 2/4 micro-tâches validées (011-1, 011-2), 011-3 et 011-4 en attente" }
+        { "ts": "2026-11-15T00:30:00.000+01:00", "type": "creation", "message": "Ticket créé : Initialisation et publication du dépôt Git / GitHub du projet AlcheMix II (statut En cours)" },
+        { "ts": "2026-11-15T00:30:00.000+01:00", "type": "report", "message": "Rapport d'étape : création de .gitignore robuste (node_modules/, dist/, build/, .svelte-kit/, src-tauri/target/, .env, logs, cache, IDE) — micro-tâche ALC-011-1 (partielle : git init non exécuté, Git absent)" },
+        { "ts": "2026-11-15T00:30:00.000+01:00", "type": "report", "message": "Rapport d'étape : création du README.md technique (Tauri 2, SvelteKit 5, Rust, Tailwind v4, ambiance Venezia 1889 + structure branches main/dev) — micro-tâche ALC-011-2" },
+        { "ts": "2026-11-15T00:30:00.000+01:00", "type": "report", "message": "Rapport d'étape : création du script scripts/git_publish.ps1 (git init -b main, branches main/dev, commit, remote add origin, push)" },
+        { "ts": "2026-11-15T00:30:00.000+01:00", "type": "subtask", "message": "ALC-011-1 cochée (livrable .gitignore créé) ; ALC-011-2 cochée (README + branches documentées)" },
+        { "ts": "2026-11-15T00:30:00.000+01:00", "type": "blocker", "message": "Blocage : binaire git non installé sur la machine — git init, branches, remote et push (ALC-011-3 / ALC-011-4) en attente ; à exécuter par l'utilisateur (voir script git_publish.ps1)" },
+        { "ts": "2026-11-15T00:30:00.000+01:00", "type": "column", "message": "Statut : En cours (IN_PROGRESS) — 2/4 micro-tâches validées (011-1, 011-2), 011-3 et 011-4 en attente" },
+        { "ts": "2026-11-15T02:00:00.000+01:00", "type": "report", "message": "Blocage levé : dépôt distant créé par l'utilisateur sur https://github.com/danoe78210/ALCHEMIX-II et remote origin lié (git remote add origin)" },
+        { "ts": "2026-11-15T02:00:00.000+01:00", "type": "subtask", "message": "ALC-011-3 cochée : lien GitHub établi (dépôt danoe78210/ALCHEMIX-II)" },
+        { "ts": "2026-11-15T02:00:00.000+01:00", "type": "subtask", "message": "ALC-011-4 cochée : premier commit propre de la structure globale effectué et branch poussée vers GitHub" },
+        { "ts": "2026-11-15T02:00:00.000+01:00", "type": "column", "message": "Statut : En cours → Terminé (4/4 micro-tâches validées — dépôt publié sur GitHub)" }
       ]
     }
   }

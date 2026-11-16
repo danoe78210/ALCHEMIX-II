@@ -12,7 +12,9 @@ pub fn run() {
             commands::load_audio_file,
             commands::open_audio_file,
             commands::detect_tempo_camelot,
-            commands::extract_stems_onnx
+            commands::extract_stems_onnx,
+            commands::read_audio_file_bytes,
+            commands::exit_app
         ])
         .run(tauri::generate_context!())
         .expect("Erreur critique lors du lancement d'AlcheMix II");

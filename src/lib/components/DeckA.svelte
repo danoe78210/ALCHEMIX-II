@@ -1,7 +1,13 @@
 <script lang="ts">
   import { audioIpc } from '$lib/ipc/client';
+  import RhythmKeyTelemetry from '$lib/components/RhythmKeyTelemetry.svelte';
+  import { Player, mimeFromPath } from '$lib/audio/player';
+  import MarqueeText from '$lib/components/MarqueeText.svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
   import {
     computeEffectiveBpm,
+    dbToLinear,
     formatTime,
     mixerStore,
     type DeckState,
@@ -22,12 +28,127 @@
   );
   const volumePercent = $derived(Math.round(((deck.volumeDb + 24) / 30) * 100));
   const volumeNormalized = $derived(((deck.volumeDb + 24) / 30) * 100);
+  const lowEqNormalized = $derived(((deck.lowEqDb + 6) / 12) * 100);
+  const highEqNormalized = $derived(((deck.highEqDb + 6) / 12) * 100);
   const pitchNormalized = $derived(((deck.pitchPercent + 8) / 16) * 100);
-  const needleAngle = $derived(
-    deck.transport === 'playing'
-      ? Math.max(-35, Math.min(24, -12 + (deck.volumeDb + 12) * 1.4))
-      : -38
-  );
+  // ALC-102 : galvanomètre balistique — aiguille pilotée à 60 fps (attaque ~30 ms / relâchement ~300 ms).
+  let displayDb = $state(-20); // niveau adouci (inertie balistique) pilotant l'aiguille
+  let holdPeakDb = $state(-20); // maintien de crête du témoin PEAK (~1,2 s)
+  let peakLit = $state(false);
+  let reelAngleL = $state(0);
+  let reelAngleR = $state(0);
+  const needleAngle = $derived(-38 + (displayDb + 20) * (62 / 25));
+
+  let player = $state<Player | null>(null);
+  let meterRaf = 0;
+  let needleRaf = 0;
+
+  function readMeterFrame() {
+    if (!player) return;
+    const { rms, peak } = player.read();
+    mixerStore.setLevels('A', rms, peak);
+    meterRaf = requestAnimationFrame(readMeterFrame);
+  }
+
+  async function startPlayer() {
+    if (!player) {
+      player = new Player('A');
+      player.onTime = (c) => mixerStore.syncPlayback('A', c, 0);
+      player.onDuration = (d) => mixerStore.syncPlayback('A', 0, d);
+      mixerStore.registerPlayer('A', player);
+    }
+    await player.resume();
+    if (deck.filePath && player.sourcePath !== deck.filePath) {
+      try {
+        const bytes = await audioIpc.readAudioFileBytes(deck.filePath);
+        player.setSource(bytes, mimeFromPath(deck.filePath), deck.filePath);
+      } catch (err) {
+        deck.lastError = err instanceof Error ? err.message : 'Échec lecture fichier audio';
+        console.error('[Player] chargement de la source échoué', err);
+      }
+    }
+    player.setPlaybackRate(deck.pitchPercent);
+    player.seek(deck.elapsedSeconds);
+    cancelAnimationFrame(meterRaf);
+    meterRaf = requestAnimationFrame(readMeterFrame);
+    try {
+      await player.play();
+    } catch (err) {
+      deck.lastError = err instanceof Error ? err.message : 'Échec audio.play()';
+      console.error('[Player] audio.play a échoué', err);
+    }
+  }
+
+  function stopPlayer() {
+    cancelAnimationFrame(meterRaf);
+    mixerStore.resetLevels('A');
+    if (!player) return;
+    if (deck.transport === 'paused') player.pause();
+    else player.stop();
+  }
+
+  function seekDeck(delta: number) {
+    const ne = mixerStore.seek(deck.id, delta);
+    if (deck.transport === 'playing' && player) player.seek(ne);
+  }
+
+  // ALC-139-2 : fermeture propre AudioContext + révocation blob au POWER OFF.
+  function handleShutdown() {
+    player?.dispose();
+  }
+
+  function easeGalvanometer() {
+    const dt = 1000 / 60 / 1000; // ~16 ms / frame
+    const playing = deck.transport === 'playing';
+    const target = playing ? Math.max(-20, mixerStore.rmsDbA) : -20;
+    const tau = target > displayDb ? 0.03 : 0.3;
+    displayDb += (target - displayDb) * (1 - Math.exp(-dt / tau));
+
+    // Maintien de crête PEAK : rouge incandescent tant que le signal dépasse 0 dB (~1,2 s de maintien).
+    const peakNow = playing ? mixerStore.peakDbA : -20;
+    if (peakNow > holdPeakDb) holdPeakDb = peakNow;
+    else holdPeakDb = Math.max(-20, holdPeakDb - 18.75 * dt);
+    peakLit = holdPeakDb >= 0;
+
+    // Bobines : rotation rAF différentielle (débitrice accélère, réceptrice ralentit).
+    if (playing) {
+      const ratio = deck.durationSeconds > 0 ? Math.max(0, Math.min(1, deck.elapsedSeconds / deck.durationSeconds)) : 0;
+      const base = 6;
+      reelAngleL = (reelAngleL + base * (1 + 0.6 * (ratio - 0.5))) % 360;
+      reelAngleR = (reelAngleR + base * (1 - 0.6 * (ratio - 0.5))) % 360;
+    }
+
+    needleRaf = requestAnimationFrame(easeGalvanometer);
+  }
+
+  // ALC-136 : démarre/arrête la lecture réelle (Player WebAudio) selon le transport.
+  $effect(() => {
+    if (deck.transport === 'playing') startPlayer();
+    else stopPlayer();
+  });
+  // ALC-132-4 / ALC-143 : LOW EQ (filtre grave lowshelf 120 Hz) + atténuation auto Smart Filter.
+  $effect(() => {
+    if (player) player.setLowShelf(deck.lowEqDb + mixerStore.smartFilterDb);
+  });
+  // ALC-143 : bande médium (peaking 900 Hz) — Smart Filter (0 dB hors conflit).
+  $effect(() => {
+    if (player) player.setMidBand(mixerStore.smartFilterDb);
+  });
+  // ALC-105-2/137-1 : gain maître = crossfader × volume (0 strict en butée min, τ 0.015 s).
+  $effect(() => {
+    if (!player) return;
+    const volLin = deck.volumeDb <= -24 ? 0 : dbToLinear(deck.volumeDb);
+    const g = (deck.id === 'A' ? mixerStore.gainCrossA : mixerStore.gainCrossB) * volLin;
+    player.setOutputGain(g);
+  });
+  // ALC-137-4 : égaliseur aigu (highshelf 3.2 kHz) en temps réel.
+  $effect(() => {
+    if (player) player.setHighShelf(deck.highEqDb);
+  });
+  // ALC-136 : pitch/tonalité — playbackRate = 1 + pitchPercent/100, preservesPitch = true.
+  $effect(() => {
+    if (player && deck.transport === 'playing') player.setPlaybackRate(deck.pitchPercent);
+  });
 
   async function handleBrowseTrack() {
     // Sélecteur de fichiers audio via la commande Rust Tauri v2 `open_audio_file`
@@ -36,6 +157,32 @@
       await mixerStore.loadTrackFromPath(deck.id, selected);
     }
   }
+
+  let unlistenDrag: (() => void) | undefined;
+
+  // ALC-129-2 : glisser-déposer Tauri (tauri://drag-drop) pour charger une piste sur ce platine.
+  onMount(() => {
+    getCurrentWebviewWindow()
+      .onDragDropEvent(async (event) => {
+        if (event.payload.type === 'drop') {
+          const path = event.payload.paths?.[0];
+          if (path) await mixerStore.loadTrackFromPath(deck.id, path);
+        }
+      })
+      .then((u) => (unlistenDrag = u))
+      .catch(() => {});
+    // ALC-102-2 : lance la boucle d'animation de l'aiguille (cancelAnim au démontage, sans fuite mémoire).
+    needleRaf = requestAnimationFrame(easeGalvanometer);
+    window.addEventListener('alchemix:shutdown', handleShutdown);
+  });
+  onDestroy(() => {
+    unlistenDrag?.();
+    cancelAnimationFrame(needleRaf);
+    cancelAnimationFrame(meterRaf);
+    window.removeEventListener('alchemix:shutdown', handleShutdown);
+    mixerStore.registerPlayer('A', null);
+    player?.dispose();
+  });
 
   const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
   const pctFromEvent = (e: PointerEvent, el: HTMLElement) =>
@@ -62,10 +209,47 @@
   function movePitch(e: PointerEvent) {
     if ((e.buttons & 1) !== 0) applyPitch(e, e.currentTarget as HTMLElement);
   }
+  // ALC-139-1 : faders horizontaux EQ (LOW / HIGH) — drag + molette + double-clic reset.
+  function applyLowEq(e: PointerEvent, el: HTMLElement) {
+    deck.lowEqDb = Number((-6 + clamp01((e.clientX - el.getBoundingClientRect().left) / el.getBoundingClientRect().width) * 12).toFixed(1));
+  }
+  function captureLowEq(e: PointerEvent) {
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    applyLowEq(e, el);
+  }
+  function moveLowEq(e: PointerEvent) {
+    if ((e.buttons & 1) !== 0) applyLowEq(e, e.currentTarget as HTMLElement);
+  }
+  function onLowEqWheel(e: WheelEvent) {
+    e.preventDefault();
+    deck.lowEqDb = Number(Math.max(-6, Math.min(6, deck.lowEqDb + (e.deltaY < 0 ? 0.5 : -0.5))).toFixed(1));
+  }
+  function captureHighEq(e: PointerEvent) {
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    applyHighEq(e, el);
+  }
+  function applyHighEq(e: PointerEvent, el: HTMLElement) {
+    deck.highEqDb = Number((-6 + clamp01((e.clientX - el.getBoundingClientRect().left) / el.getBoundingClientRect().width) * 12).toFixed(1));
+  }
+  function moveHighEq(e: PointerEvent) {
+    if ((e.buttons & 1) !== 0) applyHighEq(e, e.currentTarget as HTMLElement);
+  }
+  function onHighEqWheel(e: WheelEvent) {
+    e.preventDefault();
+    deck.highEqDb = Number(Math.max(-6, Math.min(6, deck.highEqDb + (e.deltaY < 0 ? 0.5 : -0.5))).toFixed(1));
+  }
 
 </script>
 
-<div class="flex flex-col gap-space-md bg-surface-container-low p-space-md rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.9)] relative overflow-hidden" style="grid-column: span 3 / span 3;">
+<style>
+  .tape-bridge { background-size: 200% 100%; }
+  .tape-bridge.running { animation: tapeScroll 1.6s linear infinite; }
+  @keyframes tapeScroll { from { background-position: 0 0; } to { background-position: 200% 0; } }
+</style>
+
+<div class="flex flex-col gap-space-xs bg-surface-container-low p-space-sm rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.9)] relative overflow-hidden" style="grid-column: span 3 / span 3;">
 <!-- Deck Header Plate -->
 <div class="flex items-center justify-between pb-space-sm bg-surface-container-high/60 px-space-sm py-space-xs rounded shadow-sm">
 <div class="flex items-center gap-space-sm">
@@ -74,7 +258,10 @@
 </div>
 </div>
 <!-- Smoked Amber Cassette Bay with Emerald Glow Border -->
-<div class="relative bg-[#0d0907] rounded-xl p-space-sm border border-emerald-500/40 shadow-[inset_0_4px_20px_rgba(0,0,0,0.98)] shadow-[0_0_24px_rgba(16,185,129,0.35)] flex flex-col gap-2" style="box-shadow: rgba(16, 185, 129, 0.85) 0px 0px 20px, rgba(16, 185, 129, 0.55) 0px 0px 45px, rgba(16, 185, 129, 0.35) 0px 0px 70px, rgba(16, 185, 129, 0.45) 0px 0px 20px inset, rgba(0, 0, 0, 0.98) 0px 4px 20px inset; border-color: rgba(52, 211, 153, 0.9);">
+<div role="button" tabindex="0" onclick={() => handleBrowseTrack()} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleBrowseTrack(); } }} class="cursor-pointer relative bg-[#0d0907] rounded-xl p-space-sm border border-emerald-500/40 shadow-[inset_0_4px_20px_rgba(0,0,0,0.98)] shadow-[0_0_24px_rgba(16,185,129,0.35)] flex flex-col gap-2 hover:shadow-[0_0_0_2px_#edbf7a]" style="box-shadow: rgba(16, 185, 129, 0.85) 0px 0px 20px, rgba(16, 185, 129, 0.55) 0px 0px 45px, rgba(16, 185, 129, 0.35) 0px 0px 70px, rgba(16, 185, 129, 0.45) 0px 0px 20px inset, rgba(0, 0, 0, 0.98) 0px 4px 20px inset; border-color: rgba(52, 211, 153, 0.9);">
+{#if !deck.filePath}
+<div class="font-label-sm text-[9px] uppercase tracking-widest text-primary/70 text-center animate-pulse py-1 pointer-events-none">CLIQUER OU GLISSER UN FICHIER AUDIO</div>
+{/if}
   <!-- Deck A Top Header & Counter Bar -->
   <div class="flex items-center justify-between px-space-xs z-10 relative">
     <div class="flex items-center gap-space-xs">
@@ -82,10 +269,13 @@
       <span class="font-label-sm text-label-sm text-emerald-400 uppercase font-bold tracking-widest">{deck.channelSub}</span>
     </div>
     <div class="flex items-center gap-2">
-      <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 font-mono text-[10px] text-emerald-300 font-bold tracking-wider whitespace-nowrap shrink-0">4B • 124.0 BPM</span>
+      <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 font-mono text-[10px] text-emerald-300 font-bold tracking-wider whitespace-nowrap shrink-0">{#if deck.filePath}{deck.camelotKey} • {effectiveBpm} BPM{:else}— • —.– BPM{/if}</span>
       <div class="flex items-center gap-[2px] bg-surface-container-highest px-space-sm py-0.5 rounded shadow-[inset_1px_1px_4px_rgba(0,0,0,0.9)] border border-surface-variant/40">
-        <span class="font-label-sm text-[9px] text-outline uppercase tracking-wider mr-1">ROLL</span>
-        <span class="font-label-md text-label-md font-bold text-emerald-300 tracking-widest font-mono">{displayedTime}</span>
+        <button onclick={() => (showRemaining = !showRemaining)} title="Basculer écoulé / restant"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/60 bg-surface-container-lowest shadow-[inset_0_2px_6px_rgba(0,0,0,0.9),0_0_10px_rgba(237,191,122,0.25)] hover:border-primary/80 transition-colors">
+          <span class="font-label-sm text-[10px] text-primary uppercase tracking-widest">ROLL</span>
+          <span class="font-mono font-bold text-base text-emerald-300 tracking-[0.15em] tabular-nums">{displayedTime}</span>
+        </button>
       </div>
     </div>
   </div>
@@ -126,9 +316,9 @@
 
       <!-- Hand-inscribed Track Title Area -->
       <div class="flex items-center justify-between pt-0.5 px-0.5">
-        <div class="flex flex-col">
+        <div class="min-w-0 flex-1 flex flex-col">
           <span class="text-[8px] font-mono uppercase text-[#73624f] leading-none">TITRE / OEUVRE</span>
-          <span class="font-serif font-bold text-[13px] text-[#1a140e] leading-tight tracking-tight">{deck.trackTitle}</span>
+          <MarqueeText text={deck.trackTitle || '—'} innerClass="font-serif font-bold text-[13px] text-[#1a140e] leading-tight tracking-tight" />
         </div>
         <div class="text-right">
           
@@ -153,8 +343,8 @@
         <div class="relative flex items-center justify-center">
           <!-- Thick Dark Brown Magnetic Tape Roll around Spool -->
           <div class="w-14 h-14 rounded-full bg-[#3d2211] border-2 border-[#5c351c] shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] flex items-center justify-center">
-            <!-- White Ivory 3-Prong Toothed Hub (Rotating) -->
-            <div class="w-9 h-9 rounded-full bg-[#e8ded0] border border-[#8c7d68] flex items-center justify-center animate-spin [animation-duration:9s] shadow-md">
+            <!-- White Ivory 3-Prong Toothed Hub (Rotating, pilote par rAF différentielle) -->
+            <div class="w-9 h-9 rounded-full bg-[#e8ded0] border border-[#8c7d68] flex items-center justify-center shadow-md" style="transform: rotate({reelAngleL}deg)">
               <!-- 3 Cog Teeth -->
               <div class="relative w-full h-full flex items-center justify-center">
                 <div class="absolute w-1.5 h-7 bg-[#d4c7b2] rounded-xs"></div>
@@ -168,20 +358,19 @@
           </div>
         </div>
 
-        <!-- Center Magnetic Tape Bridge & Visual Guide Window -->
-        <div class="flex flex-col items-center justify-center w-12 z-10">
-          <div class="w-10 h-3 bg-[#0a0705] rounded-xs border border-[#382b20] flex items-center justify-center p-0.5 shadow-inner">
-            <!-- Dark Ferric Brown Tape Ribbon -->
-            <div class="w-full h-1.5 bg-gradient-to-r from-[#3e2111] via-[#522d17] to-[#3e2111] rounded-xs"></div>
+        <!-- Center Magnetic Tape Bridge (défilement) + Tête de lecture (lueur) -->
+        <div class="flex flex-col items-center justify-center w-16 z-10">
+          <div class="w-12 h-3 bg-[#0a0705] rounded-xs border border-[#382b20] flex items-center p-0.5 shadow-inner overflow-hidden">
+            <div class="tape-bridge h-1.5 w-full bg-gradient-to-r from-[#3e2111] via-[#522d17] to-[#3e2111] rounded-xs" class:running={deck.transport === 'playing'}></div>
           </div>
-          
+          <div class="mt-1.5 w-2 h-2 rounded-full {deck.transport === 'playing' ? 'bg-[#10b981] shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-[#5b4a3a]'}" title="Tête de lecture"></div>
         </div>
 
         <!-- Right Spool with 3-Prong Cog & Coiled Tape (Less Tape = Played Section) -->
         <div class="relative flex items-center justify-center">
           <div class="w-11 h-11 rounded-full bg-[#3d2211] border-2 border-[#5c351c] shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] flex items-center justify-center">
-            <!-- White Ivory 3-Prong Toothed Hub (Rotating) -->
-            <div class="w-9 h-9 rounded-full bg-[#e8ded0] border border-[#8c7d68] flex items-center justify-center animate-spin [animation-duration:9s] shadow-md">
+            <!-- White Ivory 3-Prong Toothed Hub (Rotating, pilote par rAF différentielle) -->
+            <div class="w-9 h-9 rounded-full bg-[#e8ded0] border border-[#8c7d68] flex items-center justify-center shadow-md" style="transform: rotate({reelAngleR}deg)">
               <div class="relative w-full h-full flex items-center justify-center">
                 <div class="absolute w-1.5 h-7 bg-[#d4c7b2] rounded-xs"></div>
                 <div class="absolute w-1.5 h-7 bg-[#d4c7b2] rounded-xs rotate-60"></div>
@@ -213,8 +402,8 @@
 <div class="flex items-center justify-between px-space-xs">
 <span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Acoustic Galvanometer • Deck A</span>
 <div class="flex items-center gap-space-xs">
-<span class="font-label-sm text-label-sm text-error uppercase">PEAK</span>
-<div class="w-2 h-2 rounded-full bg-error animate-ping"></div>
+<span class="font-label-sm text-label-sm uppercase {peakLit ? 'text-error' : 'text-outline'}">PEAK</span>
+<div class="w-2 h-2 rounded-full {peakLit ? 'bg-error shadow-[0_0_8px_#f87171,0_0_16px_rgba(248,113,113,0.7)] animate-ping' : 'bg-error/25 opacity-70'}"></div>
 </div>
 </div>
 <!-- Gauge Parchment Faceplate with Glass Reflection -->
@@ -240,7 +429,7 @@
 <path d="M 190 28 Q 225 22 260 38" stroke="#b91c1c" stroke-width="2.5"></path>
 </svg>
 <!-- Ballistic Galvanometer Needle Swing -->
-<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-24 origin-bottom transition-transform duration-100 ease-out z-20 pointer-events-none" style="transform: rotate({needleAngle}deg);">
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-24 origin-bottom z-20 pointer-events-none" style="transform: rotate({needleAngle}deg);">
 <div class="w-0.5 h-full bg-red-700 mx-auto shadow-sm"></div>
 </div>
 <!-- Needle Pivot Coil Hub -->
@@ -249,41 +438,73 @@
 </div>
 <!-- Dial Subtext -->
 <div class="relative z-10 flex justify-between font-label-sm text-label-sm text-stone-600 font-serif pt-6">
-<span>VU GALVANOMETRE</span>
+<span>NIVEAU ANALOGIQUE</span>
 <span>100% MODULATION</span>
 </div>
 </div>
 </div>
+<!-- ALC-137-4 : ÉGALISEUR ANALOGIQUE 2 bandes (LOW EQ / HIGH EQ) pleine largeur -->
+<div class="bg-surface-container-high rounded-xl p-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
+  <div class="flex items-center justify-between pb-1 border-b border-surface-variant/40 mb-1 px-space-xs">
+    <span class="font-label-sm text-[9px] text-[#edbf7a] uppercase tracking-widest">ÉGALISEUR ANALOGIQUE</span>
+    <span class="font-mono text-[8px] text-outline uppercase">LOW 120 Hz · HIGH 3.2 kHz</span>
+  </div>
+  <div class="flex flex-col gap-space-xs pt-1 px-space-xs">
+    <div>
+      <div class="flex items-center justify-between">
+        <span class="font-label-sm text-[9px] text-primary uppercase font-bold tracking-wider">FILTRE GRAVE • LOW EQ 120 Hz</span>
+        <span class="font-label-md text-[10px] text-primary font-mono font-bold">{deck.lowEqDb >= 0 ? '+' : ''}{deck.lowEqDb.toFixed(1)} dB</span>
+      </div>
+      <div class="relative h-7 bg-surface-container-lowest rounded flex items-center px-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.95)] cursor-ew-resize touch-none select-none" role="slider" tabindex={0} aria-valuemin={-6} aria-valuemax={6} aria-valuenow={deck.lowEqDb} aria-label="Low EQ" onpointerdown={captureLowEq} onpointermove={moveLowEq} onwheel={onLowEqWheel} ondblclick={() => (deck.lowEqDb = 0.0)}>
+        <div class="absolute inset-x-4 flex justify-between text-[8px] font-mono text-outline/60 pointer-events-none"><span>-6</span><span>-3</span><span>0 dB</span><span>+3</span><span>+6</span></div>
+        <div class="w-full h-1 bg-surface-variant rounded-full"></div>
+        <div class="absolute -translate-x-1/2 w-7 h-5 bg-gradient-to-b from-primary-fixed to-primary-container rounded shadow-[0_4px_8px_rgba(0,0,0,0.8)] flex items-center justify-center pointer-events-none" style="left:{lowEqNormalized}%;"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span></div>
+      </div>
+    </div>
+    <div>
+      <div class="flex items-center justify-between">
+        <span class="font-label-sm text-[9px] text-tertiary uppercase font-bold tracking-wider">FILTRE AIGU • HIGH EQ 3.2 kHz</span>
+        <span class="font-label-md text-[10px] text-tertiary font-mono font-bold">{deck.highEqDb >= 0 ? '+' : ''}{deck.highEqDb.toFixed(1)} dB</span>
+      </div>
+      <div class="relative h-7 bg-surface-container-lowest rounded flex items-center px-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.95)] cursor-ew-resize touch-none select-none" role="slider" tabindex={0} aria-valuemin={-6} aria-valuemax={6} aria-valuenow={deck.highEqDb} aria-label="High EQ" onpointerdown={captureHighEq} onpointermove={moveHighEq} onwheel={onHighEqWheel} ondblclick={() => (deck.highEqDb = 0.0)}>
+        <div class="absolute inset-x-4 flex justify-between text-[8px] font-mono text-outline/60 pointer-events-none"><span>-6</span><span>-3</span><span>0 dB</span><span>+3</span><span>+6</span></div>
+        <div class="w-full h-1 bg-surface-variant rounded-full"></div>
+        <div class="absolute -translate-x-1/2 w-7 h-5 bg-gradient-to-b from-primary-fixed to-primary-container rounded shadow-[0_4px_8px_rgba(0,0,0,0.8)] flex items-center justify-center pointer-events-none" style="left:{highEqNormalized}%;"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Mechanical Spring-Loaded Playback Controls -->
 <div class="bg-surface-container rounded-xl p-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
-<div class="grid grid-cols-7 gap-space-xs">
-<button class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] group">
-<span class="material-symbols-outlined text-[16px] text-error">fiber_manual_record</span>
-<span class="font-label-sm text-label-sm text-outline-variant group-hover:text-on-surface">REC</span>
-</button>
-<button class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] group">
-<span class="material-symbols-outlined text-[16px] text-on-surface-variant">fast_rewind</span>
+<div class="grid grid-cols-6 gap-space-xs">
+<!-- REW : retour rapide -20 s (ALC-122-3) -->
+<button onclick={() => seekDeck(-20)} disabled={!deck.filePath} class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] disabled:opacity-40 disabled:pointer-events-none group">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">fast_rewind</span>
 <span class="font-label-sm text-label-sm text-outline-variant group-hover:text-on-surface">REW</span>
 </button>
-<button class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] group">
-<span class="material-symbols-outlined text-[16px] text-on-surface-variant">fast_forward</span>
+<!-- FFWD : avance rapide +20 s (ALC-122-3) -->
+<button onclick={() => seekDeck(20)} disabled={!deck.filePath} class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] disabled:opacity-40 disabled:pointer-events-none group">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">fast_forward</span>
 <span class="font-label-sm text-label-sm text-outline-variant group-hover:text-on-surface">FFWD</span>
 </button>
-<!-- Active Illuminated Play Button -->
-<button class="flex flex-col items-center justify-center py-space-sm bg-emerald-950/80 rounded shadow-[inset_0_2px_6px_rgba(0,0,0,0.9)] translate-y-0.5 group">
-<span class="material-symbols-outlined text-[18px] text-emerald-400 drop-shadow-[0_0_8px_#10b981]">play_arrow</span>
-<span class="font-label-sm text-label-sm text-emerald-300 font-bold">PLAY</span>
+<!-- PLAY : actif (enfoncé + illuminé) uniquement pendant la lecture -->
+<button onclick={() => mixerStore.setTransport(deck.id, 'playing')} disabled={!deck.filePath} class="flex flex-col items-center justify-center py-space-sm rounded transition-all group shadow-[0_2px_4px_rgba(0,0,0,0.7)] {deck.transport === 'playing' ? 'bg-emerald-800/90 translate-y-0.5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.9)]' : 'bg-surface-container-high hover:bg-surface-container-highest disabled:opacity-40 disabled:pointer-events-none'}">
+<span class="material-symbols-outlined text-[18px] {deck.transport === 'playing' ? 'text-emerald-400 drop-shadow-[0_0_8px_#10b981]' : 'text-emerald-300'}">play_arrow</span>
+<span class="font-label-sm text-label-sm {deck.transport === 'playing' ? 'text-emerald-300 font-bold' : 'text-outline-variant group-hover:text-on-surface'}">PLAY</span>
 </button>
-<button class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] group">
-<span class="material-symbols-outlined text-[16px] text-on-surface-variant">pause</span>
-<span class="font-label-sm text-label-sm text-outline-variant group-hover:text-on-surface">PAUSE</span>
+<!-- STOP -->
+<button onclick={() => mixerStore.setTransport(deck.id, 'stopped')} disabled={!deck.filePath} class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] disabled:opacity-40 disabled:pointer-events-none group">
+<span class="material-symbols-outlined text-[18px] text-primary">stop</span>
+<span class="font-label-sm text-label-sm text-outline-variant group-hover:text-on-surface">STOP</span>
 </button>
-<button class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] group">
-<span class="material-symbols-outlined text-[16px] text-primary">hearing</span>
-<span class="font-label-sm text-label-sm text-outline-variant group-hover:text-on-surface">CUE</span>
+<!-- LOAD : charger une piste (ALC-129) — mis en valeur quand la platine est vide -->
+<button onclick={handleBrowseTrack} class="flex flex-col items-center justify-center py-space-sm rounded transition-all group shadow-[0_2px_4px_rgba(0,0,0,0.7)] {!deck.filePath ? 'bg-emerald-900/70' : 'bg-surface-container-high hover:bg-surface-container-highest'}">
+<span class="material-symbols-outlined text-[18px] {!deck.filePath ? 'text-emerald-400 drop-shadow-[0_0_6px_#10b981]' : 'text-on-surface-variant'}">folder_open</span>
+<span class="font-label-sm text-label-sm {!deck.filePath ? 'text-emerald-300' : 'text-outline-variant group-hover:text-on-surface'}">LOAD</span>
 </button>
-<button onclick={handleBrowseTrack} class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] group">
-<span class="material-symbols-outlined text-[16px] text-secondary">eject</span>
+<!-- EJECT : décharge la piste (ALC-129) — désactivé tant que vide -->
+<button onclick={() => mixerStore.eject(deck.id)} disabled={!deck.filePath} class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] disabled:opacity-40 disabled:pointer-events-none group">
+<span class="material-symbols-outlined text-[18px] text-secondary">eject</span>
 <span class="font-label-sm text-label-sm text-outline-variant group-hover:text-on-surface">EJECT</span>
 </button>
 </div>
@@ -293,7 +514,7 @@
 <!-- Volume Slider -->
 <div class="flex flex-col gap-space-xs">
 <div class="flex items-center justify-between">
-<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">POTENTIOMÈTRE VOLUME DECK {deck.sideLetter}</span>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">VOLUME CANAL</span>
 <span class="font-label-md text-label-md text-emerald-400 font-mono font-bold">{deck.volumeDb.toFixed(1)} dB ({volumePercent}%)</span>
 </div>
 <!-- Slider Track -->
@@ -319,8 +540,8 @@
 <!-- Pitch Slider -->
 <div class="flex flex-col gap-space-xs">
 <div class="flex items-center justify-between">
-<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">RÉGULATEUR CADENCE (PITCH)</span>
-<span class="font-label-md text-label-md text-secondary font-mono font-bold">{deck.pitchPercent >= 0 ? '+' : ''}{deck.pitchPercent}% ({effectiveBpm.toFixed(1)} BPM)</span>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">CADENCE (PITCH)</span>
+<span class="font-label-md text-label-md text-secondary font-mono font-bold">{deck.pitchPercent >= 0 ? '+' : ''}{deck.pitchPercent}%{#if deck.filePath} ({effectiveBpm.toFixed(1)} BPM){/if}</span>
 </div>
 <!-- Slider Track -->
 <div class="relative h-8 bg-surface-container-lowest rounded flex items-center px-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.95)] cursor-ew-resize touch-none select-none" role="slider" tabindex={0} aria-valuemin={-8} aria-valuemax={8} aria-valuenow={deck.pitchPercent} aria-label="Pitch" onpointerdown={capturePitch} onpointermove={movePitch} ondblclick={() => (deck.pitchPercent = 0.0)}>
@@ -342,19 +563,29 @@
 </div>
 </div>
 </div>
+<!-- Télémétrie Rythme & Clef (ALC-128) : placée sous les 2 sliders, avant Info/Pochette -->
+<RhythmKeyTelemetry deck={deck} />
+
 <!-- Album Artwork Card & Technical Specification Plate -->
 <div class="grid grid-cols-1 sm:grid-cols-12 gap-space-sm bg-surface-container-high/40 p-space-sm rounded-xl">
 <!-- Album Thumbnail Placeholder -->
 <div class="sm:col-span-4 aspect-square rounded-lg overflow-hidden shadow-md relative">
+{#if deck.coverUrl}
 <img class="w-full h-full object-cover" alt={deck.coverAlt} src={deck.coverUrl}>
-<div class="absolute top-1 left-1 bg-surface-container-lowest/80 px-1 py-0.5 rounded text-[8px] font-label-sm text-emerald-300">{deck.opusLabel}</div>
+{:else}
+<div class="w-full h-full flex items-center justify-center bg-surface-container-low"><span class="material-symbols-outlined text-[28px] text-outline">album</span></div>
+{/if}
+{#if deck.coverUrl}<div class="absolute top-1 left-1 bg-surface-container-lowest/80 px-1 py-0.5 rounded text-[8px] font-label-sm text-emerald-300">{deck.opusLabel}</div>{/if}
 </div>
 <!-- Track & Mechanical Metadata -->
 <div class="sm:col-span-8 flex flex-col justify-between">
 <div>
 <span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">INFORMATIONS</span>
 <span class="font-title-md text-title-md text-on-surface font-bold leading-tight block">{deck.trackTitle}</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant block">Genre: {deck.genre}</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant block">Artiste: {deck.artist || '—'}</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant block">Album: {deck.album || '—'}</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant block">Genre: {deck.genre || '—'}</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant block">Année: {deck.year || '—'}</span>
 </div>
 <!-- Technical Specs Monospace Tag Matrix -->
 

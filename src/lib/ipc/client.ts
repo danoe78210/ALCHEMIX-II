@@ -5,16 +5,42 @@ export interface TrackData {
   path: string;
   title: string;
   artist: string;
+  album: string;
   genre: string;
+  year: string;
+  tagBpm: number;
+  tagKey: string;
   serialCode: string;
   bpm: number;
   camelotKey: string;
+  keyConfidence: number;
   durationSeconds: number;
   sampleRate: number;
   bitDepth: number;
   bitrateKbps: number;
   codec: string;
   waveformPeaks: number[];
+  keyTimeline: KeySeg[];
+  segments: TrackSegment[];
+  coverData: string;
+}
+
+/** ALC-146 : segment sonore de la frise — bandes de fréquence normalisées, tempo et clé locaux. */
+export interface TrackSegment {
+  startSec: number;
+  endSec: number;
+  rmsLow: number;
+  rmsMid: number;
+  rmsHigh: number;
+  localBpm: number;
+  localCamelot: string;
+}
+
+/** ALC-144 : segment tonal (clé Camelot par fenêtre temporelle) pour la heatmap harmonique. */
+export interface KeySeg {
+  timeSeconds: number;
+  camelotKey: string;
+  confidence: number;
 }
 
 export interface TempoCamelot {
@@ -63,6 +89,12 @@ async function safeInvoke<T>(command: string, args?: Record<string, unknown>): P
   }
 }
 
+export interface AudioBytes {
+  bytes: number[];
+  mime: string;
+  name: string;
+}
+
 export const audioIpc = {
   /**
    * Ouvre le sélecteur de fichiers système (commande Rust `open_audio_file`),
@@ -73,6 +105,14 @@ export const audioIpc = {
   },
   loadAudioFile(path: string): Promise<TrackData> {
     return safeInvoke<TrackData>('load_audio_file', { path });
+  },
+  /** ALC-136-2 : lit les octets d'un fichier local (commande Rust) pour une URL blob: (Player). */
+  readAudioFileBytes(path: string): Promise<number[]> {
+    return safeInvoke<number[]>('read_audio_file_bytes', { path });
+  },
+  /** ALC-139-2 : fermeture propre de l'application Tauri. */
+  exitApp(): Promise<void> {
+    return safeInvoke<void>('exit_app');
   },
   /** Expose en temps réel le BPM effectif et la clé Camelot (pont IPC ALC-006-3). */
   detectTempoCamelot(args: {

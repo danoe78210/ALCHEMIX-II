@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300..900&family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400..800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -61,10 +62,23 @@
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
-  function fmt(iso) {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleString('fr-FR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  // Horodatage au format exact « jj/mm/aaaa — hh:mm » dans le fuseau Europe/Paris.
+  function formatTimestamp(isoString) {
+    if (!isoString) return '—';
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return '—';
+    const optionsDate = { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric' };
+    const optionsTime = { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hour12: false };
+    const dayMonthYear = date.toLocaleDateString('fr-FR', optionsDate);
+    const hoursMinutes = date.toLocaleTimeString('fr-FR', optionsTime);
+    return `${dayMonthYear} — ${hoursMinutes}`;
+  }
+  // Badge cuivré/sombre assorti à la console, affichant l'horodatage (format Paris).
+  function timeBadge(iso) {
+    return '<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-container-high border border-primary/30 text-primary font-mono text-xs shadow-sm whitespace-nowrap">' +
+      '<span class="material-symbols-outlined text-[14px] mr-1.5 opacity-80">schedule</span>' +
+      '<span>' + formatTimestamp(iso) + '</span>' +
+    '</span>';
   }
 
   // Contexte partagé avec le Kanban (fallback si file:// impossible)
@@ -132,7 +146,7 @@
         '<div class="mt-2 flex items-center gap-2 flex-wrap text-[11px] font-mono text-outline">' +
           '<span>agent · '+esc(task.agent||'—')+'</span>' +
           '<span>•</span><span>'+done+'/'+total+' micro-tâches</span>' +
-          '<span>•</span><span>créé '+fmt(task.createdAt)+'</span>' +
+          '<span>•</span><span>créé '+timeBadge(task.createdAt)+'</span>' +
         '</div>' +
         '<div class="mt-3 flex flex-col gap-1 border-t border-surface-container-high pt-2">' +
           (task.subtasks||[]).map(s =>
@@ -161,7 +175,7 @@
       li.className = 'relative flex flex-col gap-1';
       li.innerHTML =
         '<span class="absolute -left-[21px] top-1 w-2 h-2 rounded-full '+dot+'"></span>' +
-        '<div class="flex items-center gap-2 flex-wrap">'+badge+'<span class="font-mono text-[10px] text-outline">'+fmt(e.ts)+'</span></div>' +
+        '<div class="flex items-center gap-2 flex-wrap">'+badge+timeBadge(e.ts)+'</div>' +
         '<p class="text-[13px] text-on-surface leading-5">'+esc(e.message)+'</p>';
       list.appendChild(li);
     });

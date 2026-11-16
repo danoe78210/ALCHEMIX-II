@@ -1,6 +1,6 @@
 [package]
 name = "alchemix_ii"
-version = "0.1.0"
+version = "0.2.0"
 description = "Console de mixage harmonique DJ propulsée par Tauri 2, Rust ONNX et Svelte 5."
 authors = ["DJ Danoë"]
 edition = "2021"
@@ -24,8 +24,18 @@ tokio = { version = "1", features = ["sync", "time", "fs", "rt-multi-thread"] }
 # Moteur d'analyse audio (ALC-008) : décodage Symphonia + FFT rustfft
 symphonia = { version = "0.5", features = ["all"] }
 rustfft = "6"
+# Extraction des pochettes d'album embarquées (ALC-127)
+lofty = "0.21"
+base64 = "0.22"
 # Décommenter pour inférence ONNX Demucs / Spleeter native :
 # ort = { version = "2.0.0-rc.9", features = ["ndarray"] }
+
+[profile.dev]
+# ALC-159 : le décodage Symphonia, les FFT rustfft et les boucles DSP d'analyse tournent à pleine
+# vitesse même en `tauri dev` (sinon opt-level=0 > 1 min d'analyse par morceau).
+opt-level = 2
+[profile.dev.package."*"]
+opt-level = 3
 
 [profile.release]
 panic = "abort"
