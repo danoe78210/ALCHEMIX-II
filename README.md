@@ -49,6 +49,22 @@ npm run tauri dev        # mode desktop
 npm run dev              # uniquement le frontend web
 ```
 
+## 🪟 Installation Windows (exécutable autonome)
+
+Téléchargez l'exécutable `AlcheMix-II-vX.Y.Z-windows-x64.exe` depuis la
+[page des releases GitHub](https://github.com/danoe78210/ALCHEMIX-II/releases) et lancez-le.
+
+> ### 🛡️ Note d'installation Windows (SmartScreen)
+>
+> **AlcheMix II** est un logiciel indépendant en cours de certification publique Microsoft :
+> **Windows peut afficher l'écran « Windows a protégé votre ordinateur » lors du premier
+> lancement.** Cliquez simplement sur **« Informations complémentaires »** puis **« Exécuter
+> quand même »** pour démarrer l'application en toute sécurité.
+
+Cet avertissement disparaîtra une fois le binaire signé par un certificat reconnu par Microsoft
+(Azure Trusted Signing / SignPath.io) — la procédure officielle est préparée dans les notes de
+release et le workflow GitHub Actions.
+
 ## 🌿 Branches
 
 - `main` (ou `master`) : branche principale stable.

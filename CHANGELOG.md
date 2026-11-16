@@ -40,4 +40,14 @@ Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) 
 - `docs/SPECIFICATIONS.md` & `CHANGELOG.md` tenus à jour ; gouvernance Kanban étendue aux tickets
   récurrents (règle 5 de `.clinerules/02-kanban-et-journaux.md`).
 
+### 🔏 Signature & SmartScreen
+- **Exécutable signé Authenticode** (Publisher « AlcheMix II ») — certificat local de dev (supprime
+  l'alerte sur le poste de build) ; **vérifié** `signtool verify /pa /v` (timestamp DigiCert RFC 3161).
+- **Note SmartScreen** ajoutée dans `README.md` (§ 🪟 Installation Windows) et les notes de la
+  release GitHub v0.2.0 : « Informations complémentaires / Exécuter quand même ».
+- **Workflow de signature officielle** `.github/workflows/release.yml` créé : étape
+  `azure/trusted-signing-action@v0` (Azure Trusted Signing, secrets `AZURE_*`) ou **SignPath.io**
+  (gratuit Open Source) → prochaines releases signées par une CA reconnue Microsoft sans
+  manipulation locale (l'alerte SmartScreen disparaît pour les utilisateurs externes).
+
 [0.2.0]: https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.2.0

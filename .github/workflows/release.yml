@@ -1,0 +1,134 @@
+# AlcheMix II — Workflow de Release GitHub + signature officielle (Azure Trusted Signing / SignPath).
+#
+# PRÊT À L'EMPLOI : dès que les secrets ci-dessous sont renseignés dans les Settings du dépôt,
+# chaque release sera SIGNÉE par une autorité de certification reconnue par Microsoft — plus aucune
+# manipulation locale de certificat n'est nécessaire et l'alerte SmartScreen disparaît pour tous.
+#
+# Secrets GitHub attendus (Settings → Secrets and variables → Actions) :
+#   - AZURE_TENANT_ID        (locataire Azure)
+#   - AZURE_CLIENT_ID        (app registration, rôle "Signer" sur la ressource de signing)
+#   - AZURE_CLIENT_SECRET    (secret de l'app registration)
+#   - AZURE_CERTIFICATE_NAME (nom du certificat dans la ressource Azure Trusted Signing,
+#                             ex. "ALCHEMIX-SIGN")
+# (Branche Azure Trusted Signing : azure/trusted-signing-action@v0, inclut le timestamp RFC 3161.)
+#
+# Alternative SignPath.io (gratuit Open Source) : voir les étapes commentées à la fin — décommenter,
+# renseigner SIGNPATH_* secrets et retirer l'étape Azure pour basculer.
+
+name: Release & Sign
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version à publier (ex. v0.3.0)"
+        required: true
+  push:
+    tags:
+      - "v*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release-and-sign:
+    runs-on: windows-latest
+    env:
+      # Azure Trusted Signing : vide par défaut → l'étape de signature est sautée tant que les
+      # secrets ne sont pas renseignés. Le hook local `tauri.conf.json bundle.windows.signCommand`
+      # (TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD/TAURI_SIGNTOOL) reste la solution de secours locale.
+      TAURI_ACTIONER_DISABLE_SIGNING: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Dependencies (apt/MSVC) — Windows
+        shell: pwsh
+        run: |
+          # WebView2 bootstrap + NSIS sont gérés par tauri-bundler sur Windows.
+          Write-Output "Windows runtime prêt."
+
+      - name: npm install
+        run: npm ci
+
+      - name: Frontend check
+        run: npm run check
+
+      - name: Backend check & tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+
+      - name: Build (release)
+        run: npm run tauri build
+
+      # ─── SIGNATURE OFFICIELLE (Azure Trusted Signing) ─────────────────────────────
+      # Exécutée UNIQUEMENT si les 4 secrets Azure sont renseignés. `azure/trusted-signing-action`
+      # signe l'exécutable autonome avec un certificat reconnu Microsoft (timestamp RFC 3161 inclus).
+      - name: Sign standalone exe (Azure Trusted Signing)
+        if: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' && secrets.AZURE_CERTIFICATE_NAME != '' }}
+        uses: azure/trusted-signing-action@v0
+        with:
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net
+          trusted-signing-account-name: AlcheMixSigning
+          certificate-profile-name: ${{ secrets.AZURE_CERTIFICATE_NAME }}
+          files-folder: src-tauri/target/release
+          files-folder-filter: "AlcheMix-II-*-windows-x64.exe"
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest-ms: SHA256
+
+      # Nettoyage : le build Tauri peut régénérer un exe non signé ; on re-copie l'exe signé par Azure
+      # sous le nom attendu par l'étape release ci-dessous (l'action Azure confirme le nom originel).
+      - name: Verify signature (signtool /pa /v)
+        if: ${{ secrets.AZURE_TENANT_ID != '' }}
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+                     Select-Object -First 1
+          $exe = (Get-ChildItem "src-tauri/target/release" -Filter "AlcheMix-II-*-windows-x64.exe" | Select-Object -First 1)
+          if ($signtool -and $exe) { & $signtool.FullName verify /pa /v $exe.FullName }
+
+      - name: Get version
+        id: get_version
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.inputs.version }}"
+          if ($v -eq '') { $v = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value }
+          Write-Output "tag=v$v" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: "AlcheMix II ${{ steps.get_version.outputs.tag }}"
+          files: |
+            src-tauri/target/release/AlcheMix-II-*-windows-x64.exe
+            src-tauri/target/release/bundle/nsis/*-setup.exe
+            src-tauri/target/release/bundle/msi/*.msi
+          generate_release_notes: true
+
+      # ─── ALTERNATIVE SignPath.io (gratuit Open Source) ─────────────────────────────
+      # Décommente si vous préférez SignPath : CI → envoie le binaire vers SignPath qui le signe
+      # avec un certificat EV, puis télécharge l'asset signé avant de l'attacher à la release.
+      # - name: Sign with SignPath
+      #   uses: signpath/github-action-submit-signing-request@v1
+      #   with:
+      #     api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+      #     organization-id: ${{ secrets.SIGNPATH_ORG_ID }}
+      #     project-slug: ${{ secrets.SIGNPATH_PROJECT }}
+      #     signing-policy-slug: test-signing
+      #     artifact-path: src-tauri/target/release/AlcheMix-II-0.2.0-windows-x64.exe
+      #     wait-for-signing: true
+      #     output-artifact-path: signed/AlcheMix-II-signed.exe

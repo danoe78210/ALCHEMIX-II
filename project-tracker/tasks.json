@@ -2145,6 +2145,11 @@
           "id": "ALC-163-6",
           "title": "Signature numérique Authenticode (signtool / Azure Trusted Signing / SignPath.io) et vérification : détecter signtool.exe + certificat (env vars WINDOWS_CERTIFICATE/AZURE_TENANT_ID ou .pfx) ; si absent → cert local New-SelfSignedCertificate -Type CodeSigningCert CN=AlcheMix II + hook bundle.windows.signCommand (TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD) + signer AlcheMix-II-<version>-windows-x64.exe avec /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 + installer public dans Cert:\\CurrentUser\\Root ; vérifier signtool verify /pa /v et remplacer l'exécutable de la release GitHub",
           "completed": false
+        },
+        {
+          "id": "ALC-163-7",
+          "title": "Signature OFFICIELLE pour diffusion publique (Azure Trusted Signing ou SignPath.io gratuit Open Source) via .github/workflows/release.yml : renseigner les secrets AZURE_TENANT_ID/AZURE_CLIENT_ID/AZURE_CLIENT_SECRET/AZURE_CERTIFICATE_NAME (étape azure/trusted-signing-action@v0) pour signer par une CA reconnue Microsoft sans manipulation locale ; ou basculer sur l'étape SignPath.io (gratuit OS) décommentée ; le certificat local dev (New-SelfSignedCertificate / CN=AlcheMix II) ne lève SmartScreen QUE sur le poste de build → le remplacer par une signature officielle pour les utilisateurs externes",
+          "completed": false
         }
       ],
       "description": "Ticket RÉCURRENT de publication GitHub + release Windows autonome. Marked \"recurrent\": true → après chaque exécution réussie, ALC-163 revient en Backlog avec ses subtasks réarmées à \"completed\": false (voir règle 5 de 02-kanban-et-journaux.md), prêt pour la prochaine release.",
