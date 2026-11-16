@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "AlcheMix II — Journaux de travail individuels par ticket",
-    "version": "1.62.0",
-    "updatedAt": "2026-11-16T22:50:00.000+01:00",
+    "version": "1.63.0",
+    "updatedAt": "2026-11-16T23:05:00.000+01:00",
     "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
   },
   "journals": {
@@ -79,7 +79,9 @@
         { "ts": "2026-11-16T22:25:00.000+01:00", "type": "subtask", "message": "ALC-163-2 cochée : compilation exécutable autonome — bundle targets=\"all\" (NSIS/MSI) dans tauri.conf.json ; npm run tauri build exit 0 ; binaire autonome target/release/alchemix_ii.exe (7,3 MB) + NSIS AlcheMix II_0.2.0_x64-setup.exe (2,46 MiB) + MSI ; copie versionnée AlcheMix-II-v0.2.0-windows-x64.exe (7 268 352 octets, non nul)" },
         { "ts": "2026-11-16T22:35:00.000+01:00", "type": "subtask", "message": "ALC-163-3 cochée : CHANGELOG.md créé (notes v0.2.0 structurées : Beatgrid / DSP Audio / ID3 / Correctifs) + header v0.2.0 dans docs/SPECIFICATIONS.md ; git add -A (115 entrées, target/ ignoré) ; commit chore(release): v0.2.0 (0c82f4e..1312d99) ; tag -a v0.2.0 ; git push origin main + git push origin --tags OK (tag v0.2.0 poussé)" },
         { "ts": "2026-11-16T22:45:00.000+01:00", "type": "subtask", "message": "ALC-163-4 cochée : GitHub Release v0.2.0 publiée — GH CLI non authentifié (token git sans scope read:org) → publication via l'API GitHub REST (Invoke-RestMethod, headers Bearer token de git) ; RELEASE_ID=447642931 ; HTML https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.2.0 ; asset AlcheMix-II-v0.2.0-windows-x64.exe (7 268 352 octets) attaché et vérifié (téléchargeable)" },
-        { "ts": "2026-11-16T22:50:00.000+01:00", "type": "column", "message": "ALC-163 BILAN v0.2.0 : release https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.2.0 ; exécutable AlcheMix-II-v0.2.0-windows-x64.exe (7 268 352 octets) + NSIS AlcheMix II_0.2.0_x64-setup.exe (2,46 MiB) ; build exit 0 ; cargo test 50/50 ; npm check 0/0 ; tag v0.2.0 + push OK. RÉARMEMENT : ALC-163 repassé en Backlog, subtasks -1..-5 remises à completed:false — prêt pour la prochaine release (règle 5 de .clinerules/02-kanban-et-journaux.md)" }
+        { "ts": "2026-11-16T22:50:00.000+01:00", "type": "column", "message": "ALC-163 BILAN v0.2.0 : release https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.2.0 ; exécutable AlcheMix-II-v0.2.0-windows-x64.exe (7 268 352 octets) + NSIS AlcheMix II_0.2.0_x64-setup.exe (2,46 MiB) ; build exit 0 ; cargo test 50/50 ; npm check 0/0 ; tag v0.2.0 + push OK. RÉARMEMENT : ALC-163 repassé en Backlog, subtasks -1..-5 remises à completed:false — prêt pour la prochaine release (règle 5 de .clinerules/02-kanban-et-journaux.md)" },
+        { "ts": "2026-11-16T23:00:00.000+01:00", "type": "subtask", "message": "ALC-163-6 cochée (Signature Authenticode) : signtool.exe détecté (Windows Kits 10.0.26100.0\\x64) ; aucun certificat officiel configuré (env vars/\\pfx absents) → hook bundle.windows.signCommand piloté TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD/TAURI_SIGNTOOL ajouté dans tauri.conf.json ; certificat local dev généré (New-SelfSignedCertificate -Type CodeSigningCert -Subject CN=AlcheMix II, thumbprint 9B5E00F6…) exporté en PFX+CER ; AlcheMix-II-v0.2.0-windows-x64.exe signé (signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256) ; public installé dans Cert:\\CurrentUser\\Root (anti–SmartScreen sur ce poste) ; signtool verify /pa /v → Successfully verified (0 erreur, timestamp DigiCert RFC 3161) ; asset de la release GitHub v0.2.0 remplacé par l'exe signé (7 275 752 octets)" },
+        { "ts": "2026-11-16T23:05:00.000+01:00", "type": "column", "message": "ALC-163 SIGNATURE v0.2.0 : exécutable Windows signé Authenticode et re-uploadé sur la release https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.2.0 (asset AlcheMix-II-v0.2.0-windows-x64.exe signé, 7 275 752 o, vérifié /pa). RÉARMEMENT : ALC-163 repassé en Backlog, subtasks -1..-6 remises à completed:false — prêt pour la prochaine release. Remarque diffusion publique : remplacer le certificat LOCAL dev par Azure Trusted Signing ou SignPath.io (gratuit Open Source) pour lever les alertes SmartScreen hors de ce poste" }
       ]
     },
     "ALC-155": {

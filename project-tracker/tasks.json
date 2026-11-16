@@ -12,8 +12,8 @@
       "En revue",
       "Terminé"
     ],
-    "version": "1.12.0",
-    "updatedAt": "2026-11-16T21:30:00.000+01:00"
+    "version": "1.13.0",
+    "updatedAt": "2026-11-16T23:05:00.000+01:00"
   },
   "tasks": [
     {
@@ -2139,6 +2139,11 @@
         {
           "id": "ALC-163-5",
           "title": "Journalisation & réarmement : URL release, nom exécutable et bilan consignés dans journals.json (Europe/Paris) ; ALC-163 remis en Backlog avec toutes ses subtasks à completed:false pour sa prochaine exécution",
+          "completed": false
+        },
+        {
+          "id": "ALC-163-6",
+          "title": "Signature numérique Authenticode (signtool / Azure Trusted Signing / SignPath.io) et vérification : détecter signtool.exe + certificat (env vars WINDOWS_CERTIFICATE/AZURE_TENANT_ID ou .pfx) ; si absent → cert local New-SelfSignedCertificate -Type CodeSigningCert CN=AlcheMix II + hook bundle.windows.signCommand (TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD) + signer AlcheMix-II-<version>-windows-x64.exe avec /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 + installer public dans Cert:\\CurrentUser\\Root ; vérifier signtool verify /pa /v et remplacer l'exécutable de la release GitHub",
           "completed": false
         }
       ],

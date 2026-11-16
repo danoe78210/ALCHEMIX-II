@@ -58,4 +58,7 @@ Desktop.ini
 # --- Fichiers de développement ponctuels ---
 *.old
 *.bak
-*.tmp
+
+# --- Signature certificats locaux (NE JAMAIS committer) ---
+alchemix_codesign.pfx
+alchemix_codesign.cer
