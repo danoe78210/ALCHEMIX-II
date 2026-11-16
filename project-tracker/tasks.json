@@ -2111,29 +2111,29 @@
       "id": "ALC-163",
       "title": "Release GitHub & exécutable Windows autonome (récurrent)",
       "recurrent": true,
-      "status": "En cours",
+      "status": "Backlog",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Release / Publication",
       "subtasks": [
         {
           "id": "ALC-163-1",
-          "title": "Pré-contrôle qualité & synchronisation de version : git status, npm run check, cargo test --lib (0 erreur / 100 % verts) ; dernier tag + git log pour la nouvelle SemVer (v0.2.0) ; version alignée dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml et docs/SPECIFICATIONS.md (pas de numéro explicite → CHANGELOG.md à l'étape -3)",
-          "completed": true
+          "title": "Pré-contrôle qualité & synchronisation de version : git status, npm run check, cargo test --lib (0 erreur / 100 % verts) ; dernier tag + git log pour la nouvelle SemVer ; version alignée dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml et docs/SPECIFICATIONS.md",
+          "completed": false
         },
         {
           "id": "ALC-163-2",
-          "title": "Compilation de l'exécutable Windows 100 % autonome : vérif bundle (nsis/portable) dans tauri.conf.json ; npm run tauri build (profil release) ; contrôle taille non nulle + copie versionnée (AlcheMix-II-v0.2.0-windows-x64.exe)",
-          "completed": true
+          "title": "Compilation de l'exécutable Windows 100 % autonome : vérif bundle (nsis/portable) dans tauri.conf.json ; npm run tauri build (profil release) ; contrôle taille non nulle + copie versionnée (ex. AlcheMix-II-<version>-windows-x64.exe)",
+          "completed": false
         },
         {
           "id": "ALC-163-3",
-          "title": "Commit, tag & push sur GitHub : notes de version (CHANGELOG.md) ; git add -A ; commit chore(release): v0.2.0 ; tag -a v0.2.0 ; git push && git push --tags",
+          "title": "Commit, tag & push sur GitHub : notes de version (CHANGELOG.md) ; git add -A ; commit chore(release): <version> ; tag -a <version> ; git push && git push --tags",
           "completed": false
         },
         {
           "id": "ALC-163-4",
-          "title": "Publication GitHub Release avec exécutable attaché : gh release create v0.2.0 <exe> --title \"AlcheMix II v0.2.0\" --notes-file ; vérif via gh release view v0.2.0 (release + asset en ligne)",
+          "title": "Publication GitHub Release (gh release create ou API REST) avec l'exécutable autonome attaché ; vérif release + asset en ligne",
           "completed": false
         },
         {

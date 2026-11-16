@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "AlcheMix II — Journaux de travail individuels par ticket",
-    "version": "1.61.0",
-    "updatedAt": "2026-11-16T21:45:00.000+01:00",
+    "version": "1.62.0",
+    "updatedAt": "2026-11-16T22:50:00.000+01:00",
     "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
   },
   "journals": {
@@ -76,7 +76,10 @@
       "entries": [
         { "ts": "2026-11-16T21:30:00.000+01:00", "type": "creation", "message": "ALC-163 créé (En cours) — RELEASE GitHub Récurrente (\"recurrent\": true) : publication v0.2.0 + exécutable Windows autonome ; règle 5 ajoutée à .clinerules/02-kanban-et-journaux.md (ticket récurrent → Backlog + subtasks false après exécution)" },
         { "ts": "2026-11-16T21:45:00.000+01:00", "type": "subtask", "message": "ALC-163-1 cochée : pré-contrôle qualité & synchronisation de version — git status OK ; npm run check 0 erreur/0 warning ; cargo test --lib 50/50 verts ; aucun tag existant → SemVer v0.2.0 ; version alignée 0.2.0 dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml (SPECIFICATIONS.md sans numéro explicite → CHANGELOG à l'étape -3)" },
-        { "ts": "2026-11-16T22:25:00.000+01:00", "type": "subtask", "message": "ALC-163-2 cochée : compilation exécutable autonome — bundle targets=\"all\" (NSIS/MSI) dans tauri.conf.json ; npm run tauri build exit 0 ; binaire autonome target/release/alchemix_ii.exe (7,3 MB) + NSIS AlcheMix II_0.2.0_x64-setup.exe (2,46 MiB) + MSI ; copie versionnée AlcheMix-II-v0.2.0-windows-x64.exe (7 268 352 octets, non nul)" }
+        { "ts": "2026-11-16T22:25:00.000+01:00", "type": "subtask", "message": "ALC-163-2 cochée : compilation exécutable autonome — bundle targets=\"all\" (NSIS/MSI) dans tauri.conf.json ; npm run tauri build exit 0 ; binaire autonome target/release/alchemix_ii.exe (7,3 MB) + NSIS AlcheMix II_0.2.0_x64-setup.exe (2,46 MiB) + MSI ; copie versionnée AlcheMix-II-v0.2.0-windows-x64.exe (7 268 352 octets, non nul)" },
+        { "ts": "2026-11-16T22:35:00.000+01:00", "type": "subtask", "message": "ALC-163-3 cochée : CHANGELOG.md créé (notes v0.2.0 structurées : Beatgrid / DSP Audio / ID3 / Correctifs) + header v0.2.0 dans docs/SPECIFICATIONS.md ; git add -A (115 entrées, target/ ignoré) ; commit chore(release): v0.2.0 (0c82f4e..1312d99) ; tag -a v0.2.0 ; git push origin main + git push origin --tags OK (tag v0.2.0 poussé)" },
+        { "ts": "2026-11-16T22:45:00.000+01:00", "type": "subtask", "message": "ALC-163-4 cochée : GitHub Release v0.2.0 publiée — GH CLI non authentifié (token git sans scope read:org) → publication via l'API GitHub REST (Invoke-RestMethod, headers Bearer token de git) ; RELEASE_ID=447642931 ; HTML https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.2.0 ; asset AlcheMix-II-v0.2.0-windows-x64.exe (7 268 352 octets) attaché et vérifié (téléchargeable)" },
+        { "ts": "2026-11-16T22:50:00.000+01:00", "type": "column", "message": "ALC-163 BILAN v0.2.0 : release https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.2.0 ; exécutable AlcheMix-II-v0.2.0-windows-x64.exe (7 268 352 octets) + NSIS AlcheMix II_0.2.0_x64-setup.exe (2,46 MiB) ; build exit 0 ; cargo test 50/50 ; npm check 0/0 ; tag v0.2.0 + push OK. RÉARMEMENT : ALC-163 repassé en Backlog, subtasks -1..-5 remises à completed:false — prêt pour la prochaine release (règle 5 de .clinerules/02-kanban-et-journaux.md)" }
       ]
     },
     "ALC-155": {
