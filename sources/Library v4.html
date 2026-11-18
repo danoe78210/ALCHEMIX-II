@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr" style="width: 680px; height: 820px; overflow: hidden; position: relative; background-color: rgb(18, 13, 10);"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..900;1,300..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;family=Space+Grotesk:wght@300..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-dim": "#17120f",
+            "surface-variant": "#3a3330",
+            "surface-container": "#241e1b",
+            "on-primary-fixed": "#281800",
+            "secondary": "#ffb59d",
+            "on-tertiary-fixed-variant": "#194f47",
+            "on-secondary-fixed": "#390b00",
+            "background": "#17120f",
+            "inverse-primary": "#7b581e",
+            "on-primary-container": "#513500",
+            "inverse-on-surface": "#362f2b",
+            "secondary-fixed-dim": "#ffb59d",
+            "on-secondary-container": "#ffa082",
+            "tertiary": "#9cd1c6",
+            "on-error-container": "#ffdad6",
+            "outline": "#9b8f80",
+            "on-primary": "#442c00",
+            "on-surface": "#ece0da",
+            "secondary-container": "#7d3116",
+            "on-tertiary-fixed": "#00201c",
+            "surface": "#17120f",
+            "surface-container-low": "#201a17",
+            "outline-variant": "#4f4539",
+            "surface-container-highest": "#3a3330",
+            "inverse-surface": "#ece0da",
+            "on-background": "#ece0da",
+            "primary": "#edbf7a",
+            "on-error": "#690005",
+            "surface-container-lowest": "#120d0a",
+            "primary-container": "#c89d5c",
+            "primary-fixed": "#ffddb0",
+            "on-primary-fixed-variant": "#604106",
+            "on-tertiary-container": "#06423a",
+            "surface-tint": "#edbf7a",
+            "secondary-fixed": "#ffdbd0",
+            "surface-bright": "#3f3834",
+            "surface-container-high": "#2f2925",
+            "error": "#ffb4ab",
+            "tertiary-fixed-dim": "#9cd1c6",
+            "on-secondary-fixed-variant": "#7a2f14",
+            "error-container": "#93000a",
+            "tertiary-fixed": "#b8ede2",
+            "primary-fixed-dim": "#edbf7a",
+            "on-tertiary": "#003730",
+            "on-surface-variant": "#d2c4b4",
+            "on-secondary": "#5c1902",
+            "tertiary-container": "#7aaea4"
+          },
+          fontFamily: {
+            "title-md": ["Space Grotesk", "sans-serif"],
+            "label-lg": ["JetBrains Mono", "monospace"],
+            "label-md": ["JetBrains Mono", "monospace"],
+            "label-sm": ["JetBrains Mono", "monospace"],
+            "body-lg": ["Hanken Grotesk", "sans-serif"],
+            "body-md": ["Hanken Grotesk", "sans-serif"],
+            "body-sm": ["Hanken Grotesk", "sans-serif"],
+            "headline-xl": ["Space Grotesk", "sans-serif"],
+            "headline-lg": ["Space Grotesk", "sans-serif"],
+            "headline-md": ["Space Grotesk", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body {
+      width: 680px;
+      height: 820px;
+      max-height: 820px;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+      background-color: #120d0a;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="bg-[#120d0a] text-on-surface flex items-center justify-center p-0 m-0">
+<main class="w-[680px] h-[820px] max-h-[820px] bg-surface flex flex-col relative overflow-hidden select-none border border-[#4f4539]/60 shadow-[0_0_30px_rgba(0,0,0,0.9)]">
+<!-- Micro vis d'angle horlogerie vénitienne -->
+<div class="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-outline-variant/70 shadow-inner flex items-center justify-center z-20">
+<div class="w-1 h-0.5 bg-surface-container-lowest rotate-45"></div>
+</div>
+<div class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-outline-variant/70 shadow-inner flex items-center justify-center z-20">
+<div class="w-1 h-0.5 bg-surface-container-lowest -rotate-45"></div>
+</div>
+<div class="absolute bottom-1 left-1 w-1.5 h-1.5 rounded-full bg-outline-variant/70 shadow-inner flex items-center justify-center z-20">
+<div class="w-1 h-0.5 bg-surface-container-lowest -rotate-12"></div>
+</div>
+<div class="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-outline-variant/70 shadow-inner flex items-center justify-center z-20">
+<div class="w-1 h-0.5 bg-surface-container-lowest rotate-75"></div>
+</div>
+<!-- 1. HEADER BAR -->
+<header class="w-full px-3.5 pt-2 pb-1.5 flex items-center justify-between bg-gradient-to-b from-surface-container-high to-surface-container border-b border-[#4f4539]/40 shrink-0">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[19px]">settings</span>
+<span class="font-title-md font-bold tracking-wider text-primary uppercase text-[15px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">Venezia 1889</span>
+<span class="text-outline-variant text-[10px]">•</span>
+<span class="font-label-sm text-[10px] px-1.5 py-0.5 rounded bg-surface-container-highest text-primary-fixed-dim uppercase tracking-widest shadow-inner border border-outline-variant/40">AlcheMix II</span>
+</div>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] border border-primary/50 bg-surface-container-highest/90 hover:bg-surface-container-high hover:border-primary text-primary font-label-sm text-[11px] font-semibold tracking-wider uppercase transition-colors cursor-pointer shadow-sm">
+<span class="material-symbols-outlined text-[15px]">folder_open</span>
+<span>+ IMPORTER DOSSIER</span>
+</button>
+</header>
+<!-- 2. TAB BAR -->
+<nav class="px-3 pt-1.5 pb-1 bg-surface-container-lowest shrink-0">
+<div class="grid grid-cols-3 gap-1 p-0.5 bg-surface-container-lowest rounded border border-outline-variant/30">
+<button class="py-1 px-2 flex items-center justify-center gap-1.5 rounded-[2px] bg-surface-container-low hover:bg-surface-container text-outline hover:text-on-surface-variant transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-[14px] text-outline group-hover:text-primary">album</span>
+<span class="font-label-md text-[11px] tracking-wider uppercase font-semibold">Roue de Camelot</span>
+</button>
+<button class="py-1 px-2 flex items-center justify-center gap-1.5 rounded-[2px] bg-surface-container-low hover:bg-surface-container text-outline hover:text-on-surface-variant transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-[14px] text-outline group-hover:text-primary">graphic_eq</span>
+<span class="font-label-md text-[11px] tracking-wider uppercase font-semibold">Beatgrid</span>
+</button>
+<button class="py-1 px-2 flex items-center justify-center gap-1.5 rounded-[2px] bg-gradient-to-b from-surface-container-highest to-surface-container text-primary font-label-md text-[11px] tracking-wider uppercase font-bold shadow-[0_2px_6px_rgba(0,0,0,0.6)] relative overflow-hidden border border-primary/40">
+<span class="absolute inset-x-0 bottom-0 h-[2px] bg-primary shadow-[0_0_8px_#edbf7a]"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#edbf7a]"></span>
+<span class="material-symbols-outlined text-[14px] text-primary">local_library</span>
+<span class="text-primary">Librairie</span>
+</button>
+</div>
+</nav>
+<!-- 3. QUICK ARCHIVE ROW -->
+<div class="px-3 py-1 grid grid-cols-2 gap-2 bg-surface shrink-0">
+<button class="flex items-center justify-between px-2.5 py-1.5 rounded-[3px] bg-surface-container-low hover:bg-surface-container transition-all group shadow-sm text-left relative overflow-hidden border border-[#10b981]/30">
+<div class="absolute left-0 inset-y-0 w-1 bg-[#10b981] shadow-[0_0_8px_#10b981]"></div>
+<div class="flex items-center gap-1.5 min-w-0">
+<span class="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_6px_#10b981] shrink-0"></span>
+<div class="min-w-0 leading-tight">
+<div class="font-label-sm text-[10px] text-[#10b981] font-bold tracking-wider">+ ARCHIVER PLATINE A</div>
+<div class="font-body-sm text-[12px] text-on-surface truncate">Take On Me <span class="font-label-sm text-[10px] text-outline-variant font-bold">(2A • 85.2)</span></div>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-[#10b981] text-[17px] shrink-0">archive</span>
+</button>
+<button class="flex items-center justify-between px-2.5 py-1.5 rounded-[3px] bg-surface-container-low hover:bg-surface-container transition-all group shadow-sm text-left relative overflow-hidden border border-[#3b82f6]/30">
+<div class="absolute left-0 inset-y-0 w-1 bg-[#3b82f6] shadow-[0_0_8px_#3b82f6]"></div>
+<div class="flex items-center gap-1.5 min-w-0">
+<span class="w-2 h-2 rounded-full bg-[#3b82f6] shadow-[0_0_6px_#3b82f6] shrink-0"></span>
+<div class="min-w-0 leading-tight">
+<div class="font-label-sm text-[10px] text-[#3b82f6] font-bold tracking-wider">+ ARCHIVER PLATINE B</div>
+<div class="font-body-sm text-[12px] text-on-surface truncate">Spaceman <span class="font-label-sm text-[10px] text-outline-variant font-bold">(4B • 150.0)</span></div>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-[#3b82f6] text-[17px] shrink-0">archive</span>
+</button>
+</div>
+<!-- 4. SEARCH & FILTER BAR -->
+<div class="px-3 pt-1 pb-1.5 flex flex-col gap-1.5 bg-surface shrink-0">
+<div class="flex items-center gap-2 px-2.5 py-1 rounded-[3px] bg-surface-container-lowest shadow-[inset_0_2px_5px_rgba(0,0,0,0.85)] border border-outline-variant/35">
+<span class="material-symbols-outlined text-primary text-[17px]">search</span>
+<input class="bg-transparent border-0 outline-none text-on-surface font-body-sm text-[12px] flex-1 placeholder:text-outline/60 focus:ring-0 p-0" placeholder="Rechercher un titre, artiste, genre..." type="text"/>
+<span class="font-label-sm text-[9px] text-outline bg-surface-container px-1.5 py-0.5 rounded tracking-widest uppercase border border-outline-variant/30">42 TITRES ARCHIVÉS</span>
+</div>
+<div class="flex items-center gap-1.5">
+<button class="px-2 py-0.5 rounded-[2px] bg-surface-container-low text-outline hover:text-on-surface font-label-sm text-[10px] tracking-wider uppercase transition-colors">
+        TOUS (42)
+      </button>
+<button class="px-2 py-0.5 rounded-[2px] bg-gradient-to-r from-surface-container to-surface-container-high text-[#10b981] font-label-sm text-[10px] tracking-wider uppercase flex items-center gap-1 shadow-[inset_0_1px_3px_rgba(16,185,129,0.3)] border border-[#10b981]/40">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_5px_#10b981]"></span>
+<span>COMPATIBLE A (2A)</span>
+<span class="bg-[#10b981]/20 text-[#10b981] px-1 rounded text-[9px] font-bold">7</span>
+</button>
+<button class="px-2 py-0.5 rounded-[2px] bg-surface-container-low text-outline hover:text-[#3b82f6] font-label-sm text-[10px] tracking-wider uppercase flex items-center gap-1 transition-colors">
+<span class="w-1.5 h-1.5 rounded-full bg-[#3b82f6]/40"></span>
+<span>COMPATIBLE B (4B)</span>
+<span class="text-outline-variant text-[9px] font-bold">11</span>
+</button>
+<button class="px-2 py-0.5 rounded-[2px] bg-surface-container-low hover:bg-surface-container text-primary font-label-sm text-[10px] tracking-wider uppercase flex items-center gap-1 border border-primary/40 transition-colors shadow-sm">
+<span>★ DUOS</span>
+<span class="bg-primary/20 text-primary px-1 rounded text-[9px] font-bold">5</span>
+</button>
+<div class="ml-auto flex items-center gap-1 text-outline font-label-sm text-[10px] cursor-pointer hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[14px] text-primary">swap_vert</span>
+<span>TRI : AFFINITÉ ▼</span>
+</div>
+</div>
+</div>
+<!-- 5. PEDAGOGICAL GUIDE BANNER -->
+<div class="px-3 pb-1.5 shrink-0">
+<div class="h-6 bg-[#201a17]/85 border border-[#4f4539]/30 rounded-[3px] px-2.5 flex items-center gap-2 shadow-inner">
+<span class="material-symbols-outlined text-primary text-[14px] shrink-0">info</span>
+<span class="font-body-sm text-[10px] text-[#9b8f80] truncate leading-none">
+        ASTUCE MIX : Cliquez sur ▶ pour pré-écouter au casque, puis sur A ou B pour charger le morceau compatible sur une platine.
+      </span>
+</div>
+</div>
+<!-- 6. MAIN TRACK TABLE -->
+<div class="px-3 flex-1 flex flex-col min-h-0 bg-surface">
+<div class="flex flex-col h-full rounded-[3px] bg-surface-container-lowest shadow-[inset_0_2px_8px_rgba(0,0,0,0.85)] border border-[#4f4539]/40 overflow-hidden">
+<!-- Table Header -->
+<div class="grid px-2.5 py-1.5 bg-surface-container-high text-outline font-label-sm text-[10px] tracking-widest uppercase border-b border-[#4f4539]/40 shrink-0" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
+<div class="flex items-center gap-0.5 text-primary font-bold">
+<span>AFFINITÉ</span>
+<span class="text-[9px]">▼</span>
+</div>
+<div>TITRE &amp; ARTISTE</div>
+<div class="text-center">GENRE</div>
+<div class="text-center">CLÉ</div>
+<div class="text-right">TEMPO</div>
+<div class="text-center">ACTIONS</div>
+</div>
+<!-- Table Body (7 Rows) -->
+<div class="flex-1 flex flex-col justify-between overflow-hidden text-body-sm">
+<!-- Row 1: Selected / Duo Parfait -->
+<div class="grid px-2.5 py-1 bg-surface-container-low/90 relative group hover:bg-surface-container transition-colors border-l-2 border-primary" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
+<div class="flex flex-col justify-center">
+<div class="flex items-center gap-1 font-label-sm text-[11px] font-bold text-[#10b981]">
+<span>98%</span>
+<span class="text-primary text-[9px]">★ DUO</span>
+</div>
+<div class="w-16 h-1 bg-surface-container-lowest rounded-full overflow-hidden mt-0.5">
+<div class="h-full bg-gradient-to-r from-[#10b981] to-primary w-[98%] shadow-[0_0_6px_#edbf7a]"></div>
+</div>
+<span class="text-[8px] font-label-sm font-bold text-[#10b981] tracking-wider mt-0.5">MÊME CLÉ</span>
+</div>
+<div class="min-w-0 pr-1">
+<div class="font-medium text-[13px] text-[#ece0da] truncate group-hover:text-primary transition-colors">Sweet Dreams (Are Made of This)</div>
+<div class="text-[11px] text-[#9b8f80] truncate font-body-sm">Eurythmics</div>
+</div>
+<div class="flex justify-center">
+<span class="text-[9px] border border-[#4f4539]/60 bg-[#120d0a] rounded px-1.5 py-0.5 text-primary-fixed-dim font-label-sm tracking-wider uppercase">SYNTHPOP</span>
+</div>
+<div class="flex justify-center">
+<span class="font-label-sm text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#10b981]/20 text-[#10b981] shadow-[0_0_4px_rgba(16,185,129,0.3)]">2A</span>
+</div>
+<div class="text-right font-label-sm text-[11px]">
+<span class="text-primary font-bold">86.0</span> <span class="text-outline text-[9px]">BPM</span>
+<div class="text-[9px] text-[#10b981] font-semibold leading-none">+0.9%</div>
+</div>
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-6 h-6 rounded-full border border-primary/50 text-primary hover:bg-primary/20 flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Pré-écoute">
+<span class="text-[11px] leading-none">▶</span>
+</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#06423a] border border-[#10b981]/50 text-[#10b981] font-bold text-[11px] font-label-sm hover:bg-[#10b981] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Charger Platine A">A</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#194f47]/50 border border-[#3b82f6]/50 text-[#3b82f6] font-bold text-[11px] font-label-sm hover:bg-[#3b82f6] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Charger Platine B">B</button>
+<div class="border-l border-[#4f4539]/50 pl-1.5 ml-0.5 flex items-center">
+<button class="text-[#9b8f80] hover:text-red-400 font-bold text-[13px] leading-none transition-colors cursor-pointer" title="Retirer">×</button>
+</div>
+</div>
+</div>
+<!-- Row 2: In Preview -->
+<div class="grid px-2.5 py-1 bg-surface-container-lowest relative group hover:bg-surface-container transition-colors" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
+<div class="flex flex-col justify-center">
+<div class="flex items-center gap-1 font-label-sm text-[11px] font-bold text-[#10b981]">
+<span>95%</span>
+</div>
+<div class="w-16 h-1 bg-surface-container rounded-full overflow-hidden mt-0.5">
+<div class="h-full bg-[#10b981] w-[95%]"></div>
+</div>
+<span class="text-[8px] font-label-sm font-bold text-[#10b981] tracking-wider mt-0.5">MÊME CLÉ</span>
+</div>
+<div class="min-w-0 pr-1">
+<div class="font-medium text-[13px] text-[#ece0da] truncate group-hover:text-primary transition-colors flex items-center gap-1.5">
+<span>Blue Monday</span>
+<span class="text-[8px] font-label-sm font-bold text-primary tracking-widest uppercase px-1 py-0.2 rounded bg-primary/10 border border-primary/30">ÉCOUTE EN COURS</span>
+</div>
+<div class="text-[11px] text-[#9b8f80] truncate font-body-sm">New Order</div>
+</div>
+<div class="flex justify-center">
+<span class="text-[9px] border border-[#4f4539]/60 bg-[#120d0a] rounded px-1.5 py-0.5 text-outline font-label-sm tracking-wider uppercase">ELECTRO</span>
+</div>
+<div class="flex justify-center">
+<span class="font-label-sm text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#10b981]/20 text-[#10b981]">2A</span>
+</div>
+<div class="text-right font-label-sm text-[11px]">
+<span class="text-on-surface font-bold">86.5</span> <span class="text-outline text-[9px]">BPM</span>
+<div class="text-[9px] text-[#10b981] font-semibold leading-none">+1.5%</div>
+</div>
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-6 h-6 rounded-full border border-primary bg-primary/20 text-primary shadow-[0_0_8px_#edbf7a] flex items-center justify-center transition-colors cursor-pointer shrink-0 animate-pulse" title="En cours de pré-écoute">
+<span class="text-[10px] font-bold leading-none">❚❚</span>
+</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#06423a] border border-[#10b981]/50 text-[#10b981] font-bold text-[11px] font-label-sm hover:bg-[#10b981] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">A</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#194f47]/50 border border-[#3b82f6]/50 text-[#3b82f6] font-bold text-[11px] font-label-sm hover:bg-[#3b82f6] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">B</button>
+<div class="border-l border-[#4f4539]/50 pl-1.5 ml-0.5 flex items-center">
+<button class="text-[#9b8f80] hover:text-red-400 font-bold text-[13px] leading-none transition-colors cursor-pointer">×</button>
+</div>
+</div>
+</div>
+<!-- Row 3: Relatif Maj -->
+<div class="grid px-2.5 py-1 bg-surface-container-low/70 relative group hover:bg-surface-container transition-colors" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
+<div class="flex flex-col justify-center">
+<div class="flex items-center gap-1 font-label-sm text-[11px] font-bold text-primary">
+<span>91%</span>
+</div>
+<div class="w-16 h-1 bg-surface-container rounded-full overflow-hidden mt-0.5">
+<div class="h-full bg-primary w-[91%]"></div>
+</div>
+<span class="text-[8px] font-label-sm font-bold text-[#edbf7a] tracking-wider mt-0.5">RELATIF MAJ</span>
+</div>
+<div class="min-w-0 pr-1">
+<div class="font-medium text-[13px] text-[#ece0da] truncate group-hover:text-primary transition-colors">Tainted Love</div>
+<div class="text-[11px] text-[#9b8f80] truncate font-body-sm">Soft Cell</div>
+</div>
+<div class="flex justify-center">
+<span class="text-[9px] border border-[#4f4539]/60 bg-[#120d0a] rounded px-1.5 py-0.5 text-outline font-label-sm tracking-wider uppercase">NEW WAVE</span>
+</div>
+<div class="flex justify-center">
+<span class="font-label-sm text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-container-high text-[#edbf7a] border border-[#edbf7a]/30">2B</span>
+</div>
+<div class="text-right font-label-sm text-[11px]">
+<span class="text-on-surface font-bold">84.5</span> <span class="text-outline text-[9px]">BPM</span>
+<div class="text-[9px] text-[#9b8f80] font-semibold leading-none">-0.8%</div>
+</div>
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-6 h-6 rounded-full border border-outline-variant text-[#edbf7a] hover:bg-[#edbf7a]/20 flex items-center justify-center transition-colors cursor-pointer shrink-0">
+<span class="text-[11px] leading-none">▶</span>
+</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#06423a] border border-[#10b981]/50 text-[#10b981] font-bold text-[11px] font-label-sm hover:bg-[#10b981] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">A</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#194f47]/50 border border-[#3b82f6]/50 text-[#3b82f6] font-bold text-[11px] font-label-sm hover:bg-[#3b82f6] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">B</button>
+<div class="border-l border-[#4f4539]/50 pl-1.5 ml-0.5 flex items-center">
+<button class="text-[#9b8f80] hover:text-red-400 font-bold text-[13px] leading-none transition-colors cursor-pointer">×</button>
+</div>
+</div>
+</div>
+<!-- Row 4: Sur Deck B -->
+<div class="grid px-2.5 py-1 bg-surface-container-lowest relative group hover:bg-surface-container transition-colors" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
+<div class="flex flex-col justify-center">
+<div class="flex items-center gap-1 font-label-sm text-[11px] font-bold text-[#c89d5c]">
+<span>88%</span>
+</div>
+<div class="w-16 h-1 bg-surface-container rounded-full overflow-hidden mt-0.5">
+<div class="h-full bg-[#c89d5c] w-[88%]"></div>
+</div>
+<span class="text-[8px] font-label-sm font-bold text-[#c89d5c] tracking-wider mt-0.5">SAUT ÉNERGIE</span>
+</div>
+<div class="min-w-0 pr-1">
+<div class="font-medium text-[13px] text-[#ece0da] truncate group-hover:text-primary transition-colors flex items-center gap-1.5">
+<span>Nightcall</span>
+<span class="text-[8px] font-label-sm font-bold text-[#3b82f6] tracking-widest uppercase px-1 py-0.2 rounded bg-[#3b82f6]/20 border border-[#3b82f6]/40">SUR PLATINE B</span>
+</div>
+<div class="text-[11px] text-[#9b8f80] truncate font-body-sm">Kavinsky</div>
+</div>
+<div class="flex justify-center">
+<span class="text-[9px] border border-[#4f4539]/60 bg-[#120d0a] rounded px-1.5 py-0.5 text-outline font-label-sm tracking-wider uppercase">SYNTHWAVE</span>
+</div>
+<div class="flex justify-center">
+<span class="font-label-sm text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-container-high text-[#c89d5c] border border-[#c89d5c]/40">9A</span>
+</div>
+<div class="text-right font-label-sm text-[11px]">
+<span class="text-on-surface font-bold">84.0</span> <span class="text-outline text-[9px]">BPM</span>
+<div class="text-[9px] text-[#9b8f80] font-semibold leading-none">-1.4%</div>
+</div>
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-6 h-6 rounded-full border border-outline-variant text-[#edbf7a] hover:bg-[#edbf7a]/20 flex items-center justify-center transition-colors cursor-pointer shrink-0">
+<span class="text-[11px] leading-none">▶</span>
+</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#06423a] border border-[#10b981]/50 text-[#10b981] font-bold text-[11px] font-label-sm hover:bg-[#10b981] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">A</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#3b82f6] text-black font-bold text-[11px] font-label-sm shadow-[0_0_8px_#3b82f6] flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Assigné Platine B">B</button>
+<div class="border-l border-[#4f4539]/50 pl-1.5 ml-0.5 flex items-center">
+<button class="text-[#9b8f80] hover:text-red-400 font-bold text-[13px] leading-none transition-colors cursor-pointer">×</button>
+</div>
+</div>
+</div>
+<!-- Row 5: +1 Quinte -->
+<div class="grid px-2.5 py-1 bg-surface-container-low/70 relative group hover:bg-surface-container transition-colors" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
+<div class="flex flex-col justify-center">
+<div class="flex items-center gap-1 font-label-sm text-[11px] font-bold text-[#edbf7a]">
+<span>86%</span>
+</div>
+<div class="w-16 h-1 bg-surface-container rounded-full overflow-hidden mt-0.5">
+<div class="h-full bg-primary w-[86%]"></div>
+</div>
+<span class="text-[8px] font-label-sm font-bold text-[#edbf7a] tracking-wider mt-0.5">+1 QUINTE</span>
+</div>
+<div class="min-w-0 pr-1">
+<div class="font-medium text-[13px] text-[#ece0da] truncate group-hover:text-primary transition-colors">Around The World</div>
+<div class="text-[11px] text-[#9b8f80] truncate font-body-sm">Daft Punk</div>
+</div>
+<div class="flex justify-center">
+<span class="text-[9px] border border-[#4f4539]/60 bg-[#120d0a] rounded px-1.5 py-0.5 text-outline font-label-sm tracking-wider uppercase">HOUSE</span>
+</div>
+<div class="flex justify-center">
+<span class="font-label-sm text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-container-high text-[#edbf7a] border border-[#edbf7a]/30">3A</span>
+</div>
+<div class="text-right font-label-sm text-[11px]">
+<span class="text-on-surface font-bold">86.0</span> <span class="text-outline text-[9px]">BPM</span>
+<div class="text-[9px] text-[#10b981] font-semibold leading-none">+0.9%</div>
+</div>
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-6 h-6 rounded-full border border-outline-variant text-[#edbf7a] hover:bg-[#edbf7a]/20 flex items-center justify-center transition-colors cursor-pointer shrink-0">
+<span class="text-[11px] leading-none">▶</span>
+</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#06423a] border border-[#10b981]/50 text-[#10b981] font-bold text-[11px] font-label-sm hover:bg-[#10b981] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">A</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#194f47]/50 border border-[#3b82f6]/50 text-[#3b82f6] font-bold text-[11px] font-label-sm hover:bg-[#3b82f6] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">B</button>
+<div class="border-l border-[#4f4539]/50 pl-1.5 ml-0.5 flex items-center">
+<button class="text-[#9b8f80] hover:text-red-400 font-bold text-[13px] leading-none transition-colors cursor-pointer">×</button>
+</div>
+</div>
+</div>
+<!-- Row 6: -1 Quinte -->
+<div class="grid px-2.5 py-1 bg-surface-container-lowest relative group hover:bg-surface-container transition-colors" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
+<div class="flex flex-col justify-center">
+<div class="flex items-center gap-1 font-label-sm text-[11px] font-bold text-[#edbf7a]">
+<span>83%</span>
+</div>
+<div class="w-16 h-1 bg-surface-container rounded-full overflow-hidden mt-0.5">
+<div class="h-full bg-primary/80 w-[83%]"></div>
+</div>
+<span class="text-[8px] font-label-sm font-bold text-[#edbf7a] tracking-wider mt-0.5">-1 QUINTE</span>
+</div>
+<div class="min-w-0 pr-1">
+<div class="font-medium text-[13px] text-[#ece0da] truncate group-hover:text-primary transition-colors">Superstition</div>
+<div class="text-[11px] text-[#9b8f80] truncate font-body-sm">Stevie Wonder</div>
+</div>
+<div class="flex justify-center">
+<span class="text-[9px] border border-[#4f4539]/60 bg-[#120d0a] rounded px-1.5 py-0.5 text-outline font-label-sm tracking-wider uppercase">FUNK</span>
+</div>
+<div class="flex justify-center">
+<span class="font-label-sm text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-container-high text-[#edbf7a] border border-[#edbf7a]/30">1A</span>
+</div>
+<div class="text-right font-label-sm text-[11px]">
+<span class="text-on-surface font-bold">85.0</span> <span class="text-outline text-[9px]">BPM</span>
+<div class="text-[9px] text-[#9b8f80] font-semibold leading-none">-0.2%</div>
+</div>
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-6 h-6 rounded-full border border-outline-variant text-[#edbf7a] hover:bg-[#edbf7a]/20 flex items-center justify-center transition-colors cursor-pointer shrink-0">
+<span class="text-[11px] leading-none">▶</span>
+</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#06423a] border border-[#10b981]/50 text-[#10b981] font-bold text-[11px] font-label-sm hover:bg-[#10b981] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">A</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#194f47]/50 border border-[#3b82f6]/50 text-[#3b82f6] font-bold text-[11px] font-label-sm hover:bg-[#3b82f6] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">B</button>
+<div class="border-l border-[#4f4539]/50 pl-1.5 ml-0.5 flex items-center">
+<button class="text-[#9b8f80] hover:text-red-400 font-bold text-[13px] leading-none transition-colors cursor-pointer">×</button>
+</div>
+</div>
+</div>
+<!-- Row 7: Harmonique ×1.5 -->
+<div class="grid px-2.5 py-1 bg-surface-container-low/70 relative group hover:bg-surface-container transition-colors" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
+<div class="flex flex-col justify-center">
+<div class="flex items-center gap-1 font-label-sm text-[11px] font-bold text-outline">
+<span>79%</span>
+</div>
+<div class="w-16 h-1 bg-surface-container rounded-full overflow-hidden mt-0.5">
+<div class="h-full bg-outline-variant w-[79%]"></div>
+</div>
+<span class="text-[8px] font-label-sm font-bold text-[#10b981] tracking-wider mt-0.5">MÊME CLÉ • ×1.5</span>
+</div>
+<div class="min-w-0 pr-1">
+<div class="font-medium text-[13px] text-[#ece0da] truncate group-hover:text-primary transition-colors">Insomnia</div>
+<div class="text-[11px] text-[#9b8f80] truncate font-body-sm">Faithless</div>
+</div>
+<div class="flex justify-center">
+<span class="text-[9px] border border-[#4f4539]/60 bg-[#120d0a] rounded px-1.5 py-0.5 text-outline font-label-sm tracking-wider uppercase">TRANCE</span>
+</div>
+<div class="flex justify-center">
+<span class="font-label-sm text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#10b981]/20 text-[#10b981]">2A</span>
+</div>
+<div class="text-right font-label-sm text-[11px]">
+<span class="text-on-surface font-bold">127.0</span> <span class="text-outline text-[9px]">BPM</span>
+<div class="text-[9px] text-[#10b981] font-semibold leading-none">×1.5 (+0.5%)</div>
+</div>
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-6 h-6 rounded-full border border-outline-variant text-[#edbf7a] hover:bg-[#edbf7a]/20 flex items-center justify-center transition-colors cursor-pointer shrink-0">
+<span class="text-[11px] leading-none">▶</span>
+</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#06423a] border border-[#10b981]/50 text-[#10b981] font-bold text-[11px] font-label-sm hover:bg-[#10b981] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">A</button>
+<button class="w-6 h-6 rounded-[2px] bg-[#194f47]/50 border border-[#3b82f6]/50 text-[#3b82f6] font-bold text-[11px] font-label-sm hover:bg-[#3b82f6] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0">B</button>
+<div class="border-l border-[#4f4539]/50 pl-1.5 ml-0.5 flex items-center">
+<button class="text-[#9b8f80] hover:text-red-400 font-bold text-[13px] leading-none transition-colors cursor-pointer">×</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 7. SUGGESTION MASHUP DE L'ORACLE -->
+<div class="px-3 py-1.5 bg-surface shrink-0">
+<div class="p-2.5 rounded-[3px] bg-gradient-to-r from-surface-container-high via-surface-container to-surface-container-high shadow-[0_2px_8px_rgba(0,0,0,0.7)] relative overflow-hidden flex items-center justify-between border border-primary/40">
+<div class="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-primary/20 via-primary to-primary/20"></div>
+<div class="flex items-center gap-2.5 min-w-0 pr-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center text-primary shadow-inner shrink-0 relative border border-[#4f4539]/50">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_4px_#10b981]"></span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5 font-label-sm text-[10px] tracking-wider uppercase">
+<span class="text-[#edbf7a] font-bold">MEILLEURE ASSOCIATION MASHUP DÉTECTÉE</span>
+<span class="text-outline-variant">•</span>
+<span class="px-1 py-0.2 rounded bg-[#10b981]/20 text-[#10b981] font-bold">98% AFFINITÉ</span>
+</div>
+<div class="font-body-sm text-[11px] text-[#ece0da] truncate mt-0.5">
+            Platine A (Take On Me • 2A) + Sweet Dreams (2A • 86.0 BPM)
+          </div>
+</div>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="px-2.5 py-1.5 rounded-[2px] bg-surface-container-lowest border border-primary/50 text-primary font-label-sm text-[10px] font-bold tracking-wider uppercase shadow-sm hover:bg-primary/10 transition-colors flex items-center gap-1 cursor-pointer">
+<span>★ VALIDER DUO</span>
+</button>
+<button class="px-3 py-1.5 rounded-[2px] bg-gradient-to-b from-primary via-primary-container to-inverse-primary text-on-primary font-label-sm text-[10px] font-bold tracking-wider uppercase shadow-[0_2px_6px_rgba(0,0,0,0.8)] hover:brightness-110 active:translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer">
+<span>ENVOYER SUR B →</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 8. CROSSFADER MASTER HORIZONTAL -->
+<footer class="w-full px-3.5 pb-2.5 pt-1 bg-gradient-to-b from-surface-container-low to-surface-container-lowest flex flex-col gap-1 shadow-[0_-4px_12px_rgba(0,0,0,0.6)] border-t border-[#4f4539]/30 shrink-0">
+<div class="flex items-center justify-between font-label-sm text-[10px] tracking-widest uppercase">
+<div class="flex items-center gap-1 text-[#10b981]">
+<span class="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_6px_#10b981]"></span>
+<span class="font-bold">100% CANAL A</span>
+</div>
+<div class="flex items-center gap-1 text-outline">
+<span class="material-symbols-outlined text-[13px] text-primary">balance</span>
+<span class="font-bold text-on-surface-variant">50 / 50 ÉQUILIBRE</span>
+</div>
+<div class="flex items-center gap-1 text-[#3b82f6]">
+<span class="font-bold">100% CANAL B</span>
+<span class="w-2 h-2 rounded-full bg-[#3b82f6] shadow-[0_0_6px_#3b82f6]"></span>
+</div>
+</div>
+<!-- Rail de fader encastré en bronze et laiton avec repères -->
+<div class="relative w-full h-7 bg-surface-container-lowest rounded-[2px] shadow-[inset_0_3px_8px_rgba(0,0,0,0.95)] flex items-center px-4 overflow-hidden border border-outline-variant/30">
+<!-- Repères gradués -->
+<div class="absolute inset-x-8 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none opacity-40">
+<div class="w-[1px] h-3 bg-outline"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-3 bg-outline"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<!-- Centre -->
+<div class="w-[2px] h-4 bg-primary shadow-[0_0_4px_#edbf7a]"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-3 bg-outline"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-1.5 bg-outline-variant"></div>
+<div class="w-[1px] h-3 bg-outline"></div>
+</div>
+<!-- Fente sombre centrale -->
+<div class="w-full h-1 bg-surface-dim rounded-full shadow-inner"></div>
+<!-- Curseur coulissant central en or brossé (position 50%) -->
+<div class="absolute left-1/2 -translate-x-1/2 w-9 h-5 rounded-[2px] bg-gradient-to-b from-primary via-primary-container to-inverse-primary shadow-[0_3px_6px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.4)] flex items-center justify-center cursor-ew-resize group hover:brightness-110 active:scale-95 transition-transform border border-primary/50">
+<div class="flex items-center gap-0.5">
+<div class="w-[1px] h-3 bg-surface-container-lowest"></div>
+<div class="w-1 h-2.5 rounded-full bg-primary-fixed shadow-[0_0_4px_#edbf7a]"></div>
+<div class="w-[1px] h-3 bg-surface-container-lowest"></div>
+</div>
+</div>
+</div>
+</footer>
+</main>
+</body></html>

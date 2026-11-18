@@ -59,6 +59,14 @@
     /* Carte repliée des tâches « Terminé » : chevron pivoté quand le <details> est ouvert */
     details[open] > summary .doc-chevron { transform: rotate(90deg); }
     details > summary::-webkit-details-marker { display: none; }
+    /* ALC — maîtrise des débordements Kanban (colonnes & longues chaînes) */
+    .board-grid { min-width: 0; }
+    .board-grid > section { min-width: 0; min-height: 0; max-height: calc(100vh - 160px); display: flex; flex-direction: column; }
+    .board-grid .kanban-cards { min-height: 0; overflow-y: auto; flex: 1 1 auto; }
+    .board-grid .subtasks { max-height: 340px; overflow-y: auto; padding-right: 4px; }
+    .board-grid .subtask-title { overflow-wrap: anywhere; word-break: break-word; min-width: 0; }
+    .board-grid article, .board-grid article > div { min-width: 0; }
+    .board-grid article h3 { overflow-wrap: anywhere; word-break: break-word; }
   </style>
 </head>
 <body class="bg-surface text-on-surface font-body text-[14px] leading-5 min-h-screen">
@@ -134,7 +142,7 @@
     </div>
 
     <!-- Kanban -->
-    <div id="board" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start"></div>
+    <div id="board" class="board-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start"></div>
   </div>
 </main>
 
@@ -548,7 +556,7 @@
         (s.completed ? 'opacity-60' : '') + '">' +
         '<input type="checkbox" data-task="' + t.id + '" data-sub="' + s.id + '" id="' + cbId + '"' + (s.completed ? ' checked' : '') +
         ' class="mt-0.5 accent-[#edbf7a] cursor-pointer" />' +
-        '<span class="text-[12px] leading-4 ' + (s.completed ? 'line-through text-outline' : 'text-on-surface-variant') + '">' + escapeHtml(s.title) + '</span>' +
+        '<span class="subtask-title text-[12px] leading-4 ' + (s.completed ? 'line-through text-outline' : 'text-on-surface-variant') + '">' + escapeHtml(s.title) + '</span>' +
         '</label>';
     }).join('');
 
@@ -568,7 +576,7 @@
       '<div class="mt-1">' +
         '<div class="flex items-center justify-between text-[10px] font-mono text-outline mb-1"><span>Micro-tâches</span><span>' + doneCount + '/' + subs.length + ' · ' + progress + '%</span></div>' +
         '<div class="h-1.5 w-full bg-surface-low rounded-full overflow-hidden"><div class="h-full bg-primary rounded-full transition-all duration-300" style="width:' + progress + '%"></div></div>' +
-        '<div class="mt-2 flex flex-col gap-1 border-t border-surface-container-high pt-2">' + subtasksHtml + '</div>' +
+        '<div class="subtasks mt-2 flex flex-col gap-1 border-t border-surface-container-high pt-2">' + subtasksHtml + '</div>' +
       '</div>' +
       '<div class="flex items-center gap-1 mt-1">' +
         '<button data-move data-dir="left" data-id="' + t.id + '"' + (idx > 0 ? '' : ' disabled') +
@@ -584,7 +592,7 @@
           '<div class="flex items-center gap-2 min-w-0">' +
             '<span class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_6px_#9cd1c6] shrink-0"></span>' +
             '<span class="font-mono text-[10px] font-bold tracking-wider text-outline shrink-0">' + escapeHtml(t.id) + '</span>' +
-            '<h3 class="font-display text-[12px] font-bold leading-snug text-on-surface truncate">' + escapeHtml(t.title) + '</h3>' +
+            '<h3 class="font-display text-[12px] font-bold leading-snug text-on-surface">' + escapeHtml(t.title) + '</h3>' +
           '</div>' +
           '<div class="flex items-center gap-2 shrink-0">' +
             '<span class="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-tertiary/10 text-tertiary">Terminé</span>' +
@@ -614,7 +622,7 @@
         '<h2 class="font-display text-[12px] font-bold uppercase tracking-widest ' + titleColor + '">' + col + '</h2>' +
         '<span class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center text-[11px] font-mono text-on-surface-variant">' + items.length + '</span>' +
       '</div>' +
-      '<div class="flex flex-col gap-3 min-h-[120px]">' +
+      '<div class="kanban-cards flex flex-col gap-3 min-h-[120px]">' +
         (items.map(cardHtml).join('') || '<p class="text-[12px] text-outline text-center italic py-4">Aucune tâche</p>') +
       '</div></section>';
   }

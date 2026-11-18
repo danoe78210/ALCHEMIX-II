@@ -1,6 +1,6 @@
 [package]
 name = "alchemix_ii"
-version = "0.2.0"
+version = "0.3.0"
 description = "Console de mixage harmonique DJ propulsée par Tauri 2, Rust ONNX et Svelte 5."
 authors = ["DJ Danoë"]
 edition = "2021"
@@ -27,6 +27,11 @@ rustfft = "6"
 # Extraction des pochettes d'album embarquées (ALC-127)
 lofty = "0.21"
 base64 = "0.22"
+# ALC-165 : catalogue local de la LIBRAIRIE (library_*).
+# `bundled` intègre SQLite dans le binaire Tauri (aucune DLL sqlite3.dll à livrer, aucune
+# dépendance buildtime_bindgen/libclang) : la compilation passe par le crate `cc`, qui
+# s'appuie sur la toolchain C MSVC déjà présente.
+rusqlite = { version = "0.43", features = ["bundled"] }
 # Décommenter pour inférence ONNX Demucs / Spleeter native :
 # ort = { version = "2.0.0-rc.9", features = ["ndarray"] }
 

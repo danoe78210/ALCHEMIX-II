@@ -2,7 +2,10 @@
   import { mixerStore } from '$lib/stores/mixer.svelte';
   import { onMount } from 'svelte';
   import BeatgridView from './BeatgridView.svelte';
+  import LibraryView from './LibraryView.svelte';
 import { searchDeezer, type DeezerTrack } from '$lib/ipc/meta';
+import { libraryIpc, type LibraryTrack } from '$lib/ipc/client';
+import { findLocalBridgeTracks, type LocalBridgeResult } from '$lib/utils/mashupMatcher';
 import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pivotFrom } from '$lib/audio/harmony';
 
   const formattedDelta = $derived(
@@ -142,6 +145,47 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
   let bridgeLoading = $state(false);
   let activePreview = $state<string | null>(null);
   let previewAudio: HTMLAudioElement | null = null;
+  // ALC-170-2 : Pistes Ponts locales depuis la Librairie SQLite locale (library.db).
+  let localTracks = $state<LibraryTrack[]>([]);
+  let localDuos = $state<Set<string>>(new Set());
+  let localLibLoaded = $state(false);
+
+  $effect(() => {
+    if (!bothLoaded || localLibLoaded) return;
+    localLibLoaded = true;
+    libraryIpc.listTracks().then((t) => (localTracks = t)).catch(() => {});
+    libraryIpc
+      .listDuos()
+      .then((d) => {
+        localDuos = new Set(
+          d.map((x) => (x.trackAId < x.trackBId ? `${x.trackAId}|${x.trackBId}` : `${x.trackBId}|${x.trackAId}`))
+        );
+      })
+      .catch(() => {});
+  });
+
+  const localBridges = $derived.by<LocalBridgeResult[]>(() => {
+    if (!bothLoaded || !localTracks.length) return [];
+    return findLocalBridgeTracks(
+      { camelotKey: mixerStore.deckA.camelotKey, bpm: mixerStore.effectiveBpmA, filePath: mixerStore.deckA.filePath, title: mixerStore.deckA.trackTitle, artist: mixerStore.deckA.artist },
+      { camelotKey: mixerStore.deckB.camelotKey, bpm: mixerStore.effectiveBpmB, filePath: mixerStore.deckB.filePath, title: mixerStore.deckB.trackTitle, artist: mixerStore.deckB.artist },
+      localTracks,
+      3,
+      localDuos
+    );
+  });
+
+  function toggleLocalPreview(br: LocalBridgeResult) {
+    // ALC-171 : pré-écoute locale via le pipeline unifié du store (read_audio_file_bytes → Blob URL).
+    void mixerStore.toggleFilePreview(br.track.filePath || '', String(br.track.id ?? ''));
+  }
+
+  async function loadLocalBridge(br: LocalBridgeResult, side: 'A' | 'B') {
+    const fp = br.track.filePath;
+    mixerStore.stopFilePreview();
+    if (!fp) return;
+    await mixerStore.loadTrackFromPath(side, fp);
+  }
 
   $effect(() => {
     const info = pivotInfo;
@@ -185,13 +229,19 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
 
   // ALC-138-2 : Crossfader Master intégré dans la console centrale (sous l'Oracle).
   const clampX = (n: number) => Math.max(0, Math.min(100, n));
-  function setCross(n: number) { mixerStore.crossfader = clampX(n); }
+  function setCross(n: number) {
+    // ALC-169 : toute intervention manuelle sur le crossfader interrompt l'AUTO-MIX.
+    mixerStore.cancelAutoMix();
+    mixerStore.crossfader = clampX(n);
+  }
   function applyCross(e: PointerEvent) {
     const el = e.currentTarget as HTMLElement;
     const r = el.getBoundingClientRect();
     mixerStore.crossfader = clampX(Math.round(((e.clientX - r.left) / r.width) * 100));
   }
   function captureCross(e: PointerEvent) {
+    // ALC-169 : saisie manuelle du crossfader → arrêt immédiat de l'AUTO-MIX.
+    mixerStore.cancelAutoMix();
     const el = e.currentTarget as HTMLElement;
     el.setPointerCapture(e.pointerId);
     applyCross(e);
@@ -351,14 +401,9 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
   </div>
 
   {#if mixerStore.centerView === 'library'}
-  <!-- ALC-140-2 : Panneau ARCHIVES & LIBRAIRIE MUSICALE -->
-  <div class="flex flex-col items-center justify-center gap-space-sm bg-surface-container-lowest rounded-xl p-space-md text-center min-h-[490px]">
-    <span class="material-symbols-outlined text-[42px] text-primary/70">library_music</span>
-    <span class="font-display text-[15px] font-bold uppercase tracking-widest text-primary">ARCHIVES &amp; LIBRAIRIE MUSICALE</span>
-    <span class="font-label-sm text-[10px] text-on-surface-variant max-w-[24rem]">Module d'indexation des caisses et playlists — à venir</span>
-    <div class="w-40 h-1 rounded-full bg-primary/30 overflow-hidden"><div class="h-full w-1/3 bg-primary animate-pulse"></div></div>
-  </div>
-{:else if mixerStore.centerView === 'beatgrid'}
+  <!-- ALC-165-3 : Vue LIBRAIRIE — catalogue SQLite local + moteur de matching MASHUP -->
+  <LibraryView />
+  {:else if mixerStore.centerView === 'beatgrid'}
   <BeatgridView />
   {:else}
 <div class="relative bg-surface-container-lowest rounded-xl p-space-md shadow-[inset_0_4px_20px_rgba(0,0,0,0.95)] flex flex-col items-center justify-center overflow-hidden min-h-[490px]">
@@ -610,6 +655,27 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
         <span class="font-label-sm text-[9px] text-primary uppercase tracking-wider">PONTS HARMONIQUES SUGGÉRÉS (CLÉ PIVOT {pivotInfo.pivotKey})</span>
         <span class="font-mono text-[9px] text-outline uppercase shrink-0">{pivotInfo.targetBpm} BPM</span>
       </div>
+      {#if localBridges.length}
+        <div class="mt-1.5 flex items-center gap-1 text-[8px] font-label-sm font-bold uppercase tracking-widest text-emerald-300/90">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>
+          LIBRAIRIE LOCALE (library.db)
+        </div>
+        <div class="mt-1 flex flex-col gap-1">
+          {#each localBridges as br (br.track.id)}
+            <div class="flex items-center gap-2 bg-surface-container px-2 py-1 rounded border border-primary/30">
+              <button type="button" onclick={() => toggleLocalPreview(br)} class="shrink-0 text-[10px] w-6 h-6 rounded bg-surface-container-high text-primary font-bold hover:bg-primary/20">{mixerStore.isPreviewingFile(br.track.filePath || '') ? '❚❚' : '▶'}</button>
+              <div class="min-w-0 flex-1">
+                <div class="text-[10px] text-on-surface font-semibold truncate">{br.track.title || br.track.filePath}</div>
+                <div class="text-[9px] text-outline truncate">PIVOT {br.pivot} • {br.bpm.toFixed(1)} BPM{br.duoA ? ' • ★A' : ''}{br.duoB ? ' • ★B' : ''}</div>
+              </div>
+              <span class="shrink-0 text-[9px] font-mono text-primary font-bold px-1.5 py-0.5 rounded bg-primary/10 border border-primary/30">{br.score}% PONT</span>
+              <button type="button" onclick={() => loadLocalBridge(br, 'A')} class="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-[#06423a] text-[#10b981] font-bold border border-[#10b981]/50 hover:bg-[#10b981] hover:text-black">→ A</button>
+              <button type="button" onclick={() => loadLocalBridge(br, 'B')} class="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-[#194f47]/50 text-[#3b82f6] font-bold border border-[#3b82f6]/50 hover:bg-[#3b82f6] hover:text-black">→ B</button>
+            </div>
+          {/each}
+        </div>
+        <div class="mt-1 border-t border-surface-variant/40 pt-1 text-[8px] text-outline uppercase font-label-sm tracking-widest">ou suggestions Deezer en repli :</div>
+      {/if}
       {#if bridgeLoading}
         <div class="text-[10px] text-outline italic py-1">Recherche Deezer…</div>
       {:else if bridgeTracks.length}
@@ -662,6 +728,43 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
     >
       <span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#edbf7a] animate-pulse"></span>
     </div>
+  </div>
+  <!-- ALC-169 : AUTO-MIX 8 / 16 mesures — Crossfader assisté & Bass-Swap automatique -->
+  <div class="mt-1.5 flex items-center gap-2 bg-surface-container-lowest rounded-lg border border-surface-variant/40 p-1.5">
+    <span class="font-label-sm text-[9px] font-bold uppercase tracking-widest text-[#edbf7a] shrink-0">AUTO-MIX</span>
+    <div class="flex items-center gap-0.5 shrink-0">
+      <button
+        type="button"
+        onclick={() => mixerStore.setAutoMixBars(8)}
+        class="px-2 py-0.5 rounded text-[9px] font-label-sm font-bold uppercase tracking-wider transition-colors {mixerStore.autoMixBars === 8 ? 'bg-primary/20 text-primary border border-primary/40 shadow-sm' : 'bg-surface-low text-outline hover:text-on-surface-variant border border-surface-container-high'}"
+      >8 MES</button>
+      <button
+        type="button"
+        onclick={() => mixerStore.setAutoMixBars(16)}
+        class="px-2 py-0.5 rounded text-[9px] font-label-sm font-bold uppercase tracking-wider transition-colors {mixerStore.autoMixBars === 16 ? 'bg-primary/20 text-primary border border-primary/40 shadow-sm' : 'bg-surface-low text-outline hover:text-on-surface-variant border border-surface-container-high'}"
+      >16 MES</button>
+    </div>
+    <button
+      type="button"
+      onclick={() => mixerStore.startAutoMix(mixerStore.autoMixBars, mixerStore.crossfader < 50 ? 'A_TO_B' : 'B_TO_A')}
+      disabled={!mixerStore.deckA.filePath || !mixerStore.deckB.filePath}
+      class="flex-1 flex items-center justify-center gap-1 rounded px-2 py-1 text-[9px] font-label-sm font-bold uppercase tracking-wider transition-colors {mixerStore.autoMixActive ? 'bg-primary/25 text-primary border border-primary/60 shadow-[0_0_12px_rgba(237,191,122,0.5)] animate-pulse cursor-default' : 'bg-gradient-to-b from-primary via-primary-container to-inverse-primary text-on-primary hover:brightness-110 shadow-[0_2px_6px_rgba(0,0,0,0.7)]'} disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      <span>{mixerStore.autoMixActive ? '⇄ AUTO-MIX EN COURS' : (mixerStore.crossfader < 50 ? '⇄ AUTO-MIX → B' : '⇄ AUTO-MIX → A')}</span>
+    </button>
+    <button
+      type="button"
+      onclick={() => mixerStore.cancelAutoMix()}
+      disabled={!mixerStore.autoMixActive}
+      class="px-2 py-1 rounded text-[9px] font-label-sm font-bold uppercase tracking-wider border border-[#ffb4ab]/50 text-[#ffb4ab] hover:bg-[#ffb4ab]/10 disabled:opacity-40 disabled:cursor-not-allowed"
+    >STOP</button>
+    <span class="font-label-sm text-[9px] font-mono text-primary tabular-nums w-9 text-right shrink-0">
+      {mixerStore.autoMixActive ? Math.round(mixerStore.autoMixProgress * 100) + '%' : '—'}
+    </span>
+  </div>
+  <!-- Jauge de progression AUTO-MIX en direct -->
+  <div class="h-1 w-full rounded-full overflow-hidden bg-surface-variant mt-1">
+    <div class="h-full bg-[#edbf7a] transition-[width] duration-75" style="width:{mixerStore.autoMixProgress * 100}%"></div>
   </div>
 </div>
   </div>

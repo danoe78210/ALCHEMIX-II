@@ -1,6 +1,6 @@
 {
   "name": "alchemix-ii",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Console de mixage harmonique DJ propulsée par Tauri 2, Rust ONNX et Svelte 5.",
@@ -24,6 +24,7 @@
     "@tailwindcss/postcss": "^4.3.5",
     "@tailwindcss/vite": "^4.0.0",
     "@tauri-apps/cli": "^2.2.0",
+    "@types/node": "^22.10.0",
     "autoprefixer": "^10.6.2",
     "postcss": "^8.5.33",
     "svelte": "^5.16.0",

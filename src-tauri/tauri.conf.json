@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "AlcheMix II",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "identifier": "com.djdanoe.alchemix2",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -40,17 +40,7 @@
     "category": "Music",
     "shortDescription": "Console de mixage harmonique DJ propulsée par Tauri 2, Rust ONNX et Svelte 5.",
     "windows": {
-      "digestAlgorithm": "Sha256",
-      "timestampUrl": "http://timestamp.digicert.com",
-      "signCommand": {
-        "cmd": "powershell",
-        "args": [
-          "-NoProfile",
-          "-Command",
-          "if ($env:TAURI_SIGN_PFX -and (Test-Path $env:TAURI_SIGN_PFX)) { & \"$env:TAURI_SIGNTOOL\" sign /f $env:TAURI_SIGN_PFX /p $env:TAURI_SIGN_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $args[0] } else { Write-Host '[sign] aucune TAURI_SIGN_PFX — signature ignorée' }",
-          "%1"
-        ]
-      }
+      "digestAlgorithm": "Sha256"
     }
   }
 }

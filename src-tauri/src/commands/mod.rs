@@ -34,7 +34,7 @@ pub struct TrackData {
 }
 
 /// Extrait la pochette d'album embarquée (CoverFront) en Data-URL base64 (ALC-127).
-fn extract_cover(path: &Path) -> Option<String> {
+pub(crate) fn extract_cover(path: &Path) -> Option<String> {
     use base64::Engine;
     use lofty::picture::PictureType;
     use lofty::prelude::*;
@@ -58,19 +58,19 @@ fn extract_cover(path: &Path) -> Option<String> {
 
 /// ALC-157 : métadonnées textuelles extraites des tags (ID3v2.3/v2.4, Vorbis, MP4, FLAC, WAV…).
 /// Aucune valeur de test : chaque champ vaut `None` quand le tag est réellement absent.
-struct TrackTags {
-    title: Option<String>,
-    artist: Option<String>,
-    album: Option<String>,
-    genre: Option<String>,
-    year: Option<String>,
-    tag_bpm: Option<f64>,
-    tag_key: Option<String>,
+pub(crate) struct TrackTags {
+    pub(crate) title: Option<String>,
+    pub(crate) artist: Option<String>,
+    pub(crate) album: Option<String>,
+    pub(crate) genre: Option<String>,
+    pub(crate) year: Option<String>,
+    pub(crate) tag_bpm: Option<f64>,
+    pub(crate) tag_key: Option<String>,
 }
 
 /// Extrait les tags via lofty (Accessor) sur tous les formats supportés.
 /// Le genre est converti : index numériques ID3v1 (17 = « Rock »…) → libellé texte.
-fn read_tags(path: &Path) -> TrackTags {
+pub(crate) fn read_tags(path: &Path) -> TrackTags {
     use lofty::tag::ItemKey;
     use lofty::prelude::*;
 
@@ -145,7 +145,7 @@ fn id3v1_genre_label(index: u8) -> Option<&'static str> {
 
 /// Normalise une clé taguée (ex. « 11B », « C#m », « Bb Major », « 4a ») en Camelot 1A–12B.
 /// Retourne une chaîne vide si non reconnue (la valeur DSP reste utilisée).
-fn normalize_camelot_key(raw: &str) -> String {
+pub(crate) fn normalize_camelot_key(raw: &str) -> String {
     let raw = raw.trim();
     if raw.is_empty() {
         return String::new();

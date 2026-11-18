@@ -12,8 +12,8 @@
       "En revue",
       "Terminé"
     ],
-    "version": "1.13.0",
-    "updatedAt": "2026-11-16T23:05:00.000+01:00"
+    "version": "1.49.0",
+    "updatedAt": "2026-11-18T01:20:00.000+01:00"
   },
   "tasks": [
     {
@@ -2111,7 +2111,7 @@
       "id": "ALC-163",
       "title": "Release GitHub & exécutable Windows autonome (récurrent)",
       "recurrent": true,
-      "status": "Backlog",
+      "status": "En cours",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Release / Publication",
@@ -2119,12 +2119,12 @@
         {
           "id": "ALC-163-1",
           "title": "Pré-contrôle qualité & synchronisation de version : git status, npm run check, cargo test --lib (0 erreur / 100 % verts) ; dernier tag + git log pour la nouvelle SemVer ; version alignée dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml et docs/SPECIFICATIONS.md",
-          "completed": false
+          "completed": true
         },
         {
           "id": "ALC-163-2",
           "title": "Compilation de l'exécutable Windows 100 % autonome : vérif bundle (nsis/portable) dans tauri.conf.json ; npm run tauri build (profil release) ; contrôle taille non nulle + copie versionnée (ex. AlcheMix-II-<version>-windows-x64.exe)",
-          "completed": false
+          "completed": true
         },
         {
           "id": "ALC-163-3",
@@ -2144,7 +2144,7 @@
         {
           "id": "ALC-163-6",
           "title": "Signature numérique Authenticode (signtool / Azure Trusted Signing / SignPath.io) et vérification : détecter signtool.exe + certificat (env vars WINDOWS_CERTIFICATE/AZURE_TENANT_ID ou .pfx) ; si absent → cert local New-SelfSignedCertificate -Type CodeSigningCert CN=AlcheMix II + hook bundle.windows.signCommand (TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD) + signer AlcheMix-II-<version>-windows-x64.exe avec /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 + installer public dans Cert:\\CurrentUser\\Root ; vérifier signtool verify /pa /v et remplacer l'exécutable de la release GitHub",
-          "completed": false
+          "completed": true
         },
         {
           "id": "ALC-163-7",
@@ -2154,6 +2154,221 @@
       ],
       "description": "Ticket RÉCURRENT de publication GitHub + release Windows autonome. Marked \"recurrent\": true → après chaque exécution réussie, ALC-163 revient en Backlog avec ses subtasks réarmées à \"completed\": false (voir règle 5 de 02-kanban-et-journaux.md), prêt pour la prochaine release.",
       "createdAt": "2026-11-16T21:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-165",
+      "title": "Implémentation de l'onglet LIBRAIRIE — Catalogue SQLite local, Algorithme de Matching Mashup & Vue Venezia 1889",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Backend / UI",
+      "subtasks": [
+        {
+          "id": "ALC-165-1",
+          "title": "Base de données SQLite locale côté Rust : rusqlite (feature bundled) dans Cargo.toml, fichier library.db dans app_data_dir(), tables tracks (id, file_path UNIQUE, title, artist, genre, camelot_key, bpm, duration_sec, added_at) et validated_duos (id, track_a_id, track_b_id, note, created_at) + commandes IPC library_list_tracks, library_upsert_track, library_import_folder (scan récursif mp3/flac/wav/m4a/ogg via lofty + analyse MIR), library_delete_track, library_toggle_duo enregistrées dans lib.rs",
+          "completed": true
+        },
+        {
+          "id": "ALC-165-2",
+          "title": "Algorithme de scoring & matching Mashup dans src/lib/utils/mashupMatcher.ts : harmonique 50 % (MÊME CLÉ, RELATIF MAJ/MIN, ±1 QUINTE, SAUT ÉNERGIE) + rythmique 35 % (écart BPM ≤ ±6 % ou rapport ×2/÷2/×1.5 avec pourcentage exact) + bonus créatif & duos validés 15 % (genres différents, badge ★ DUO prioritaire), meilleure suggestion pour l'Oracle, tests node --test",
+          "completed": true
+        },
+        {
+          "id": "ALC-165-3",
+          "title": "Intégration fidèle de LibraryView.svelte depuis sources/Library v4.html (Venezia 1889, grille 84px 1fr 72px 42px 76px 110px, tabular-nums whitespace-nowrap) inséré dans MixerCenter.svelte entre la barre des 3 onglets et le Crossfader Master : + IMPORTER DOSSIER (dialog open directory), + ARCHIVER PLATINE A/B, recherche instantanée, filtres TOUS/COMPATIBLE A/COMPATIBLE B/★ DUOS, tri AFFINITÉ/CLÉ/TEMPO, ASTUCE MIX, pré-écoute ▶/❚❚ sécurisée via convertFileSrc avec arrêt au démontage et au chargement platine, chargement A/B + badge SUR PLATINE A/B, retrait ×, cartouche Suggestion Mashup de l'Oracle (★ VALIDER DUO, ENVOYER SUR A/B), défilement interne overflow-y-auto, h-screen overflow-hidden préservé",
+          "completed": true
+        },
+        {
+          "id": "ALC-165-4",
+          "title": "Validation & documentation : cargo check + cargo test --lib + node --test + npm run check (0 erreur / 0 warning) ; docs/SPECIFICATIONS.md §2.4 + tableau IPC §3.3 + historique ALC-165 à jour ; journals.json horodaté Europe/Paris ; aucun ticket Terminé modifié ; En revue",
+          "completed": true
+        }
+      ],
+      "description": "Onglet LIBRAIRIE : catalogue local persistant (SQLite via rusqlite bundled, base library.db dans app_data_dir()) de toutes les pistes archivées depuis les Platines A/B, import récursif de dossiers (mp3/flac/wav/m4a/ogg) réutilisant lofty + le moteur d'analyse MIR (BPM, clé Camelot), mémoires de duos validés (★ DUO). Moteur de matching mashup pédagogique (harmonique 50 % avec micro-labels MÊME CLÉ / RELATIF MAJ-MIN / ±1 QUINTE / SAUT ÉNERGIE, rythmique 35 % avec rapports de tempo ×2, ÷2, ×1.5 et pourcentages exacts, bonus créatif 15 %), suggestion de l'Oracle, et vue fidèle à la maquette validée sources/Library v4.html (19/20) insérée dans la console centrale entre les onglets et le Crossfader Master sans duplication de l'en-tête ni du crossfader.",
+      "createdAt": "2026-11-17T08:05:00.000+01:00"
+    },
+    {
+      "id": "ALC-166",
+      "title": "Polissage & enrichissements de l'onglet LIBRAIRIE (LibraryView.svelte & library.rs) — Duo Oracle à platines vides, mini-spectre & volume casque, code couleur Camelot + pochettes miniatures, édition rapide des métadonnées & export Setlist",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Backend / UI",
+      "completedAt": null,
+      "subtasks": [
+        {
+          "id": "ALC-166-1",
+          "title": "Chargement simultané du Duo Oracle & cohérence à platines vides : quand A et B sont vides, bouton doré « CHARGER LE DUO → A & B » qui envoie le titre 1 sur la Platine A et le titre 2 sur la Platine B simultanément ; quand une seule platine est chargée, envoie le partenaire sur la platine libre (ENVOYER SUR A → ou B →)",
+          "completed": true
+        },
+        {
+          "id": "ALC-166-2",
+          "title": "Mini-spectre de pré-écoute & curseur volume casque : barre de progression dorée cliquable (scrubbing) sur la ligne en cours d'écoute (▶) synchronisée sur currentTime/duration, + mini-curseur de volume casque dédié dans la barre d'astuce pour éviter toute superposition sonore avec les platines en lecture",
+          "completed": true
+        },
+        {
+          "id": "ALC-166-3",
+          "title": "Code couleur harmonique Camelot & pochettes miniatures : miniature carrée 28×28 px encadrée laiton à gauche de TITRE & ARTISTE quand la pochette est disponible (persistance cover_data en base SQLite library.rs + récupération dans la liste) ; liseré du badge CLÉ coloré selon la compatibilité avec la platine de référence (émeraude A, bleu B, doré relatif)",
+          "completed": true
+        },
+        {
+          "id": "ALC-166-4",
+          "title": "Édition rapide des métadonnées & export Setlist : double-clic sur GENRE ou TITRE pour éditer en base SQLite (library.db), bouton discret « EXPORTER SET » (export .m3u / .txt des duos validés) ; validation cargo check + npm run check (0 erreur) puis passage en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Ticket d'amélioration de l'onglet LIBRAIRIE intégré à la suite d'ALC-165 (En revue) : polissage de l'Oracle (chargement simultané du duo A+B à platines vides / cible platine libre), pré-écoute améliorée (mini-spectre scrubbing + volume casque), habillage harmonique (code couleur Camelot du liseré CLÉ + pochettes miniatures persistées), et productivité (édition inline des métadonnées + export Setlist M3U/TXT des duos). Application stricte du protocole atomique (une micro-tâche = une écriture tasks.json + une entrée journals.json horodatée Europe/Paris).",
+      "createdAt": "2026-11-17T19:20:00.000+01:00"
+    },
+    {
+      "id": "ALC-167",
+      "title": "Exclusion et badging des pistes déjà chargées sur les platines dans la Librairie",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Backend / UI",
+      "completedAt": null,
+      "subtasks": [
+        {
+          "id": "ALC-167-1",
+          "title": "Détection des pistes actives & neutralisation du score : dans LibraryView.svelte (et mashupMatcher.ts si besoin), comparer chaque entrée de la librairie aux pistes chargées sur Platine A et B (filePath normalisé ou title+artist en repli) ; pour une ligne déjà chargée, ne plus afficher de score d'affinité (plus de 93% / MÊME CLÉ) mais un badge clair « SUR PLATINE A » (émeraude) ou « SUR PLATINE B » (bleu) dans la colonne AFFINITÉ, et classer ces lignes en bas de liste lors du tri",
+          "completed": true
+        },
+        {
+          "id": "ALC-167-2",
+          "title": "Filtrage exact des onglets COMPATIBLE A / COMPATIBLE B & de l'Oracle : exclure les morceaux déjà chargés sur la platine de référence du calcul des compteurs et des listes filtrées COMPATIBLE A et COMPATIBLE B (ex. « COMPATIBLE A (10B) » ne compte/affiche que les vrais partenaires) ; garantir que l'Oracle MEILLEURE ASSOCIATION MASHUP n'associe jamais un morceau avec lui-même",
+          "completed": true
+        },
+        {
+          "id": "ALC-167-3",
+          "title": "Validation technique & passage en En revue : npm run check (0 erreur / 0 warning) + mise à jour docs/SPECIFICATIONS.md si applicable ; cocher -3, consigner le bilan horodaté dans journals.json, basculer le ticket En cours → En revue (completedAt: null conservé)",
+          "completed": true
+        }
+      ],
+      "description": "Correction d'anomalie : un morceau déjà chargé sur la Platine A (ou B) apparaissait dans la Librairie avec un score d'affinité (ex. 93%) devant les vrais partenaires de mashup et gonflait le compteur COMPATIBLE A/B. Objectif : détecter ces pistes actives, ne pas leur attribuer de score, afficher un badge SUR PLATINE A/B, les classer en bas de liste, et exclure la piste de référence des compteurs/listes filtrées COMPATIBLE et de l'Oracle (jamais un morceau avec lui-même).",
+      "createdAt": "2026-11-17T20:25:00.000+01:00"
+    },
+    {
+      "id": "ALC-168",
+      "title": "Détection robuste & exclusion des pistes déjà chargées dans la Librairie (normalisation filePath / titre+artiste)",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Backend / UI",
+      "completedAt": null,
+      "subtasks": [
+        {
+          "id": "ALC-168-1",
+          "title": "Normaliser la détection de piste déjà chargée : dans src/lib/utils/mashupMatcher.ts et src/lib/components/LibraryView.svelte, écrire isSameTrack(libTrack, deckTrack) qui normalise filePath (replace(/\\\\/g, '/').toLowerCase().trim()) et, en repli, normalise title et artist (toLowerCase().trim()) ; identifier séparément onDeckA et onDeckB",
+          "completed": true
+        },
+        {
+          "id": "ALC-168-2",
+          "title": "Masquer le score & trier en bas dans TOUS, exclure des filtres COMPATIBLE A/B et de l'Oracle : vue TOUS → si onDeckA/onDeckB, aucun pourcentage d'affinité (badge SUR PLATINE A émeraude / SUR PLATINE B bleu) et lignes tout en bas ; onglets COMPATIBLE A/B + compteurs → exclure toute piste déjà chargée sur A ou B ; Oracle (bestMashup) → exclure les pistes déjà chargées (état neutre si aucun candidat libre)",
+          "completed": true
+        },
+        {
+          "id": "ALC-168-3",
+          "title": "Validation & clôture : npm run check (0 erreur / 0 warning), mise à jour journals.json, bascule du ticket en En revue (completedAt: null conservé)",
+          "completed": true
+        }
+      ],
+      "description": "Correction définitive de la détection des morceaux déjà chargés : Julia (Platine A) et Mr. Jones (Platine B) apparaissaient encore avec 93%/84% d'affinité, comptaient dans COMPATIBLE A/B et étaient proposés par l'Oracle malgré leur présence sur les platines. La comparaison par filePath === échouait sur les différences de normalisation (slimèches/backslashes, casse, chemins canoniques). Solution : isSameTrack() normalisant filePath (replace(/\\\\/g,'/').toLowerCase().trim()) puis title+artist en repli, utilisée pour onDeckA/onDeckB, l'OCHELle au masquage du score (TOUS), l'exclusion des filtres COMPATIBLE A/B + compteurs, et l'Oracle (jamais une piste déjà en platine).",
+      "createdAt": "2026-11-17T21:05:00.000+01:00"
+    },
+    {
+      "id": "ALC-169",
+      "title": "Crossfader assisté avec Bass-Swap automatique (AUTO-MIX 8 / 16 mesures)",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Console / Audio",
+      "completedAt": null,
+      "subtasks": [
+        {
+          "id": "ALC-169-1",
+          "title": "Moteur d'interpolation temporelle Auto-Mix & Bass-Swap dans le store (mixer.svelte.ts + player.ts) : startAutoMix(bars, direction) / cancelAutoMix(), piloté à 60 fps (requestAnimationFrame) ; durée T = bars × 4 × 60 / BPM effectif (repli 120) ; pendant p∈[0,1] : déplacement fluide du Crossfader Master vers la cible (-1 A / +1 B), Bass-Swap progressif LOW EQ 120 Hz (sortant → -18/-24 dB à mi-parcours, entrant → 0.0 dB, restauration après coupe du volume), pitch glide de la platine entrante vers le tempo cible pendant la 1re moitié si écart ≤ 6 % ; arrêt immédiat (cancelAutoMix) si le DJ saisit le crossfader ou un LOW EQ",
+          "completed": true
+        },
+        {
+          "id": "ALC-169-2",
+          "title": "Interface horlogère AUTO-MIX intégrée au Crossfader Master (MixerCenter.svelte) en conservant h-screen overflow-hidden + esthétique Venezia 1889 : sélecteur 8 MES / 16 MES (défaut 16), bouton directionnel intelligent (⇄ AUTO-MIX → B quand crossfader côté A, ⇄ AUTO-MIX → A côté B) état actif pulsant doré, jauge de progression en direct, bouton STOP",
+          "completed": true
+        },
+        {
+          "id": "ALC-169-3",
+          "title": "Indicateur visuel de Bass-Swap sur les platines (DeckA.svelte + DeckB.svelte) : discrète impulsion dorée AUTO-EQ à côté de « FILTRE GRAVE • LOW EQ 120 Hz » quand l'automate pilote l'échange des basses en direct",
+          "completed": true
+        },
+        {
+          "id": "ALC-169-4",
+          "title": "Validation technique & passage en En revue : npm run check (0 erreur / 0 warning), mise à jour docs/SPECIFICATIONS.md (section Crossfader & historique ALC-169), coche -4, bilan horodaté dans journals.json, bascule En cours → En revue (completedAt: null conservé)",
+          "completed": true
+        }
+      ],
+      "description": "Crossfader assisté inspiré d'Apollo Agents & des consoles DJ : AUTO-MIX 8/16 mesures — moteur d'interpolation temporelle (startAutoMix/cancelAutoMix, T = bars×4×60/BPM) piloté à 60 fps qui déplace fluidement le Crossfader Master, exécute un Bass-Swap progressif sur les LOW EQ 120 Hz (coupe du grave sortant, neutralisation de l'entrant, restauration après coupe), glisse le pitch entrant si écart ≤ 6 %, et s'interrompt sur toute saisie manuelle. Interface horlogère AUTO-MIX sur la barre du Crossfader Master, indicateur doré AUTO-EQ sur les platines pendant l'échange des basses.",
+      "createdAt": "2026-11-17T21:45:00.000+01:00"
+    },
+    {
+      "id": "ALC-170",
+      "title": "Recherche de Pistes Ponts harmoniques dans la Librairie SQLite locale (library.db)",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Console / Audio",
+      "completedAt": null,
+      "subtasks": [
+        {
+          "id": "ALC-170-1",
+          "title": "Algorithme de calcul des Pistes Ponts locales dans mashupMatcher.ts : findLocalBridgeTracks(deckA, deckB, libraryTracks, maxResults=3) actif dès que l'écart Camelot ≥ 2 quintes ou l'écart de tempo > ±8 % ; score pont (pivot harmonique 55 %, palier tempo 35 %, bonus duo validé 10 %), en excluant les pistes déjà chargées sur A/B",
+          "completed": true
+        },
+        {
+          "id": "ALC-170-2",
+          "title": "Intégration dans l'Oracle Acoustique (MixerCenter.svelte) : section Pistes Ponts / Itinéraires — afficher en priorité absolue les meilleures pistes ponts locales de library.db (badge LIBRAIRIE LOCALE, score %, clé pivot, BPM) devant les suggestions Deezer en repli ; actions ▶ (pré-écoute du fichier local) et → A / → B (chargement + transition)",
+          "completed": true
+        },
+        {
+          "id": "ALC-170-3",
+          "title": "Filtre & indicateur PONT A↔B dans LibraryView.svelte : quand un écart harmonique important est détecté entre A et B, afficher dans le cartouche inférieur (ou badge PONT A↔B sur la colonne AFFINITÉ) la meilleure piste pont locale pour débloquer la transition en un clic",
+          "completed": true
+        },
+        {
+          "id": "ALC-170-4",
+          "title": "Validation technique & passage en En revue : npm run check (0 erreur / 0 warning), mise à jour docs/SPECIFICATIONS.md (section Oracle Acoustique / Librairie + historique ALC-170), coche -4, bilan horodaté dans journals.json, bascule En cours → En revue (completedAt: null conservé)",
+          "completed": true
+        }
+      ],
+      "description": "Harmonic Bridge Finder local inspiré d'Apollo Agents : recherche intelligente de Pistes Ponts directement dans la Librairie SQLite locale (library.db) quand les platines A et B ont un écart harmonique (≥ 2 quintes) ou rythmique (> 8 %) important. Algorithme findLocalBridgeTracks (pivot harmonique 55 % + palier tempo 35 % + bonus duo 10 %), intégration prioritaire dans l'Oracle Acoustique (badge LIBRAIRIE LOCALE, pré-écoute locale, chargement → A/B) et indicateur PONT A↔B dans la Librairie.",
+      "createdAt": "2026-11-17T22:40:00.000+01:00"
+    },
+    {
+      "id": "ALC-171",
+      "title": "Réparation & unification de la pré-écoute audio locale (Pistes Ponts) : read_audio_file_bytes → Blob URL",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Console / Audio",
+      "completedAt": null,
+      "subtasks": [
+        {
+          "id": "ALC-171-1",
+          "title": "Unifier le lecteur de pré-écoute dans mixer.svelte.ts (toggleFilePreview/previewTrack) sur le pipeline read_audio_file_bytes(filePath) → Blob URL (mimeFromPath), avec révocation de l'URL blob bloquée à l'arrêt/changement et gestion d'erreur explicite (console.error) si audio.play() échoue — comme Player.ts, pour éviter le blocage asset:// / CORS WebView2",
+          "completed": true
+        },
+        {
+          "id": "ALC-171-2",
+          "title": "Vérifier le câblage du bouton ▶ dans MixerCenter.svelte (section PONTS HARMONIQUES SUGGÉRÉS) : track.filePath bien conservé via findLocalBridgeTracks et transmis au gestionnaire de pré-écoute du store ; bascule visuelle ▶ / ❚❚ pendant la lecture (comme LibraryView)",
+          "completed": true
+        },
+        {
+          "id": "ALC-171-3",
+          "title": "Validation & clôture : npm run check (0 erreur / 0 warning), mise à jour journals.json, bascule du ticket en En revue (completedAt: null conservé)",
+          "completed": true
+        }
+      ],
+      "description": "La pré-écoute (▶) des Pistes Ponts locales dans l'onglet ROUE DE CAMELOT (MixerCenter.svelte) ne produit aucun son : le bouton utilisait new Audio(convertFileSrc(filePath)) (protocole asset://), bloqué par CORS dans WebView2. Correction : unification du lecteur de pré-écoute dans le store sur le pipeline éprouvé read_audio_file_bytes → Blob URL (révocation de l'URL bloquée, gestion d'erreur audio.play), et câblage du store dans l'Oracle. Aucun ticket Terminé touché.",
+      "createdAt": "2026-11-17T23:30:00.000+01:00"
     }
   ]
 }

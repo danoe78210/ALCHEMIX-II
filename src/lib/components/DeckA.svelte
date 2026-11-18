@@ -128,7 +128,7 @@
   });
   // ALC-132-4 / ALC-143 : LOW EQ (filtre grave lowshelf 120 Hz) + atténuation auto Smart Filter.
   $effect(() => {
-    if (player) player.setLowShelf(deck.lowEqDb + mixerStore.smartFilterDb);
+    if (player) player.setLowShelf(deck.lowEqDb + mixerStore.smartFilterDb + mixerStore.autoBassA);
   });
   // ALC-143 : bande médium (peaking 900 Hz) — Smart Filter (0 dB hors conflit).
   $effect(() => {
@@ -214,6 +214,8 @@
     deck.lowEqDb = Number((-6 + clamp01((e.clientX - el.getBoundingClientRect().left) / el.getBoundingClientRect().width) * 12).toFixed(1));
   }
   function captureLowEq(e: PointerEvent) {
+    // ALC-169 : toute saisie manuelle du LOW EQ interrompt l'AUTO-MIX immédiatement.
+    mixerStore.cancelAutoMix();
     const el = e.currentTarget as HTMLElement;
     el.setPointerCapture(e.pointerId);
     applyLowEq(e, el);
@@ -223,6 +225,7 @@
   }
   function onLowEqWheel(e: WheelEvent) {
     e.preventDefault();
+    mixerStore.cancelAutoMix();
     deck.lowEqDb = Number(Math.max(-6, Math.min(6, deck.lowEqDb + (e.deltaY < 0 ? 0.5 : -0.5))).toFixed(1));
   }
   function captureHighEq(e: PointerEvent) {
@@ -452,7 +455,12 @@
   <div class="flex flex-col gap-space-xs pt-1 px-space-xs">
     <div>
       <div class="flex items-center justify-between">
-        <span class="font-label-sm text-[9px] text-primary uppercase font-bold tracking-wider">FILTRE GRAVE • LOW EQ 120 Hz</span>
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span class="font-label-sm text-[9px] text-primary uppercase font-bold tracking-wider">FILTRE GRAVE • LOW EQ 120 Hz</span>
+          {#if mixerStore.autoMixActive && mixerStore.autoBassA !== 0}
+            <span class="flex items-center gap-1 text-[#edbf7a] font-label-sm text-[8px] font-bold tracking-widest uppercase animate-pulse shrink-0">✦ AUTO-EQ</span>
+          {/if}
+        </div>
         <span class="font-label-md text-[10px] text-primary font-mono font-bold">{deck.lowEqDb >= 0 ? '+' : ''}{deck.lowEqDb.toFixed(1)} dB</span>
       </div>
       <div class="relative h-7 bg-surface-container-lowest rounded flex items-center px-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.95)] cursor-ew-resize touch-none select-none" role="slider" tabindex={0} aria-valuemin={-6} aria-valuemax={6} aria-valuenow={deck.lowEqDb} aria-label="Low EQ" onpointerdown={captureLowEq} onpointermove={moveLowEq} onwheel={onLowEqWheel} ondblclick={() => (deck.lowEqDb = 0.0)}>

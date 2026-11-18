@@ -5,7 +5,7 @@
 > Elle n'est pas un journal des tickets : chaque fonctionnalité est décrite **une seule fois**,
 > dans sa section dédiée. Toute évolution future doit mettre à jour ce document **et** le Kanban.
 
-- **Version courante** : **v0.2.0** (Release GitHub — voir `CHANGELOG.md`).
+- **Version courante** : **v0.3.0** (Release GitHub — voir `CHANGELOG.md`).
 - **Format** : Markdown, lisible par tout informaticien débutant.
 - **Licence du thème** : identité visuelle *Venezia 1889* (réservée au projet).
 - **Stack** : Svelte 5 (SvelteKit + Tailwind CSS) · Rust (Tauri 2) · WebAudio.
@@ -173,8 +173,45 @@ Onglet central dédié à la synchronisation fine et au mashup de deux pistes.
 
 - **POWER OFF** (bouton d'extinction) : purge les caches côté frontend puis **ferme proprement**
   l'application Tauri via la commande `exit_app`.
-- **Onglet LIBRAIRIE** : réservé à un futur catalogue musical — **en attente de développement**.
+- **Onglet LIBRAIRIE** (`LibraryView.svelte`) : catalogue musical **local et persistant**
+  (base **SQLite** `library.db`, backend Rust `library.rs`). On y **archive** les platines A/B,
+  **importe récursivement un dossier** (mp3/flac/wav/m4a/ogg analysés en BPM & clé Camelot par le
+  moteur MIR), **recherche** instantanément, filtre par compatibilité (**TOUS** / **COMPATIBLE A** /
+  **COMPATIBLE B** / **★ DUOS**) et trie (**AFFINITÉ** / **CLÉ** / **TEMPO**). Chaque piste peut être
+  **pré-écoutée au casque** (▶/❚❚ via `convertFileSrc`), **chargée** sur la Platine A ou B (badge
+  « SUR PLATINE A/B ») ou **retirée** du catalogue (×). La cartouche **Suggestion Mashup** de
+  l'Oracle affiche la meilleure association détectée par le matcher (`mashupMatcher.ts`) et permet
+  de la **valider en duo ★** ou de l'**envoyer sur la platine libre**. La platine de
+  **référence** du calcul (affinité, labels harmoniques, Δ BPM) **suit le filtre actif** :
+  `COMPATIBLE B` → Platine B, sinon Platine A (repli si non chargée) ; toute piste **déjà chargée**
+  sur une platine (SUR PLATINE A / SUR PLATINE B) n'obtient plus de **score d'affinité**, est
+  **classée en bas de liste** et est **exclue** des compteurs et listes filtrées **COMPATIBLE A/B**
+  et de l'**Oracle** (aucune auto-association) pour ne jamais gonfler les vrais partenaires. La
+  détection repose sur **`isSameTrack(lib, deck)`** : `filePath` normalisé (`\`→`/`, minuscules,
+  espaces retirés) ou, en repli, titre ET artiste normalisés. La cartouche
+  Oracle propose **« CHARGER LE DUO → A & B »** à platines vides (sinon envoi sur la platine libre) ;
+  la pré-écoute gagne une **barre dorée de scrubbing** et un **volume casque** dédié ; le **liseré du
+  badge CLÉ** est coloré selon la compatibilité (émeraude A / bleu B / doré relatif) et des **pochettes
+  miniatures** (28×28, encadrées laiton) s'affichent quand disponibles ; le **GENRE** et le **TITRE**
+  sont **éditables en double-clic** (commande IPC `library_update_track_meta`) et un bouton discret
+  **« EXPORTER SET »** (`.m3u`/`.txt`) exporte la setlist des duos validés. Défilement interne
+  `overflow-y-auto`, `h-screen overflow-hidden` préservé.
 - **Favicon / icônes** : monogramme vectoriel AlcheMix II intégré à l'application et au bureau.
+- **AUTO-MIX (Crossfader assisté & Bass-Swap automatique)** : bloc horlogère sur la barre du
+  Crossfader Master — sélecteur **8 MES / 16 MES**, bouton directionnel intelligent (**⇄ AUTO-MIX → B**
+  côté A, **⇄ AUTO-MIX → A** côté B), **STOP** et **jauge de progression**. `startAutoMix(bars,
+  direction)` calcule la durée **T = bars × 4 × 60 / BPM effectif** (repli à 120 BPM) puis, à **60 fps**,
+  déplace le Crossfader Master vers la platine cible, exécute un **Bass-Swap** progressif sur les
+  LOW EQ 120 Hz (grave sortant → −20 dB à mi-parcours, grave entrant → 0.0 dB, restauration après
+  coupe du volume) et **glisse le pitch** de la platine entrante vers le tempo maître (1re moitié) si
+  l'écart ≤ 6 %. Toute saisie manuelle du crossfader ou d'un LOW EQ appelle **`cancelAutoMix()`** immédiatement.
+- **Pistes Ponts locales (Harmonic Bridge Finder)** : lorsque les platines A et B ont un écart
+  harmonique **≥ 2 quintes** ou rythmique **> 8 %**, l'Oracle Acoustique affiche **en priorité** les
+  meilleures pistes PONT issues de la **Librairie SQLite locale** (`findLocalBridgeTracks` : pivot
+  harmonique 55 % + palier tempo 35 % + bonus duo 10 %, hors pistes déjà chargées), avec badge
+  **LIBRAIRIE LOCALE**, score %, clé pivot et BPM, et actions **▶** (pré-écoute locale), **→ A / → B**
+  (chargement + transition) ; le repli Deezer est conservé. La Librairie affiche aussi un cartouche
+  **PONT A↔B** avec bouton **CHARGER PONT** pour débloquer la transition en un clic.
 
 ---
 
@@ -256,6 +293,13 @@ Commandes `#[tauri::command]` (enregistrées dans `src-tauri/src/lib.rs`) appel�
 | `extract_stems_onnx` | `path: String` | **StemPaths** : chemins des 4 stems (Vocals, Drums, Bass, Other) calculés via session **ONNX** (htdemucs‑v4). |
 | `read_audio_file_bytes` | `path: String` | `Vec<u8>` : octets bruts du fichier pour créer l'URL `blob:` côté WebAudio. |
 | `exit_app` | *(aucun)* | *(aucun)* : fermeture propre de l'application (après purge du cache). |
+| `library_list_tracks` | *(aucun)* | `Vec<LibraryTrack>` : toutes les pistes du catalogue (de la plus récente à la plus ancienne). |
+| `library_upsert_track` | `track: LibraryTrackInput` | **LibraryTrack** (idempotent sur `file_path` ; complété par les tags `lofty` puis l'analyse MIR si besoin). |
+| `library_import_folder` | `folder_path: String` | **LibraryImportReport** (`found/inserted/updated/failed/totalTracks`). Scan récursif + analyse hors thread IPC, progression émise sur l'événement `library://scan`. |
+| `library_delete_track` | `id: i64` | `bool` : retrait de la piste (et de ses duos ★ via `ON DELETE CASCADE`). |
+| `library_toggle_duo` | `track_a_id`, `track_b_id` | `bool` : le duo existe **après** l'opération (paire normalisée `a < b`). |
+| `library_list_duos` | *(aucun)* | `Vec<ValidatedDuo>` : les duos ★ validés. |
+| `library_update_track_meta` | `id`, `title?`, `genre?` | **LibraryTrack** : édition rapide du titre/sous-genre directement en base, sans ré-écraser par les tags du fichier. |
 
 ---
 
@@ -323,6 +367,13 @@ fonctionnalités est décrit plus haut dans les sections concernées).
 | ALC-162 | Beatgrid | **Retour visuel de cible d'édition + libellés unifiés** : « CIBLE : TAPE A | TAPE B » → **« GRILLE CIBLE : PLATINE A | PLATINE B »** ; la **waveform ciblée est illuminée** (bordure émeraude `#10b981` + halo ≙ Platine A, bordure bleue `#38bdf8` + halo ≙ Platine B) avec un badge discret **CIBLE GRILLE** ; **clic sur le cadre d'une onde (ou Entrée/Espace)** pour basculer la cible ; **offset de grille courant** (`+0 ms`/`+15 ms`) affiché juste à droite de **×2** ; CALER TEMPS 1 / ◄ / ► redessinent le canvas **immédiatement** (60 fps, même tick). `npm run check` 0/0, `h-screen overflow-hidden` préservé. |
 | ALC-163 | Release | **Release GitHub récurrente + exécutable Windows autonome + Signature numérique Authenticode** : ticket `"recurrent": true` (jamais « Terminé » → Backlog + subtasks `false` après exécution) ; pipeline v0.2.0 (pré-contrôle npm/cargo, bump de version, `npm run tauri build` NSIS/MSI, commit/tag/push, GitHub Release via API REST avec asset `.exe` attaché). **Signature** : detection signtool (Windows Kits), certificat officiel (Azure Trusted Signing/SignPath.io) sinon certificat local dev (`New-SelfSignedCertificate -Type CodeSigningCert`), hook `bundle.windows.signCommand` piloté `TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD/TAURI_SIGNTOOL`, signature `/fd SHA256 /tr http://timestamp.digicert.com /td SHA256`, vérification `signtool verify /pa`, re-upload de l'asset signé sur la release. **Signature OFFICIELLE (diffusion publique)** : workflow `.github/workflows/release.yml` prêt à l'emploi — étape `azure/trusted-signing-action@v0` (secrets `AZURE_TENANT_ID/AZURE_CLIENT_ID/AZURE_CLIENT_SECRET/AZURE_CERTIFICATE_NAME`) pour signer par une CA reconnue Microsoft, ou étape **SignPath.io (gratuit Open Source)** décommentée ; **note SmartScreen** documentée dans `README.md` (§ Installation Windows) et les notes de release (certificat auto-signé → « Informations complémentaires / Exécuter quand même » ; disparaît une fois signé par un cert reconnu). |
 
+| ALC-170 | Console / Audio | **Recherche de Pistes Ponts harmoniques dans la Librairie SQLite locale (library.db)** : `findLocalBridgeTracks` (pivot harmonique 55 % + palier tempo 35 % + bonus duo validé 10 %, exclut les pistes déjà chargées, activation ≥ 2 quintes ou écart tempo > 8 %) ; **Oracle Acoustique** — pistes PONT locales en priorité (badge LIBRAIRIE LOCALE, score %, clé pivot, BPM, ▶ / → A / → B) devant les suggestions Deezer ; **Librairie** — cartouche **PONT A↔B** + bouton **CHARGER PONT**. `npm run check` 0/0. |
+| ALC-169 | Console / Audio | **Crossfader assisté & Bass-Swap automatique (AUTO-MIX 8 / 16 MES)** : moteur `startAutoMix(bars, direction)` / `cancelAutoMix()` (durée T = bars×4×60/BPM effectif, `requestAnimationFrame` 60 fps) déplaçant le Crossfader Master, **Bass-Swap** progressif LOW EQ 120 Hz (crave sortant → −20 dB, entrant → 0.0 dB, restauration après coupe) + **pitch glide** (écart ≤ 6 %, 1re moitié) ; interface horlogère AUTO-MIX intégrée au Crossfader (8 MES/16 MES, bouton directionnel, STOP, jauge) + indicateur doré **AUTO-EQ** sur les platines ; interruption immédiate sur saisie manuelle. `npm run check` 0/0. |
+| ALC-168 | Backend / UI | **Détection robuste des pistes déjà chargées dans la Librairie** : ajout de **`isSameTrack(lib, deck)`** (mashupMatcher) qui normalise `filePath` (`\`→`/`, casse, espaces) puis, en repli, titre ET artiste normalisés — corrige Julia/Mr Jones qui réapparaissaient (filePath `===` insensible à la normalisation des chemins) ; `onDeckA`/`onDeckB` branchés partout (badge SUR PLATINE A/B en émeraude/bleu, masque le score et classe en bas dans TOUS, exclut des compteurs/listes COMPATIBLE A/B et de l'Oracle). `npm run check` 0/0. |
+| ALC-167 | Backend / UI | **Exclusion & badging des pistes déjà chargées dans la Librairie** : détection `onA/onB/loaded` (filePath) dans `LibraryView.svelte` ; un morceau déjà sur une platine n'a plus de **score d'affinité** et affiche le badge **SUR PLATINE A/B** (colonne AFFINITÉ), passe **en bas de liste** quel que soit le tri, et est **exclu** des compteurs/listes `COMPATIBLE A/B` et de l'**Oracle** (jamais un morceau avec lui-même) — ne gonfle plus les vrais partenaires. `npm run check` 0/0. |
+| ALC-166 | Backend / UI | **Polissage & enrichissements de l'onglet LIBRAIRIE** : cartouche Oracle **« CHARGER LE DUO → A & B »** à platines vides (sinon envoi sur la platine libre) ; **mini-spectre de pré-écoute** (barre dorée de scrubbing `role=slider`) + **curseur volume casque** dans la barre d'astuce ; **code couleur Camelot** du liseré du badge CLÉ (émeraude A, bleu B, doré relatif) + **pochettes miniatures** 28×28 encadrées laiton persistées en base (`cover_data` + migration SQLite `ALTER TABLE`) ; **édition rapide inline** du GENRE/TITRE en double-clic (commande IPC `library_update_track_meta`) + **export Setlist** des duos (`EXPORTER SET`, `.m3u`/`.txt`). `npm run check` 0/0, `cargo check` 0 erreur, `cargo test --lib` 54/54. |
+| ALC-165 | Backend / UI | **Onglet LIBRAIRIE : catalogue SQLite + matcher mashup + vue Venezia 1889** — base locale **SQLite** (`rusqlite` bundled, `library.db` dans `app_data_dir()`, tables `tracks`/`validated_duos`) et 6 commandes IPC (`library_list_tracks`, `library_upsert_track`, `library_import_folder` [scan récursif mp3/flac/wav/m4a/ogg, réutilise `lofty` + moteur MIR, progression `library://scan`], `library_delete_track`, `library_toggle_duo`, `library_list_duos`) enregistrées dans `lib.rs`. **Matching mashup** (`mashupMatcher.ts`) : harmonique 50 % / rythmique 35 % / bonus créatif & duos ★ 15 %, tests `node --test` 17/17. **Vue `LibraryView.svelte`** fidèle à `sources/Library v4.html` (grille `84px 1fr 72px 42px 76px 110px`) insérée dans `MixerCenter.svelte` entre les onglets et le Crossfader : ARCHIVER PLATINE A/B, IMPORTER DOSSIER (dialog), recherche instantanée, filtres TOUS/COMPATIBLE A/B/★ DUOS, tri AFFINITÉ/CLÉ/TEMPO, ASTUCE MIX, pré-écoute ▶/❚❚ sécurisée (`convertFileSrc`), chargement A/B + badge SUR PLATINE A/B, retrait ×, cartouche **Suggestion Mashup** de l'Oracle (★ VALIDER DUO, ENVOYER SUR B), défilement interne `overflow-y-auto`. `npm run check` 0/0, `cargo check` 0 erreur, `cargo test --lib` 54/54, `node --test` 17/17, `h-screen overflow-hidden` préservé. |
+>
 > Les tickets **Terminé** du Kanban (dont ALC-143/144) sont **immuables** : toute amélioration
 > future se fait par un **nouveau** ticket, jamais en modifiant un ticket déjà livré. La
 > segmentation (RMS/tempo/clé) par exemple, bien qu'initialement évoquée sous un ID « 143 », a été

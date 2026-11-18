@@ -130,3 +130,83 @@ export const audioIpc = {
     return safeInvoke<StemPaths>('extract_stems_onnx', { path });
   },
 };
+
+// ── ALC-165 : catalogue de la LIBRAIRIE (base SQLite locale, backend `library.rs`) ──────────────
+
+/** Une piste du catalogue (Serde Rust `rename_all = "camelCase"`). */
+export interface LibraryTrack {
+  id: number;
+  filePath: string;
+  title: string;
+  artist: string;
+  genre: string;
+  camelotKey: string;
+  bpm: number;
+  durationSec: number;
+  addedAt: string;
+  codec?: string;
+  coverData?: string;
+}
+
+/** Piste fournie au catalogue (archivage depuis une Platine ou import de dossier). */
+export interface LibraryTrackInput {
+  filePath: string;
+  title?: string | null;
+  artist?: string | null;
+  genre?: string | null;
+  camelotKey?: string | null;
+  bpm?: number | null;
+  durationSec?: number | null;
+  coverData?: string | null;
+}
+
+/** Bilan d'un import de dossier (Serde camelCase). */
+export interface LibraryImportReport {
+  folderPath: string;
+  found: number;
+  inserted: number;
+  updated: number;
+  failed: number;
+  totalTracks: number;
+  elapsedMs: number;
+}
+
+/** Duo validé (paire non ordonnée, `trackAId < trackBId`). */
+export interface ValidatedDuo {
+  trackAId: number;
+  trackBId: number;
+  note: string;
+  createdAt: string;
+}
+
+/** Progression d'un import, diffusée sur l'événement `library://scan`. */
+export interface LibraryScanProgress {
+  done: number;
+  total: number;
+  current: string;
+}
+
+export const libraryIpc = {
+  listTracks(): Promise<LibraryTrack[]> {
+    return safeInvoke<LibraryTrack[]>('library_list_tracks', {});
+  },
+  upsertTrack(track: LibraryTrackInput): Promise<LibraryTrack> {
+    return safeInvoke<LibraryTrack>('library_upsert_track', { track });
+  },
+  importFolder(folderPath: string): Promise<LibraryImportReport> {
+    return safeInvoke<LibraryImportReport>('library_import_folder', { folderPath });
+  },
+  deleteTrack(id: number): Promise<boolean> {
+    return safeInvoke<boolean>('library_delete_track', { id });
+  },
+  toggleDuo(trackAId: number, trackBId: number): Promise<boolean> {
+    return safeInvoke<boolean>('library_toggle_duo', { trackAId, trackBId });
+  },
+  listDuos(): Promise<ValidatedDuo[]> {
+    return safeInvoke<ValidatedDuo[]>('library_list_duos', {});
+  },
+  /** ALC-166-4 : édition rapide des métadonnées (titre/genre Option) directement en base. */
+  updateTrackMeta(id: number, title: string | null, genre: string | null): Promise<LibraryTrack> {
+    return safeInvoke<LibraryTrack>('library_update_track_meta', { id, title, genre });
+  },
+};

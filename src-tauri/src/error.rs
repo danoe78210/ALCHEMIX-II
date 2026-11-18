@@ -16,6 +16,10 @@ pub enum AppError {
 
     #[error("Erreur moteur d'analyse audio : {0}")]
     Audio(String),
+
+    /// ALC-165 : catalogue de la LIBRAIRIE (base SQLite locale).
+    #[error("Erreur bibliothèque locale : {0}")]
+    Library(String),
 }
 
 pub type Error = AppError;
@@ -37,6 +41,7 @@ impl Serialize for AppError {
             AppError::Io(_) => "IO_ERROR",
             AppError::OnnxInference(_) => "ONNX_ERROR",
             AppError::Audio(_) => "AUDIO_ENGINE_ERROR",
+            AppError::Library(_) => "LIBRARY_ERROR",
         };
         SerializedError {
             code,

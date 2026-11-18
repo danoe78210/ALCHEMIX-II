@@ -62,3 +62,6 @@ Desktop.ini
 # --- Signature certificats locaux (NE JAMAIS committer) ---
 alchemix_codesign.pfx
 alchemix_codesign.cer
+result.txt
+build-*.log
+tests_out.txt

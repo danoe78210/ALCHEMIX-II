@@ -5,6 +5,33 @@ Toutes les modifications notables d'**AlcheMix II** sont documentées dans ce fi
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et respecte
 [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.3.0] — 2026-11-18
+
+### ✨ Fonctionnalités majeures
+- **Onglet LIBRAIRIE (catalogue SQLite local)** : base `library.db` (rusqlite bundled), import de dossiers,
+  recherche/filtres/duos ★, édition inline des métadonnées, export Setlist `.m3u`/`.txt`.
+- **AUTO-MIX (Crossfader assisté & Bass-Swap)** : transition 8/16 mesures avec déplacement assisté du
+  Crossfader Master, échange automatique des LOW EQ (120 Hz) et pitch glide (écart ≤ 6 %), interruption sur saisie manuelle.
+- **Pistes Ponts locales (Harmonic Bridge Finder)** : recherche dans la Librairie SQLite des meilleurs ponts
+  harmoniques/rythmiques (A↔B) proposés en priorité par l'Oracle (« LIBRAIRIE LOCALE ») et dans la Librairie (« PONT A↔B »).
+- **Séparation IA des 4 Stems** (ONNX, htdemucs-v4) via `extract_stems_onnx`.
+
+### 🔧 Correctifs & fiabilité
+- **Pré-écoute audio locale unifiée** : `read_audio_file_bytes → Blob URL` (fin du blocage `asset://`/CORS WebView2),
+  bascule ▶/❚❚ et révocation des URL blob.
+- **Détection robuste des pistes déjà chargées** (normalisation `filePath` / titre+artiste) : plus de gonflement
+  des compteurs COMPATIBLE A/B, exclusion des pistes actives et badging `SUR PLATINE A/B` dans la Librairie et l'Oracle.
+
+### 🪟 Installation Windows
+Voir `README.md` § Installation Windows. **Note SmartScreen** : le certificat LOCAL de développement
+(`CN=AlcheMix II`) ne lève pas SmartScreen sur les autres postes → en **SmartScreen**, cliquez
+« Informations complémentaires » puis « Exécuter quand même », ou préférez plus tard la signature officielle
+(Azure Trusted Signing / SignPath.io) via `.github/workflows/release.yml`.
+
+### 📦 Artefacts v0.3.0
+- Exécutable autonome : `AlcheMix-II-v0.3.0-windows-x64.exe` (signé Authenticode).
+- Installeurs : `AlcheMix II_0.3.0_x64-setup.exe`, `AlcheMix II_0.3.0_x64_en-US.msi`.
+
 ## [0.2.0] — 2026-11-16
 
 ### 🎛️ Nouveautés UI Beatgrid
