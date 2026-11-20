@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "AlcheMix II — Journaux de travail individuels par ticket",
-    "version": "1.83.4",
-    "updatedAt": "2026-11-20T15:24:00.000Z",
+    "version": "1.83.8",
+    "updatedAt": "2026-11-20T15:50:00.000Z",
     "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
   },
   "journals": {
@@ -718,6 +718,26 @@
           "ts": "2026-11-20T16:24:00.000+01:00",
           "type": "subtask",
           "message": "ALC-163-6 cochee (Signature Authenticode v0.5.0) : signtool x64 ; certificat CN=AlcheMix II (thumbprint 9B5E..) CurrentUser reutilise. signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /sha1 9B5E... AlcheMix-II-0.5.0-windows-x64.exe -> Successfully signed. Verif signtool verify /pa /v -> Issued to AlcheMix II, horodatage DigiCert SHA256 RSA4096, Successfully verified (Number of files successfully Verified: 1). (Cert local dev : fallback ; signature officielle CA = ALC-163-7.)"
+        },
+        {
+          "ts": "2026-11-20T16:32:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-3 cochee (Commit, tag, push v0.5.0) : CHANGELOG.md section [0.5.0] ajoutee (tiroirs horlogers escamotables + Oracle en tiroir + Roue agrandie). git add -A (12 fichiers, 329+/18-) ; commit chore(release): v0.5.0 (268a4f6) ; tag -a v0.5.0 (8ebcc14) ; git push origin main OK (cdbf7e4..268a4f6) ; git push origin v0.5.0 OK."
+        },
+        {
+          "ts": "2026-11-20T16:42:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-4 cochee (Publication GitHub Release v0.5.0) : gh non authentifie + pas de token -> API REST via PAT credential git. Release creee : id=452770969 tag=v0.5.0 name=\"AlcheMix II v0.5.0\" draft=false url=https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.5.0. Assets verifies en ligne : AlcheMix-II-0.5.0-windows-x64.exe (32 131 816 o, signe Authenticode) + AlcheMix-II-0.5.0-x64-setup.exe (9 262 909 o, NSIS)."
+        },
+        {
+          "ts": "2026-11-20T16:44:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-7 cochee (Signature OFFICIELLE - workflow) : .github/workflows/release.yml present et pret a l emploi (Azure azure/trusted-signing-action@v0 avec secrets AZURE_* ; alternative SignPath.io commentee ; signature CA sautee tant que secrets non renseignes). Aucun secret officiel ici -> execution CA differee ; cert local dev (ALC-163-6) fallback en v0.5.0 (SmartScreen reste sur postes tiers)."
+        },
+        {
+          "ts": "2026-11-20T16:50:00.000+01:00",
+          "type": "column",
+          "message": "RELEASE v0.5.0 PUBLIEE. URL : https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.5.0. Executable autonome : AlcheMix-II-0.5.0-windows-x64.exe (32 131 816 o signe Authenticode CN=AlcheMix II) ; installeur AlcheMix-II-0.5.0-x64-setup.exe (9 262 909 o) ; MSI \"AlcheMix II_0.5.0_x64_en-US.msi\". Commit 268a4f6, tag 8ebcc14 (v0.5.0). Embarque : amelioration visuelle par tiroirs horlogers escamotables (ALC-186) — HorologicalDrawer, 2 tiroirs/platine, Oracle en tiroir + Roue agrandie. Validations : npm 0/0, cargo check 0/0, cargo test 63/63. Signature officielle CA differee (secrets requis) ; cert local fallback."
         }
       ]
     },
