@@ -38,3 +38,8 @@ Propose et implémente des solutions élégantes à fort effet de levier plutôt
 - **Structures de données adaptées :** `$state.raw` / `Float32Array` partagés pour les enveloppes audio, tables de correspondance précalculées (LUT) pour les courbes logarithmiques dB et l'arithmétique modulaire Camelot.
 - **Approches hybrides intelligentes :** Combinaison DSP local temps réel + enrichissement asynchrone non bloquant avec cache mémoire (stale-while-revalidate).
 - **Auto-vérification rapide :** Après toute modification, valide immédiatement avec la commande ciblée la plus rapide (`npm run check` pour le frontend, `cargo check --manifest-path src-tauri/Cargo.toml` pour le backend).
+## Skills methodologiques (obra/superpowers adaptees)
+References concises (aucun sous-agent lourd ni questionnaire superflu) :
+- .agents/skills/systematic-debugging/SKILL.md : a invoquer des qu'un bug / erreur IPC / regression apparait, avant toute modification hasardeuse (cause racine exacte, cycle 4 phases, garde-fou 2 tentatives).
+- .agents/skills/verification-before-completion/SKILL.md : a invoquer avant de cocher completed:true ou de passer un ticket en En revue (preuve d'execution requise adaptee au perimetre).
+- .agents/skills/tdd-audio-logic/SKILL.md : a invoquer avant toute nouvelle formule Camelot / piste pont / courbe AUTO-MIX / requete SQLite (RED->GREEN->REFACTOR).

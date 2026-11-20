@@ -5,6 +5,26 @@ Toutes les modifications notables d'**AlcheMix II** sont documentées dans ce fi
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et respecte
 [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.0] — 2026-11-20
+
+### ✨ Fonctionnalités majeures
+- **Séparation IA locale des 4 Stems (HTDemucs / ONNX) fiable** : succès sur morceaux réels
+  (vocals / drums / bass / other), cache disque `stems-v7` versionné, rack STEMS IA
+  (VOIX / BATT / BASSE / INST, presets ACAPELLA / INST).
+- **Profil anti-bleed du stem `vocals`** : Wiener soft-mask `K(f)` par bande
+  (sub <120 Hz / formants 300-4200 Hz préservés / cymbales >6,5 kHz atténuées) + gate
+  d'activité vocale doux qui nettoie les intros/ponts sans chant.
+
+### 🔧 Correctifs & fiabilité
+- **En-tête WAV des stems corrigé** (bitsPerSample = 16) + reconstruction WOLA exacte
+  + caches versionnés (stems-v4 → v7 sur morceaux réels).
+- **STOP / EJECT en mode stems** : coupure matérielle `AudioContext.suspend()`, branches
+  réactives du transport (explicites), unicité du `Player` — plus aucun résidu sonore après STOP.
+
+### 📦 Artefacts v0.4.0
+- Exécutable autonome : `AlcheMix-II-0.4.0-windows-x64.exe` (signé Authenticode).
+- Installeurs : `AlcheMix II_0.4.0_x64-setup.exe`, `AlcheMix II_0.4.0_x64_en-US.msi`.
+
 ## [0.3.0] — 2026-11-18
 
 ### ✨ Fonctionnalités majeures

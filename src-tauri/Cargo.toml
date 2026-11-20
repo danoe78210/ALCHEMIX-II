@@ -1,6 +1,6 @@
 [package]
 name = "alchemix_ii"
-version = "0.3.0"
+version = "0.4.0"
 description = "Console de mixage harmonique DJ propulsée par Tauri 2, Rust ONNX et Svelte 5."
 authors = ["DJ Danoë"]
 edition = "2021"
@@ -32,8 +32,9 @@ base64 = "0.22"
 # dépendance buildtime_bindgen/libclang) : la compilation passe par le crate `cc`, qui
 # s'appuie sur la toolchain C MSVC déjà présente.
 rusqlite = { version = "0.43", features = ["bundled"] }
-# Décommenter pour inférence ONNX Demucs / Spleeter native :
-# ort = { version = "2.0.0-rc.9", features = ["ndarray"] }
+ort = { version = "2.0.0-rc.15", features = ["directml"] }
+# SHA-256 des fichiers audio → clé de cache des Stems (ALC-174)
+sha2 = "0.10"
 
 [profile.dev]
 # ALC-159 : le décodage Symphonia, les FFT rustfft et les boucles DSP d'analyse tournent à pleine

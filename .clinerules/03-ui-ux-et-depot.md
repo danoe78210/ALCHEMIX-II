@@ -28,3 +28,8 @@ Ne pas lancer `list_files` / `search_files` inutilement :
 ## 4. Lectures ciblées & Garde-fou anti-boucle
 - Lire uniquement les plages de lignes nécessaires (`read_file` ciblé) plutôt que des fichiers entiers de plus de 400 lignes (notamment `audio.rs` et `tasks.json`).
 - En cas d'échec de compilation répété (2 tentatives sur la même erreur), stopper les modifications hasardeuses, diagnostiquer la cause racine précise et corriger proprement.
+## Skills methodologiques (obra/superpowers adaptees)
+References concises (aucun sous-agent lourd ni questionnaire superflu) :
+- .agents/skills/systematic-debugging/SKILL.md : a invoquer des qu'un bug / erreur IPC / regression apparait, avant toute modification hasardeuse (cause racine exacte, cycle 4 phases, garde-fou 2 tentatives).
+- .agents/skills/verification-before-completion/SKILL.md : a invoquer avant de cocher completed:true ou de passer un ticket en En revue (preuve d'execution requise adaptee au perimetre).
+- .agents/skills/tdd-audio-logic/SKILL.md : a invoquer avant toute nouvelle formule Camelot / piste pont / courbe AUTO-MIX / requete SQLite (RED->GREEN->REFACTOR).

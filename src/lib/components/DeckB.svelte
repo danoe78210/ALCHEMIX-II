@@ -58,6 +58,8 @@
       mixerStore.registerPlayer('B', player);
     }
     await player.resume();
+    // ALC-178 : rattache les stems CACHÉS au Player réel (créé lazyment) sinon PLAY joue le mono complet.
+    await mixerStore.ensureStemsLoaded('B');
     if (deck.filePath && player.sourcePath !== deck.filePath) {
       try {
         const bytes = await audioIpc.readAudioFileBytes(deck.filePath);
@@ -79,13 +81,9 @@
     }
   }
 
-  function stopPlayer() {
-    cancelAnimationFrame(meterRaf);
-    mixerStore.resetLevels('B');
-    if (!player) return;
-    if (deck.transport === 'paused') player.pause();
-    else player.stop();
-  }
+  // ALC-184 : coupure gérée directement dans les branches EXPLICITES du $effect(deck.transport).
+  // L'unique Player est créé dans startPlayer(), enregistré dans le store (registerPlayer) puis
+  // réutilisé via getPlayer(id) — aucune instance locale orpheline ne tourne en parallèle.
 
   function seekDeck(delta: number) {
     const ne = mixerStore.seek(deck.id, delta);
@@ -121,10 +119,19 @@
     needleRaf = requestAnimationFrame(easeGalvanometer);
   }
 
-  // ALC-136 : démarre/arrête la lecture réelle (Player WebAudio) selon le transport.
+  // ALC-136 / ALC-184 : démarre/arrête la lecture selon le transport — branches explicites et réactives.
   $effect(() => {
-    if (deck.transport === 'playing') startPlayer();
-    else stopPlayer();
+    if (deck.transport === 'playing') {
+      void startPlayer();
+    } else if (deck.transport === 'paused') {
+      cancelAnimationFrame(meterRaf);
+      mixerStore.resetLevels('B');
+      player?.pause();
+    } else if (deck.transport === 'stopped') {
+      cancelAnimationFrame(meterRaf);
+      mixerStore.resetLevels('B');
+      player?.stop();
+    }
   });
   // ALC-132-4 / ALC-143 : LOW EQ (filtre grave lowshelf 120 Hz) + atténuation auto Smart Filter.
   $effect(() => {
@@ -287,6 +294,8 @@
   <div class="relative w-full rounded-lg bg-gradient-to-b from-[#251e18] via-[#1a1410] to-[#130f0c] p-2.5 border border-[#4a3b2c]/60 shadow-[0_8px_20px_rgba(0,0,0,0.95)] overflow-hidden">
     <!-- Cassette Shell Glass Gloss & Texture Reflection -->
     <div class="absolute inset-0 bg-gradient-to-tr from-white/5 via-transparent to-white/10 pointer-events-none rounded-lg z-20"></div>
+    <!-- ALC-172 : coque photographique HD (transparente sur fenêtre/bobines) superposée -->
+    <img src="/assets/cassette-shell.png" alt="" class="pointer-events-none absolute inset-0 w-full h-full object-cover z-30" />
     
     <!-- Corner Screws (4 brass/metal screws) -->
     <div class="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-[#8c7853] border border-[#2e261a] flex items-center justify-center shadow-inner z-20">
@@ -303,7 +312,7 @@
     </div>
 
     <!-- Realistic Vintage Ivory / Beige Label Card -->
-    <div class="relative bg-[#efe5cf] text-[#1c1611] rounded p-2 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] border border-[#c5b597] z-10 flex flex-col gap-1">
+    <div class="relative bg-[#efe5cf] text-[#1c1611] rounded p-2 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] border-2 border-[#3b82f6]/70 z-40 flex flex-col gap-1">
       <!-- Top Label Specifications -->
       <div class="flex items-center justify-between border-b border-[#c8b99d] pb-1">
         <div class="flex items-center gap-1.5">
@@ -444,6 +453,54 @@
 </div>
 </div>
 </div>
+{#if deck.filePath}
+  <!-- ALC-174-4 : Mini-rack horloger STEMS IA (HTDemucs / ONNX local) -->
+  <div class="bg-surface-container-high rounded-xl p-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
+    <div class="flex items-center justify-between pb-1 border-b border-surface-variant/40 mb-1 px-space-xs">
+      <span class="font-label-sm text-[9px] text-[#edbf7a] uppercase tracking-widest">STEMS IA</span>
+      <span class="font-mono text-[8px] text-outline uppercase">HTDemucs • local</span>
+    </div>
+    <div class="flex flex-col gap-1.5 pt-1 px-space-xs">
+      {#if deck.stemsStatus === 'ready'}
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[8px] text-[#3b82f6] font-label-sm font-bold uppercase tracking-wider">✓ 4 stems prêts</span>
+          <button type="button" onclick={() => mixerStore.exportDeckStems(deck.id)}
+            class="px-1.5 py-0.5 rounded border border-[#4a3b2c]/70 bg-gradient-to-b from-[#3a2f24] to-[#201a12] text-[#edbf7a] font-label-sm text-[8px] font-bold uppercase tracking-wider hover:brightness-125 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[10px]">{deck.stemsExported ? 'check' : 'download'}</span>
+            <span>{deck.stemsExported ? '✓ EXPORTÉS' : '↓ EXPORTER WAV'}</span>
+          </button>
+        </div>
+      {:else if deck.stemsStatus === 'separating'}
+        <div class="flex items-center gap-2">
+          <div class="flex-1 h-1.5 bg-surface-container-lowest rounded-full overflow-hidden">
+            <div class="h-full bg-[#edbf7a]" style="width:{deck.stemsProgress}%"></div>
+          </div>
+          <span class="text-[9px] font-mono text-[#edbf7a] tabular-nums">{deck.stemsProgress}%</span>
+        </div>
+      {:else if deck.stemsStatus === 'error'}
+        <span class="text-[8px] text-[#ffb4ab] font-label-sm uppercase tracking-wider">⚠ échec extraction</span>
+      {/if}
+      <button type="button" onclick={() => mixerStore.extractDeckStems(deck.id)}
+        disabled={!deck.filePath || deck.stemsStatus === 'separating' || deck.stemsStatus === 'ready'}
+        class="w-full text-left px-2 py-1 rounded bg-gradient-to-b from-[#2f2925] to-[#1a1410] border border-[#4a3b2c]/70 text-[#edbf7a] font-label-sm text-[10px] font-bold uppercase tracking-wider hover:brightness-125 disabled:opacity-40 transition-all">
+        {deck.stemsStatus === 'ready' ? '✓ STEMS PRÊTS' : '⚡ EXTRAIRE STEMS'}
+      </button>
+      <div class="grid grid-cols-4 gap-1">
+        {#each [['vocals','VOIX'],['drums','BATT'],['bass','BASSE'],['other','INST']] as [k, label] (k)}
+          {@const stem = k as 'vocals' | 'drums' | 'bass' | 'other'}
+          <button type="button" onclick={() => mixerStore.toggleStemMute(deck.id, stem)}
+            oncontextmenu={(e) => { e.preventDefault(); mixerStore.soloStem(deck.id, stem); }}
+            class="px-1 py-1 rounded border font-label-sm text-[8px] font-bold uppercase tracking-wider transition-colors {deck.stemMutes[stem] ? 'bg-surface-container-lowest text-outline border-transparent opacity-50' : (stem === 'vocals' ? 'bg-[#10b981]/15 text-[#10b981] border-[#10b981]/40' : 'bg-[#3b82f6]/15 text-[#3b82f6] border-[#3b82f6]/40')}"
+            title="Clic = Mute • Clic droit / Alt+Clic = Solo">{label}</button>
+        {/each}
+      </div>
+      <div class="flex items-center gap-1">
+        <button type="button" onclick={() => mixerStore.setStemPreset(deck.id, 'acapella')} class="flex-1 px-1.5 py-1 rounded bg-[#10b981]/10 border border-[#10b981]/40 text-[#10b981] font-label-sm text-[8px] font-bold uppercase tracking-wider hover:bg-[#10b981]/20">ACAPELLA</button>
+        <button type="button" onclick={() => mixerStore.setStemPreset(deck.id, 'instrumental')} class="flex-1 px-1.5 py-1 rounded bg-[#194f47]/30 border border-[#3b82f6]/40 text-[#3b82f6] font-label-sm text-[8px] font-bold uppercase tracking-wider hover:brightness-125">INST</button>
+      </div>
+    </div>
+  </div>
+{/if}
 <!-- ALC-137-4 : ÉGALISEUR ANALOGIQUE 2 bandes (LOW EQ / HIGH EQ) pleine largeur -->
 <div class="bg-surface-container-high rounded-xl p-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
   <div class="flex items-center justify-between pb-1 border-b border-surface-variant/40 mb-1 px-space-xs">
@@ -499,7 +556,7 @@
 <span class="font-label-sm text-label-sm {deck.transport === 'playing' ? 'text-sky-300 font-bold' : 'text-outline-variant group-hover:text-on-surface'}">PLAY</span>
 </button>
 <!-- STOP -->
-<button onclick={() => mixerStore.setTransport(deck.id, 'stopped')} disabled={!deck.filePath} class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] disabled:opacity-40 disabled:pointer-events-none group">
+<button onclick={() => { player?.stop(); mixerStore.stopDeck(deck.id); }} disabled={!deck.filePath} class="flex flex-col items-center justify-center py-space-sm bg-surface-container-high hover:bg-surface-container-highest active:translate-y-0.5 transition-all rounded shadow-[0_2px_4px_rgba(0,0,0,0.7)] disabled:opacity-40 disabled:pointer-events-none group">
 <span class="material-symbols-outlined text-[18px] text-primary">stop</span>
 <span class="font-label-sm text-label-sm text-outline-variant group-hover:text-on-surface">STOP</span>
 </button>

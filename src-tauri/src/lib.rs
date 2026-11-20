@@ -4,6 +4,7 @@ mod audio;
 mod commands;
 mod error;
 mod library;
+mod stems;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -31,7 +32,10 @@ pub fn run() {
             library::library_delete_track,
             library::library_toggle_duo,
             library::library_list_duos,
-            library::library_update_track_meta
+            library::library_update_track_meta,
+            stems::check_cached_stems,
+            stems::separate_stems,
+            stems::export_stems_to_folder
         ])
         .run(tauri::generate_context!())
         .expect("Erreur critique lors du lancement d'AlcheMix II");

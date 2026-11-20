@@ -1,4 +1,6 @@
-import { mimeFromPath, type Player } from '$lib/audio/player';
+import { mimeFromPath, type Player, type StemName, STEM_NAMES } from '$lib/audio/player';
+import { Channel } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
 import { audioIpc, type StemPaths, type TrackData, type KeySeg, type TrackSegment } from '$lib/ipc/client';
 import { searchMusicBrainz, fetchCoverArtArchive, fetchAcousticBrainzKey } from '$lib/ipc/meta';
 import { resolveHybridCamelotKey } from '$lib/audio/hybridKey';
@@ -56,6 +58,12 @@ export interface DeckState {
   filePath: string | null;
   stems: StemPaths | null;
   isExtractingStems: boolean;
+  // ALC-174-3 : séparation 4 Stems IA (HTDemucs / ONNX local).
+  stemsStatus: 'idle' | 'separating' | 'ready' | 'error';
+  stemsProgress: number;
+  stemGains: Record<StemName, number>;
+  stemMutes: Record<StemName, boolean>;
+  stemsExported: boolean; // ALC-177 : confirmation visuelle temporaire après export (3 s).
   isAnalyzing: boolean;
   lastError: string | null;
 }
@@ -91,6 +99,11 @@ class AlchemixMixerStore {
     id: 'A',
     theme: 'emerald',
     channelTitle: 'TAPE A • CANAL VERT ÉMERAUDE',
+    stemsExported: false,
+    stemsStatus: 'idle',
+    stemsProgress: 0,
+    stemGains: { vocals: 1, drums: 1, bass: 1, other: 1 },
+    stemMutes: { vocals: false, drums: false, bass: false, other: false },
     channelSub: 'DECK A • CANAL PRIMAIRE',
     perimeterLabel: 'CHRONO-PÉRIMÈTRE 01',
     sideLetter: 'A',
@@ -141,6 +154,11 @@ class AlchemixMixerStore {
     id: 'B',
     theme: 'blue',
     channelTitle: 'TAPE B • CANAL BLEU ÉLECTRIQUE',
+    stemsExported: false,
+    stemsStatus: 'idle',
+    stemsProgress: 0,
+    stemGains: { vocals: 1, drums: 1, bass: 1, other: 1 },
+    stemMutes: { vocals: false, drums: false, bass: false, other: false },
     channelSub: 'DECK B • CANAL SECONDAIRE',
     perimeterLabel: 'CHRONO-PÉRIMÈTRE 02',
     sideLetter: 'B',
@@ -467,6 +485,12 @@ class AlchemixMixerStore {
     if (mode === 'stopped') deck.elapsedSeconds = 0;
   }
 
+  /** ALC-184 : coupure audio DIRECTE (récupère l'unique Player enregistré) puis transport 'stopped'. */
+  stopDeck(id: DeckId) {
+    this.getPlayer(id)?.stop(); // coupure matérielle : stems + mono + AudioContext.suspend().
+    this.setTransport(id, 'stopped');
+  }
+
   /** Navigation rapide ±20 s (REW / FFWD) — renvoie la nouvelle position pour synchroniser le Player. */
   seek(id: DeckId, delta: number) {
     const deck = this.getDeck(id);
@@ -532,6 +556,11 @@ class AlchemixMixerStore {
       await this.enrichMetadataFromExternal(id, data);
       // Actualise immédiatement le BPM effectif & la clé Camelot via le pont IPC (ALC-006-3)
       await this.refreshTempoCamelot(id);
+      // ALC-174-3 : active instantanément les 4 stems déjà séparés (cache disque) si présents.
+      // ALC-175 : remise à zéro du mode stems avant (re)chargement — source mono réactivée.
+      this.getPlayer(id)?.setStemMode(false);
+      this.getPlayer(id)?.disposeStems();
+      await this.applyCachedStems(id, data.path);
     } catch (err) {
       deck.lastError = err instanceof Error ? err.message : 'Échec de chargement audio';
     } finally {
@@ -551,6 +580,153 @@ class AlchemixMixerStore {
     } finally {
       deck.isExtractingStems = false;
     }
+  }
+
+  // ── ALC-174-3 : séparation 4 Stems IA (cache + Mute / Solo / Presets) ──
+
+  /** Au chargement d'une piste : active instantanément les stems déjà séparés (cache disque). */
+  async applyCachedStems(id: DeckId, path: string) {
+    const deck = this.getDeck(id);
+    try {
+      const cached = await audioIpc.checkCachedStems(path);
+      if (cached) {
+        deck.stemsStatus = 'ready';
+        deck.stems = cached;
+        deck.stemsProgress = 100;
+        this.getPlayer(id)?.disposeStems();
+        await this.getPlayer(id)?.loadStems(cached);
+        this.activateStems(id);
+      } else {
+        deck.stemsStatus = 'idle';
+      }
+    } catch (err) {
+      deck.stemsStatus = 'idle';
+      deck.lastError = err instanceof Error ? err.message : 'Vérification du cache stems échouée';
+    }
+  }
+
+  /** Lance la séparation 4 Stems (HTDemucs / ONNX local) avec progression en direct. */
+  async extractDeckStems(id: DeckId) {
+    const deck = this.getDeck(id);
+    const path = deck.filePath;
+    if (!path) return;
+    deck.stemsStatus = 'separating';
+    deck.stemsProgress = 0;
+    const ch = new Channel<number>();
+    ch.onmessage = (p: number) => {
+      deck.stemsProgress = Math.round(Math.max(0, Math.min(1, p)) * 100);
+    };
+    try {
+      const r = await audioIpc.separateStems(path, ch);
+      deck.stemsStatus = 'ready';
+      deck.stems = r;
+      deck.stemsProgress = 100;
+      this.getPlayer(id)?.disposeStems();
+      await this.getPlayer(id)?.loadStems(r);
+      this.activateStems(id);
+    } catch (err) {
+      deck.stemsStatus = 'error';
+      deck.lastError = err instanceof Error ? err.message : 'Séparation des stems échouée';
+    }
+  }
+
+  /**
+   * ALC-175 : active le mode stems EXCLUSIF (mono déconnecté) après chargement des 4 buffers ;
+   * si le deck jouait déjà, reprend instantanément via les stems à la position courante.
+   */
+  activateStems(id: DeckId) {
+    const p = this.getPlayer(id);
+    const d = this.getDeck(id);
+    if (!p) return;
+    p.setStemMode(true);
+    this.applyStemMutes(id);
+    if (d.transport === 'playing') void p.play();
+  }
+
+  /** Applique les gains dérivés des mutismes (latence zéro via les GainNode stems). */
+  applyStemMutes(id: DeckId) {
+    const d = this.getDeck(id);
+    const p = this.getPlayer(id);
+    for (const s of STEM_NAMES) {
+      const gain = d.stemMutes[s] ? 0 : 1;
+      d.stemGains[s] = gain;
+      p?.setStemGain(s, gain);
+    }
+    // ALC-178 : diagnostic console — Player réel + gains RÉELS des 4 GainNode stems.
+    const diag = Object.fromEntries(
+      STEM_NAMES.map((s) => [s, p ? p.stemGainValue(s) : null])
+    ) as Record<StemName, number | null>;
+    console.log(
+      `[STEMS-DEBUG] MUTE deck=${id} player=${p ? `#${p.id}` : 'NULL'} stemModeActive=${p?.isStemModeActive() ?? false} mutes=${JSON.stringify(d.stemMutes)} gains=${JSON.stringify(diag)}`
+    );
+  }
+
+  /**
+   * ALC-178 : re-synchronise les stems dans le Player RÉEL que s'ils n'y sont pas encore.
+   * Cause racine du bug « ✓ STEMS PRÊTS mais voix audible » : à l'instant où applyCachedStems()
+   * s'exécutait (au chargement d'une piste), getPlayer(id) était NULL (le Player n'est créé
+   * que lazyment sur le 1er PLAY) → loadStems était un no-op, le store affichait 'ready' mais le
+   * Player n'avait ni buffers ni GainNode → PLAY jouait le mix mono complet (voix incluse).
+   */
+  async ensureStemsLoaded(id: DeckId) {
+    const d = this.getDeck(id);
+    const p = this.getPlayer(id);
+    if (!p || d.stemsStatus !== 'ready' || !d.stems) return;
+    if (p.isStemModeActive()) return; // déjà chargées sur CE Player — pas de re-décodage à chaque PLAY.
+    // ALC-176 : repartir du mode mono (reconnexion propre) avant de charger les stems.
+    p.setStemMode(false);
+    p.disposeStems();
+    await p.loadStems(d.stems);
+    // Verrou exclusif stems + application des mutes COURANTES (premier PLAY inclus, donc un
+    // VOIX coupé avant PLAY est respecté). PAS d'auto-play ici : startPlayer() gère play().
+    p.setStemMode(true);
+    this.applyStemMutes(id);
+  }
+
+  toggleStemMute(id: DeckId, stem: StemName) {
+    const d = this.getDeck(id);
+    d.stemMutes[stem] = !d.stemMutes[stem];
+    this.applyStemMutes(id);
+  }
+
+  /** ALC-177 : exporte les 4 WAV stems vers un dossier choisi via le sélecteur natif. */
+  async exportDeckStems(id: DeckId) {
+    const d = this.getDeck(id);
+    if (!d.filePath || d.stemsStatus !== 'ready') return;
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: 'Choisir le dossier d’export des 4 Stems',
+      });
+      if (typeof selected !== 'string' || !selected) return; // annulé par l'utilisateur
+      const prefix = [d.artist, d.trackTitle].filter((x) => x && x.trim()).join(' - ');
+      await audioIpc.exportStemsToFolder(d.filePath, selected, prefix || null);
+      d.stemsExported = true;
+      window.setTimeout(() => {
+        d.stemsExported = false;
+      }, 3000);
+    } catch (err) {
+      d.lastError = err instanceof Error ? err.message : 'Export des stems échoué';
+    }
+  }
+
+  soloStem(id: DeckId, stem: StemName) {
+    const d = this.getDeck(id);
+    for (const s of STEM_NAMES) d.stemMutes[s] = s !== stem;
+    this.applyStemMutes(id);
+  }
+
+  setStemPreset(id: DeckId, preset: 'all' | 'acapella' | 'instrumental') {
+    const d = this.getDeck(id);
+    if (preset === 'all') {
+      for (const s of STEM_NAMES) d.stemMutes[s] = false;
+    } else if (preset === 'acapella') {
+      for (const s of STEM_NAMES) d.stemMutes[s] = s !== 'vocals';
+    } else {
+      for (const s of STEM_NAMES) d.stemMutes[s] = s === 'vocals';
+    }
+    this.applyStemMutes(id);
   }
 
   /**
@@ -635,9 +811,16 @@ class AlchemixMixerStore {
     }
   }
 
-  /** Décharge la piste d'un platine (ALC-129) : arrêt, vidage filePath, reset piste/pochette. */
+  /** Décharge la piste d'un platine (ALC-129 / ALC-183) : arrêt AUDIO réel puis reset complet. */
   eject(id: DeckId) {
     const deck = this.getDeck(id);
+    // ALC-183 : le bouton EJECT doit COUPER le son et libérer le Player — pas seulement vider
+    // l'état du store (sinon les stems/mono continuent de tourner et l'URL blob n'est pas révoquée).
+    const p = this.getPlayer(id);
+    p?.stop(); // coupe stems + mono, invalide toute lecture en vol (génération + verrou).
+    p?.disposeStems(); // libère GainNode / EQ / buffers stems.
+    p?.setStemMode(false); // retour propre au mono pur (unmute + reconnexion srcNode).
+    p?.clearSource(); // révoque l'URL blob + vide src mono.
     deck.transport = 'stopped';
     deck.filePath = null;
     deck.trackTitle = '';
@@ -661,6 +844,20 @@ class AlchemixMixerStore {
     deck.durationSeconds = 0;
     deck.codec = '—';
     deck.lastError = null;
+    // ALC-183 : reset STEMS complet (pas seulement filePath) — jamais de « stems prêts » orphelins.
+    deck.stems = null;
+    deck.stemsStatus = 'idle';
+    deck.stemsProgress = 0;
+    deck.isExtractingStems = false;
+    deck.stemsExported = false;
+    deck.stemGains = { vocals: 1, drums: 1, bass: 1, other: 1 };
+    deck.stemMutes = { vocals: false, drums: false, bass: false, other: false };
+    // ALC-183 : métriques de télémétrie remises à leur place « vide ».
+    deck.sampleRate = '—';
+    deck.bitrate = '—';
+    deck.stereoMode = '—';
+    deck.freqResponse = '—';
+    deck.peakVuDb = '—';
   }
 
   /** Déclenche l'analyse temps réel sur les deux decks (utilisé lors du chargement/analyse). */

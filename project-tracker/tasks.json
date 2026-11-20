@@ -12,10 +12,306 @@
       "En revue",
       "Terminé"
     ],
-    "version": "1.50.0",
-    "updatedAt": "2026-11-18T01:35:00.000+01:00"
+    "version": "1.18.3",
+    "updatedAt": "2026-11-20T14:12:00.000Z"
   },
   "tasks": [
+    {
+      "id": "ALC-185",
+      "title": "Tests reels Bon Jovi - Livin On A Prayer (stems-v6) : excellent global 17,5/20 mais residus — cymbales crash >6,5 kHz dans les refrains denses et instruments solistes/talk-box dans les intros sans chant. Objectif : Wiener K(f) par bande + gate d activite vocale doux + cache v7",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Polish",
+      "subtasks": [
+        {
+          "id": "ALC-185-1",
+          "title": "Masque de Wiener frequentionnel & gate d activite vocale : stems.rs — 1) ponderation K(f) du Wiener : <120 Hz K=4.0 (grosse caisse/basse), 300-4200 Hz K=1.5 (formants), >6500 Hz K=3.5 (cymbales crash/hat rock) ; 2) gate d activite vocale doux sur trames 250 ms (attaque 20 ms, relachement 100 ms) : si rms vocals < 12%% de rms instrumentale (drums+bass+other) -> gain 0.125 (-18 dB) sans couper les attaques de mots ; 3) cache stems-v6 -> stems-v7. cargo check 0/0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-185-2",
+          "title": "Tests TDD + validation : test Rust verifiant 1) l attenuation a 8 kHz (cymbale dominante) plus forte qu a 1 kHz (formant) ; 2) le gate attenue un passage instrumental de faible ratio et laisse passer une entree vocale (gain >= 0.95). cargo check + cargo test --lib -- --test-threads=1 + npm run check (0 erreur/0 warning) ; docs/SPECIFICATIONS.md ; barrer ALC-185-2 ; basculer ALC-185 En revue.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-20T12:10:00.000+01:00"
+    },
+    {
+      "id": "ALC-184",
+      "title": "En test reel dans l application : STOP remet bien le ROLL a 00:00 MAIS la chanson continue a jouer apres ALC-183 (garde + suspend manquant) ; + reduction du bleed instrumental (Spaceman - guitars/cymbales) sur le stem vocals (overlap 50% + Wiener soft-mask vocals vs other/drums + cache v6)",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Régression",
+      "subtasks": [
+        {
+          "id": "ALC-184-1",
+          "title": "STOP cablage direct & reactif + unicite Player : verifier que DeckA/B enregistrent immediatement leur Player (registerPlayer) et reutilisent getPlayer(id) ; bouton STOP onClic -> player?.stop() PUIS stopDeck(id) ; ajouter stopDeck(id) dans mixer.svelte.ts (getPlayer(id)?.stop() + setTransport(id,stopped)) ; le $effect de transport prend des branches explicites stopped(pause) -> player?.stop()/pause(). npm run check 0/0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-184-2",
+          "title": "Coupure materielle dans Player.stop() : incrementer _playGen, arrete+deconnecte tous les stemNodes, audio.pause, currentTime=0, muted=true (si stemModeActive) et void this.ctx?.suspend() afin qu AUCUN son ne sorte tant qu un nouveau play()/playStems() (resume) n est pas declenche. Test node etendu (ctx suspendu apres stop). npm run check + node --test 0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-184-3",
+          "title": "Reduction bleed vocals : overlap-add 50% (HOP_RATIO 0.5, Hann symetrique, COLA) dans stems.rs + Wiener soft-mask entre vocals et other/drums : lorsque energie locale d une bande de other+drums depasse nettement celle de vocals (cymbales >7 kHz, guitares saturees), attenue proportionnellement le residu vocals en preservant les crenes formants ; cache stems-v5 -> stems-v6. Test unitaire Rust (TDD) : attenue un composant 8 kHz dominant dans other, preserve un formant 440 vocal. cargo check + cargo test 0/0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-184-4",
+          "title": "Validation & cloture : npm run check + cargo check + cargo test --lib -- --test-threads=1 (0 erreur/0 warning) ; docs/SPECIFICATIONS.md ; barrer ALC-184-4 ; basculer ALC-184 En revue ; rapport final journals.json.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-20T11:15:00.000+01:00"
+    },
+    {
+      "id": "ALC-183",
+      "title": "Echec critique en conditions reelles apres ALC-182 : STOP pendant la lecture stems relance la version mono originale (ROLL+galvanometre se figent mais le son continue) et EJECT ne fonctionne plus correctement — la garde ALC-182 (test mocke) na pas couvert la course asynchrone reelle (effet $effect async) ni le nettoyage EJECT",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Regression",
+      "subtasks": [
+        {
+          "id": "ALC-183-1",
+          "title": "Tracer la chaine reelle des clics STOP et EJECT : inspecter tous les gestionnaires et $effect de DeckA/DeckB/mixer.svelte.ts/player.ts — 1) ordre exact au clic STOP (setTransport -> $effect -> stopPlayer -> player.stop / setStemMode / relance audio.play par continuation asynchrone) ; 2) pourquoi ROLL+galvanometre se figent (deck.transport=stopped) alors qu un flux audio parasite (mono ou stem orphelin) tourne ; 3) pourquoi EJECT ne nettoie pas (absence de player.stop + disposeStems + setStemMode(false) + revocation blob + reset store). Journaliser les 3 constats.",
+          "completed": true
+        },
+        {
+          "id": "ALC-183-2",
+          "title": "Correction complete STOP & EJECT en mode stems : STOP coupe 100% des sources (stems ET mono paused+currentTime=0+muted tant que stems actifs), AUCUN $effect/callback ne relance audio.play ni playStems tant que deck.transport !== playing (garde de generation dans Player.play/playStems invalidee par stop/pause), transport=stopped + elapsedSeconds=0 + galvanometre -20 dB ; EJECT execute player.stop + disposeStems + setStemMode(false) + revelation blob (clearSource) + reset integral store (filePath null, stemsStatus idle, stems null, transport stopped, elapsedSeconds 0, metriques ---). Test node agrandi (course play/stop + mono non relance). npm check + cargo check + cargo test 0/0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-183-3",
+          "title": "Validation & cloture : spec docs/SPECIFICATIONS.md, barrer ALC-183-3, basculer ALC-183 En revue, rapport final journals.json.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-20T10:40:00.000+01:00"
+    },
+    {
+      "id": "ALC-182",
+      "title": "Regressions transport/animation en mode multi-stems (stemModeActive) + leger debordement d'aigus sur vocals : STOP ne coupe pas les 4 AudioBufferSourceNode (mono deja verrouille muet) -> le son continue + superposition de couches au PLAY ; bobines/bande sur etat unifie (transport/elapsedSeconds) et galvanometre a -20 dB au stop ; nettoyage spectral doux du stem vocals (coupe-bas < 85 Hz + adoucissement > 11 kHz cymbales/charleston)",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Regression",
+      "subtasks": [
+        {
+          "id": "ALC-182-1",
+          "title": "Reparation STOP & rotation cassettes en mode stems : Player.stop() doit, quand stemModeActive, appeler pauseStems() (arrete/detruit les 4 AudioBufferSourceNode), remettre la position stems a 0 (stemStartOffset/stemStartCtx, audio.currentTime=0), laisser transport=stopped et le galvanometre retomber a -20 dB (pilote par transport/resetLevels) ; VERIFIER l'invariant animation : bobines + defilement bande pilotes par deck.transport === playing + deck.elapsedSeconds, ABSENCE de toute dependance a !audioElement.paused. npm run check 0/0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-182-2",
+          "title": "Nettoyage spectral doux du stem vocals : AUDITER le mapping stems.rs (vocals = indice 3 HTDemucs, aucun residu de other injecte - deja prouve ALC-181) puis appliquer dans le graphe WebAudio Player.ts sur le canal vocals un EQ transparent non destructif : highpass 85 Hz (coupe sub-vocal/ronflement) + adoucissement > ~11 kHz (fuites cymbales/charlestons), branche per-stem dediee, dispose propre. cargo check + npm run check 0/0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-182-3",
+          "title": "Test unitaire stop() en mode stems (node --test) : arret des sources (stemNodes .stop() appele + vide, stemPlaying=false), position=0 apres stop, et contrat transport stopped + elapsedSeconds=0 (setTransport store) ; npm run check + cargo check + cargo test --lib -- --test-threads=1 (0 erreur/0 warning) ; docs/SPECIFICATIONS.md ; passage En revue.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-20T08:34:00.000+01:00"
+    },
+    {
+      "id": "ALC-181",
+      "title": "Échec critique sur morceau réel après ALC-180 : l'écoute et la forme d'onde de vocals.wav (cache stems-v4) montrent un bourdonnement/grondement saturé continu à pleine échelle au lieu de la voix — en-tête WAV malformé suspecté (bitsPerSample=2 au lieu de 16 dans le chunk fmt ) ou contrat I/O htdemucs.onnx inexact — audit réel avant correctif",
+      "status": "En revue",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Bug DPRIP",
+      "subtasks": [
+        {
+          "id": "ALC-181-1",
+          "title": "Audit réel du contrat I/O de htdemucs.onnx & du layout mémoire : ① session.inputs()/outputs() réels (noms, dtypes, shapes exacts — vérifier 1 ou 2 entrées [1,2,343980] (+ STFT spectral ?) et 1 seule sortie sources [1,4,2,343980]) ; ② layout Planar vs entrelacé à l'entrée (L-planar) et offset de lecture sortie ((stem*2+ch)*seg+i) ; ③ diagnostic spectral multi-fréquences sur le vrai modèle (kick 60 Hz pulsé + basse 110 Hz + formants vocaux modulés 300-2500 Hz + zones silencieuses) : énergie par stem + absence de saturation/bruit en silence ; ④ analyse du WAV réel du cache stems-v4 : en-tête chunk fmt  malformé ? (déjà mesuré : bitsPerSample=02 00 au lieu de 10 00). Journaliser les constats chiffrés.",
+          "completed": true
+        },
+        {
+          "id": "ALC-181-2",
+          "title": "Correctif définitif : si l'en-tête WAV est la cause (bitsPerSample 2→16 dans write_wav_stereo_i16 et toute sortie 2e entrée STFT écartée par preuve runtime) + cache stems-v4 → stems-v5 dans cache_root() (ignore les WAV corrompus) + remplacement du test sinusoïdal permissif par un GATE de séparation multi-sources (zones silencieuses → rms sortie < 0.005 ; kick 60 Hz → majoritairement drums/bass ; formants 400-2000 Hz modulés → majoritairement vocals/other) + assertion d'intégrité d'en-tête WAV (fmt/16/44100/2ch/bits=16). cargo check + cargo test --lib -- --test-threads=1 + npm run check : 0 erreur/0 warning.",
+          "completed": true
+        },
+        {
+          "id": "ALC-181-3",
+          "title": "docs/SPECIFICATIONS.md (cause racine + correctif + gate multi-sources + cache stems-v5) ; passage ticket En revue ; rapport final journals.json.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-20T07:44:00.000+01:00"
+    },
+    {
+      "id": "ALC-180",
+      "title": "Rendu stem catastrophe après ALC-179 : les WAV de stems-v3 contiennent du son mais le rendu audio est bruyant et déforme extrêmement le signal original — la séparation reconstruit mal (WOLA / normalisation / gain)",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Bug DPRIP",
+      "subtasks": [
+        {
+          "id": "ALC-180-1",
+          "title": "Audit math/signal stems.rs : ① SNR de reconstruction (somme drums+bass+other+vocals vs entrée, sinusoïde 440 Hz/0.5 et composite 100+440+2000 Hz, erreur RMS < 0.05) ; ② normalisation entrée/sortie attendue par htdemucs.onnx (graphe ONNX / référence Demucs : (x-mean)/std intégré ? à appliquer par segment ?) ; ③ WOLA overlap-add (pondération Hann UNE fois, wsum[i] aligné avec acc_l[i], ordre [s,c,i], entrelacement i16 gauche/droite) ; ④ decode symphonia SampleBuffer<f32> + resampling 44,1 kHz sans repliement/décalage L/R. Journaliser les mesures exactes (SNR/Pearson/pics) avant tout code.",
+          "completed": true
+        },
+        {
+          "id": "ALC-180-2",
+          "title": "Correctif DSP stems.rs (séparation propre/fidèle/sans distorsion) + cache stems-v3 → stems-v4 dans cache_root() + gate de fidélité : sur composite stéréo (L 440 Hz/0.5, R 880 Hz/0.5), somme des 4 WAV régénérés doit avoir Pearson > 0.95 vs original ET pic entre 0.35 et 0.65 (11400..21300 en i16) ; canaux L/R ni mélangés ni inversés. cargo check + cargo test --lib -- --test-threads=1 + npm run check : 0 erreur/0 warning.",
+          "completed": true
+        },
+        {
+          "id": "ALC-180-3",
+          "title": "docs/SPECIFICATIONS.md (cause racine + correctif + gate fidélité + cache stems-v4) ; passage ticket En revue ; rapport final journals.json.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-19T13:00:00.000+01:00"
+    },
+    {
+      "id": "ALC-179",
+      "title": "Silence numérique : les 4 WAV stems exportés (ALC-177) ne contiennent QUE des zéros (0 audio) — l'inférence ONNX produit des échantillons ~0 malgré un signal d'entrée non nul → mutisme complet en mode stems (complément d'ALC-178) et diagnostic aveugle des tests len>44",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Bug DPRIP",
+      "subtasks": [
+        {
+          "id": "ALC-179-1",
+          "title": "Diagnostic réel ONNX (sans modifier la logique) : sinusoïde stéréo 440 Hz amp 0.5 (2 s @44,1 kHz) — ① amplitude d'entrée (min/max/rms, double division 32768 ?) ; ② session.outputs() → nombre + noms/shapes exacts (sortie 0 = spectral intermédiaire vs sortie 1 = onde temporelle [1,4,2,n], ou inversé) ; ③ max_abs de CHAQUE source (drums/bass/other/vocals) juste après try_extract_tensor ET après normalisation overlap-add + avant écriture i16 (NaN / double mise à l'échelle 1/32768). Journaliser les valeurs chiffrées.",
+          "completed": true
+        },
+        {
+          "id": "ALC-179-2",
+          "title": "Correctif stems.rs (sélection du bon tenseur temporel, mise à l'échelle f32 [-1,1], overlap-add sans NaN/écrasement) + cache stems-v2 → stems-v3 dans cache_root() (ignore les WAV silencieux) + gate acoustique strict : dans stems_2s_4_wavs_and_cache (sinusoïde 440 Hz amp 0.5), max_abs décodé des 4 WAV doit être > 0.05 (> ~1600 en i16). cargo check + cargo test --lib -- --test-threads=1 + npm run check : 0 erreur/0 warning.",
+          "completed": true
+        },
+        {
+          "id": "ALC-179-3",
+          "title": "docs/SPECIFICATIONS.md (cause racine + correctif + gate acoustique + cache stems-v3) ; passage ticket En revue ; rapport final journals.json.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-19T11:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-178",
+      "title": "Régression réelle « ✓ 4 STEMS PRÊTS mais VOIX toujours audible malgré mute » : au chargement d'une piste, le cache stems est appliqué quand getPlayer(id) est NULL (Player créé lazyment au 1er PLAY) → loadStems no-op, store 'ready' mais Player sans buffers/GainNode → PLAY joue le mono complet (voix incluse)",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Bug DPRIP",
+      "subtasks": [
+        {
+          "id": "ALC-178-1",
+          "title": "Audit réel de bout en bout (4 vérifications) : ① cache_root() = stems-v2 (aucun stem-v1/v2 obsolète lu, mapping canonique OK → cache NON en cause) ; ② contenu acoustique : tests unitaires existants ne vérifient que la non-vacuité — l'attribution vocale vraie reste à vérifier sur un morceau réel (recommandé), non la cause du flux rapporté ; ③ liaison UI prouvée par le code : loadTrackFromPath→applyCachedStems (mixer.svelte.ts:557,591) appelle getPlayer(id)?.loadStems alors que le Player n'existe qu'au 1er PLAY → loadStems no-op, deck.stemsStatus='ready' mensonger ; toggleStemMute→setStemGain sur gains inexistants → no-op ; play() tombe sur audio.play() → mono complet audible = CAUSE RACINE ; ④ une seule instance Player/AudioContext par deck (if(!player)), aucune fuite au PLAY. Journaliser les 4 constats.",
+          "completed": true
+        },
+        {
+          "id": "ALC-178-2",
+          "title": "Correctif ciblé : ensureStemsLoaded(id) dans mixer.svelte.ts (loadStems du cache dans le Player réel + verrou stems + applyStemMutes des mutes courantes, sans auto-play) appelé dans startPlayer() de DeckA/DeckB avant play() ; stemGainValue(name) public dans Player.ts ; logs [STEMS-DEBUG] à chaque VOIX/BATT/BASSE/INST/PLAY (deck, stemModeActive, gains .gain.value réels). npm run check 0/0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-178-3",
+          "title": "docs/SPECIFICATIONS.md (cause racine + correctif ensureStemsLoaded) ; passage ticket En revue ; rapport final journals.json.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-19T11:00:00.000+01:00"
+    },
+    {
+      "id": "ALC-177",
+      "title": "Export des 4 Stems WAV vers un dossier utilisateur dès que la séparation est prête (✓ 4 STEMS PRÊTS)",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "subtasks": [
+        {
+          "id": "ALC-177-1",
+          "title": "Commande Rust export_stems_to_folder(file_path, dest_dir, track_prefix?) dans stems.rs + enregistrement generate_handler (lib.rs) : copie des 4 WAV du cache SHA-256 (<prefix> - vocals/drums/bass/other.wav, nom Windows assaini ; erreur explicite si cache absent) ; test export_stems_copies_4_wavs ; cargo test --lib -- --test-threads=1.",
+          "completed": true
+        },
+        {
+          "id": "ALC-177-2",
+          "title": "Store : wrapper IPC exportStemsToFolder (audioIpc) + action exportDeckStems(deck) avec sélecteur de dossier natif (@tauri-apps/plugin-dialog open directory) → export_stems_to_folder, confirmation visuelle stemsExported 3 s. npm run check 0/0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-177-3",
+          "title": "Rack STEMS IA : bouton laiton/or ↓ EXPORTER WAV (stemsStatus==='ready'), bascule ✓ EXPORTÉS ; h-screen overflow-hidden conservé. npm run check + cargo check 0/0 ; docs/SPECIFICATIONS.md ; ticket En revue.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-18T08:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-176",
+      "title": "Persistance bug ALC-175 : le titre original complet reste audible avec preset INST (bouton VOIX coupé) malgré stems-v2 + setStemMode",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Bug DPRIP",
+      "subtasks": [
+        {
+          "id": "ALC-176-1",
+          "title": "Audit chirurgical : ① reseau sang player.play()/audio.play()/syncPlayback dans DeckA/DeckB/mixer.svelte.ts ($effect relançant le mono <audio> ?) + verrou strict stemModeActive (audio.pause()+audio.muted=true tant que stems actifs ; play/pause/seek/setPlaybackRate pilotent uniquement les 4 AudioBufferSourceNode) ; ② layout réel du tenseur output [1,4,2,N] dans stems.rs (inspection de la shape via try_extract_tensor + vérification stride L/R des 4 sources : drums/bass/other/vocals) — aucune copie de la voix dans les mauvais WAV. Journaliser la cause racine confirmée.",
+          "completed": true
+        },
+        {
+          "id": "ALC-176-2",
+          "title": "Correctif verrou stemModeActive dans Player.ts/DeckA/DeckB (+ stride stems.rs + cache stems-v3 si décalage tenseur) ; test unitaire de preuve : mute vocals → sortie vocals strictement nulle ET <audio> mono reste en pause (audio.paused === true). npm run check + cargo check 0 erreur / 0 warning.",
+          "completed": true
+        },
+        {
+          "id": "ALC-176-3",
+          "title": "docs/SPECIFICATIONS.md (verrou stemModeActive + layout tenseur) ; passage ticket En revue ; rapport final journals.json.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-18T07:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-175",
+      "title": "Correction bug live ALC-174 : la voix reste audible après preset INST (mute vocals) malgré ✓ STEMS PRÊTS",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "label2": "Bug DPRIP",
+      "subtasks": [
+        {
+          "id": "ALC-175-1",
+          "title": "Cause racine exacte (2 points) : ① Player joue TOUJOURS le buffer mono single-piste (srcNode non stoppé/déconnecté quand stemsStatus='ready') — Mute n'agit que sur les GainNode stems, pas sur le mix mono toujours audible ; ② Mapping HTDemucs inversé dans stems.rs : les WAV sont écrits ['vocals','drums','bass','other'] pour indices 0..3 alors que HTDemucs sort [0=drums,1=bass,2=other,3=vocals] → vocal.wav=drum, other.wav=voix. Journaliser.",
+          "completed": true
+        },
+        {
+          "id": "ALC-175-2",
+          "title": "Correctif + non-régression : ① basculement EXCLUSIF stems quand ready (srcNode déconnecté + audio.pause ; play() via les 4 stems à currentTime ; reprise à chaud si ready pendant lecture) ; ② remapping stems.rs indices → ['drums','bass','other','vocals'] + version de cache v2 (recacule des fichiers mal étiquetés) ; setStemGain cancelScheduledValues+setValueAtTime. Vérif LOW/HIGH/VOLUME/CROSSFADER pilotent les 4 stems. npm run check + cargo check 0/0.",
+          "completed": true
+        },
+        {
+          "id": "ALC-175-3",
+          "title": "docs/SPECIFICATIONS.md (mapping HTDemucs + bascule exclusive) ; passage du ticket En revue ; rapport final dans journals.json.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-18T06:30:00.000+01:00"
+    },
     {
       "id": "ALC-001",
       "title": "Amorçage du projet SvelteKit + Tauri 2",
@@ -2111,7 +2407,7 @@
       "id": "ALC-163",
       "title": "Release GitHub & exécutable Windows autonome (récurrent)",
       "recurrent": true,
-      "status": "Backlog",
+      "status": "En cours",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Release / Publication",
@@ -2119,12 +2415,12 @@
         {
           "id": "ALC-163-1",
           "title": "Pré-contrôle qualité & synchronisation de version : git status, npm run check, cargo test --lib (0 erreur / 100 % verts) ; dernier tag + git log pour la nouvelle SemVer ; version alignée dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml et docs/SPECIFICATIONS.md",
-          "completed": false
+          "completed": true
         },
         {
           "id": "ALC-163-2",
           "title": "Compilation de l'exécutable Windows 100 % autonome : vérif bundle (nsis/portable) dans tauri.conf.json ; npm run tauri build (profil release) ; contrôle taille non nulle + copie versionnée (ex. AlcheMix-II-<version>-windows-x64.exe)",
-          "completed": false
+          "completed": true
         },
         {
           "id": "ALC-163-3",
@@ -2144,7 +2440,7 @@
         {
           "id": "ALC-163-6",
           "title": "Signature numérique Authenticode (signtool / Azure Trusted Signing / SignPath.io) et vérification : détecter signtool.exe + certificat (env vars WINDOWS_CERTIFICATE/AZURE_TENANT_ID ou .pfx) ; si absent → cert local New-SelfSignedCertificate -Type CodeSigningCert CN=AlcheMix II + hook bundle.windows.signCommand (TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD) + signer AlcheMix-II-<version>-windows-x64.exe avec /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 + installer public dans Cert:\\CurrentUser\\Root ; vérifier signtool verify /pa /v et remplacer l'exécutable de la release GitHub",
-          "completed": false
+          "completed": true
         },
         {
           "id": "ALC-163-7",
@@ -2158,7 +2454,7 @@
     {
       "id": "ALC-165",
       "title": "Implémentation de l'onglet LIBRAIRIE — Catalogue SQLite local, Algorithme de Matching Mashup & Vue Venezia 1889",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Backend / UI",
@@ -2190,7 +2486,7 @@
     {
       "id": "ALC-166",
       "title": "Polissage & enrichissements de l'onglet LIBRAIRIE (LibraryView.svelte & library.rs) — Duo Oracle à platines vides, mini-spectre & volume casque, code couleur Camelot + pochettes miniatures, édition rapide des métadonnées & export Setlist",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Backend / UI",
@@ -2223,7 +2519,7 @@
     {
       "id": "ALC-167",
       "title": "Exclusion et badging des pistes déjà chargées sur les platines dans la Librairie",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Backend / UI",
@@ -2251,7 +2547,7 @@
     {
       "id": "ALC-168",
       "title": "Détection robuste & exclusion des pistes déjà chargées dans la Librairie (normalisation filePath / titre+artiste)",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Backend / UI",
@@ -2279,7 +2575,7 @@
     {
       "id": "ALC-169",
       "title": "Crossfader assisté avec Bass-Swap automatique (AUTO-MIX 8 / 16 mesures)",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Console / Audio",
@@ -2312,7 +2608,7 @@
     {
       "id": "ALC-170",
       "title": "Recherche de Pistes Ponts harmoniques dans la Librairie SQLite locale (library.db)",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Console / Audio",
@@ -2345,7 +2641,7 @@
     {
       "id": "ALC-171",
       "title": "Réparation & unification de la pré-écoute audio locale (Pistes Ponts) : read_audio_file_bytes → Blob URL",
-      "status": "En revue",
+      "status": "Terminé",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Console / Audio",
@@ -2369,6 +2665,105 @@
       ],
       "description": "La pré-écoute (▶) des Pistes Ponts locales dans l'onglet ROUE DE CAMELOT (MixerCenter.svelte) ne produit aucun son : le bouton utilisait new Audio(convertFileSrc(filePath)) (protocole asset://), bloqué par CORS dans WebView2. Correction : unification du lecteur de pré-écoute dans le store sur le pipeline éprouvé read_audio_file_bytes → Blob URL (révocation de l'URL bloquée, gestion d'erreur audio.play), et câblage du store dans l'Oracle. Aucun ticket Terminé touché.",
       "createdAt": "2026-11-17T23:30:00.000+01:00"
+    },
+    {
+      "id": "ALC-172",
+      "title": "Intégration de la cassette photographique HD (sources/cassette-raw.jpg) dans les platines DeckA/DeckB — masque transparent + étiquette Serenissima",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "UI / Deck",
+      "completedAt": null,
+      "subtasks": [
+        {
+          "id": "ALC-172-1",
+          "title": "Génération programmatique du masque PNG transparent static/assets/cassette-shell.png à partir de sources/cassette-raw.jpg (script Node/Sharp) : crop au plus près du boîtier (ratio ≈ 1.57:1, largeur 960 px) et rendus transparents l'extérieur de la coque, les deux alésages circulaires des bobines et l'intérieur de la fenêtre centrale de bande",
+          "completed": true
+        },
+        {
+          "id": "ALC-172-2",
+          "title": "Intégration multicouche dans DeckA.svelte et DeckB.svelte : superposer /assets/cassette-shell.png (pointer-events-none) par-dessus les deux moyeux rotatifs différentiels et la bande magnétique défilante ; étiquette supérieure Serenissima ivoire texturée (liseré émeraude Deck A / bleu électrique Deck B) sur la zone haute pleine pour afficher le titre (Marquee si long) sans masquer fenêtre ni bobines ; conserver h-screen overflow-hidden, glisser-déposer et invite au repos",
+          "completed": true
+        },
+        {
+          "id": "ALC-172-3",
+          "title": "Validation & clôture : npm run check (0 erreur / 0 warning), mise à jour docs/SPECIFICATIONS.md et project-tracker/journals.json, bascule du ticket en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Renforcement du réalisme matériel Venezia 1889 : intégration de la photo haute définition d'une cassette noire (sources/cassette-raw.jpg) dans les platines Deck A/B, via un masque PNG transparent généré programmatiquement (cassette-shell.png : coque pleine, deux alésages de bobines et fenêtre centrale transparents), superposé aux moyeux rotatifs et à la bande magnétique, avec une étiquette Serenissima ivoire (titre + marquee). Contraintes : h-screen overflow-hidden, glisser-déposer et invite au repos conservés.",
+      "createdAt": "2026-11-18T02:05:00.000+01:00"
+    },
+    {
+      "id": "ALC-173",
+      "title": "Intégration sélective des skills d'ingénierie Superpowers (TDD ciblé, Débogage systématique & Preuve avant clôture)",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Moyenne",
+      "label": "Méthodologie",
+      "completedAt": null,
+      "subtasks": [
+        {
+          "id": "ALC-173-1",
+          "title": "Créer .agents/skills/systematic-debugging/SKILL.md : règle d'or (aucune modif hasardeuse avant cause racine exacte : logs Rust, console WebView2, IPC invoke, permissions tauri.conf.json, protocoles Blob/asset://) ; cycle 4 phases (reproduction-faits, isolation Frontend/IPC/Backend, hypothèse unique, correction minimale + non-régression) ; garde-fou 2 tentatives → stopper, documenter dans journals.json, re-diagnostiquer",
+          "completed": true
+        },
+        {
+          "id": "ALC-173-2",
+          "title": "Créer .agents/skills/verification-before-completion/SKILL.md (Evidence over claims) relié à tasks.json : interdiction de déclarer terminé sur simple lecture ; preuve d'exécution requise avant completed:true / En revue — npm run check (Svelte/TS), cargo check / cargo test --lib (Rust), node --check (board.html), vérification physique des artefacts (PNG, .exe/.msi)",
+          "completed": true
+        },
+        {
+          "id": "ALC-173-3",
+          "title": "Créer .agents/skills/tdd-audio-logic/SKILL.md (RED→GREEN→REFACTOR) ciblé logique DSP/MIR : audio.rs, stems.rs, library.rs, mashupMatcher.ts — écrire d'abord le test unitaire (Rust #[test] ou TS) qui échoue, implémenter le minimal pour passer au vert, vérifier cargo test --lib / node --test",
+          "completed": true
+        },
+        {
+          "id": "ALC-173-4",
+          "title": "Brancher les 3 skills dans .clinerules/03-ui-ux-et-depot.md et 05-developpeur-senior-innovant.md (références concises, sans sous-agents lourds ni questionnaires) ; mise à jour docs/SPECIFICATIONS.md + journals.json ; bascule du ticket en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Intégration sélective de 3 disciplines méthodologiques de obra/superpowers dans l'architecture .agents/skills/ et .clinerules/, pour éliminer les faux positifs de validation et les allers-retours de débogage tout en préservant l'économie de tokens : systematic-debugging (débogage systématique), verification-before-completion (preuve avant clôture) et tdd-audio-logic (TDD ciblé DSP/MIR).",
+      "createdAt": "2026-11-18T02:40:00.000+01:00"
+    },
+    {
+      "id": "ALC-174",
+      "title": "Séparation IA locale des 4 Stems (HTDemucs / ONNX Runtime) & Rack Stems sur Platines",
+      "status": "Terminé",
+      "agent": "Architecte",
+      "priority": "Haute",
+      "label": "Audio / IA",
+      "completedAt": null,
+      "subtasks": [
+        {
+          "id": "ALC-174-1",
+          "title": "Architecture Backend Rust src-tauri/src/stems.rs & cache disque : crate ort (ONNX Runtime DirectML/OpenVINO/CPU repli) dans Cargo.toml ; cache %LOCALAPPDATA%/AlcheMixII/stems/<sha256_file>/ (vocals.wav, drums.wav, bass.wav, other.wav) ; commande check_cached_stems(path) -> Option<StemPaths> ; commande asynchrone separate_stems(path, on_progress: Channel<f32>) — téléchargement one-shot du modèle htdemucs.onnx dans models/ (sinon signal d'absence hors-ligne), décodage symphonia (stéréo 44,1 kHz), fenêtres glissantes overlap-add (~7,8 s, Hann), inférence HTDemucs, export 4 WAV + progression 0..1",
+          "completed": true
+        },
+        {
+          "id": "ALC-174-2",
+          "title": "Extension du moteur WebAudio 4-Stems synchronisés dans Player.ts : chargement des 4 buffers (vocals/drums/bass/other) via read_audio_file_bytes et démarrage au même échantillon (AudioBufferSourceNode.start(when, offset)) ; 4 GainNode dédiés (gainVocals/gainDrums/gainBass/gainOther) avant la chaîne EQ existante (LOW 120 Hz → HIGH 3.2 kHz → Volume → Crossfader) → Mute/Solo instantané (latence zéro), synchronisé pitch/Beatgrid/Auto-Mix",
+          "completed": true
+        },
+        {
+          "id": "ALC-174-3",
+          "title": "État réactif dans mixer.svelte.ts + persistance : DeckState.stemsStatus ('idle'|'separating'|'ready'|'error'), stemsProgress (0..100), stemGains/stemMutes (vocals/drums/bass/other), actions extractDeckStems/toggleStemMute/soloStem/setStemPreset (all|acapella|instrumental) ; check_cached_stems automatique au chargement d'une piste",
+          "completed": true
+        },
+        {
+          "id": "ALC-174-4",
+          "title": "Mini-rack horloger STEMS IA sur DeckA/B (h-screen overflow-hidden, code couleur Émeraude/Bleu/Laiton) : bouton ⚡ EXTRAIRE STEMS (barre de progression dorée %, ou actif si cache) ; 4 interrupteurs rétro-éclairés VOIX/BATT/BASSE/INST (clic=Mute, Alt+clic/droit=Solo) ; raccourcis ACAPELLA (isole VOIX) et INST (coupe VOIX)",
+          "completed": true
+        },
+        {
+          "id": "ALC-174-5",
+          "title": "Validation & clôture : cargo check, cargo test --lib, npm run check (0 erreur / 0 warning) ; docs/SPECIFICATIONS.md (architecture IA Stems + historique ALC-174) ; bascule du ticket en En revue",
+          "completed": true
+        }
+      ],
+      "description": "Séparation IA locale des 4 Stems (Voix, Batterie, Basse, Instruments) inspirée de intel/openvino-plugins-ai-audacity : modèle HTDemucs exécuté 100 % en local via ONNX Runtime (accélération DirectML/OpenVINO, repli CPU), sans Python ni cloud. Backend Rust stems.rs + cache disque par fichier (sha256), commandes IPC separate_stems/check_cached_stems ; moteur WebAudio 4-buffers synchronisés avec Mute/Solo instantané ; état store + persistance ; mini-rack STEMS IA sur chaque platine.",
+      "createdAt": "2026-11-18T03:40:00.000+01:00"
     }
   ]
 }

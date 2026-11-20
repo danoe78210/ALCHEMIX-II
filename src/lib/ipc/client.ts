@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, Channel } from '@tauri-apps/api/core';
 
 export interface TrackData {
   id: string;
@@ -128,6 +128,18 @@ export const audioIpc = {
   },
   extractStemsOnnx(path: string): Promise<StemPaths> {
     return safeInvoke<StemPaths>('extract_stems_onnx', { path });
+  },
+  /** ALC-174 : séparation 4 Stems (HTDemucs / ONNX local) avec progression. */
+  separateStems(path: string, onProgress: Channel<number>): Promise<StemPaths> {
+    return safeInvoke<StemPaths>('separate_stems', { path, onProgress });
+  },
+  /** ALC-174 : rechargement instantané des stems déjà calculés (cache disque). */
+  checkCachedStems(path: string): Promise<StemPaths | null> {
+    return safeInvoke<StemPaths | null>('check_cached_stems', { path });
+  },
+  /** ALC-177 : copie les 4 WAV stems du cache vers un dossier utilisateur, renommés <préfixe> - <stem>.wav. */
+  exportStemsToFolder(filePath: string, destDir: string, trackPrefix: string | null): Promise<string[]> {
+    return safeInvoke<string[]>('export_stems_to_folder', { filePath, destDir, trackPrefix });
   },
 };
 
