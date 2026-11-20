@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "AlcheMix II — Journaux de travail individuels par ticket",
-    "version": "1.81.3",
-    "updatedAt": "2026-11-20T14:12:00.000Z",
+    "version": "1.81.7",
+    "updatedAt": "2026-11-20T14:40:00.000Z",
     "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
   },
   "journals": {
@@ -648,6 +648,26 @@
           "ts": "2026-11-20T15:12:00.000+01:00",
           "type": "subtask",
           "message": "ALC-163-6 cochee (Signature Authenticode) : signtool x64 10.0.26100.0 ; certificat CN=AlcheMix II (thumbprint 9B5E00F6...) du magasin CurrentUser reutilise (valide, ouverture 16/11/2027) + alchemix_codesign.pfx present. Signature : signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /sha1 9B5E... AlcheMix-II-0.4.0-windows-x64.exe -> Successfully signed. Verif signtool verify /pa /v -> Issued to AlcheMix II, horodatage DigiCert SHA256 RSA4096, Successfully verified (1 file). SHA256(exe)=517C1BC0A0D0E0A220DD385BBF830FD4B94A0C4D6556F72E2FC56FADCEB5F4E1. (Cert local dev : SmartScreen reste sur les autres postes -> ALC-163-7 pour la signature officielle.)"
+        },
+        {
+          "ts": "2026-11-20T15:22:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-3 cochee (Commit, tag, push) : CHANGELOG.md section [0.4.0] ajoutee (Stems IA fiable + profil anti-bleed vocals + correctifs STOP/EJECT en mode stems + artefacts). git add -A (28 fichiers : stems.rs, UI, skills, assets, suivi) ; commit chore(release): v0.4.0 (c24c35c) ; tag -a v0.4.0 (57868336) ; git push origin main OK (d5e35cb..c24c35c) ; git push origin v0.4.0 OK (nouveau tag upstream)."
+        },
+        {
+          "ts": "2026-11-20T15:30:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-4 cochee (Publication GitHub Release) : gh non authentifie + pas de GITHUB_TOKEN -> publication via l API REST avec le PAT stocke dans le credential manager git (40 caract). Release creee : id=452710968 tag=v0.4.0 name=\"AlcheMix II v0.4.0\" draft=false url=https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.4.0. Assets (verifies en ligne) : AlcheMix-II-0.4.0-windows-x64.exe (32 130 280 o, signe Authenticode) + AlcheMix-II-0.4.0-x64-setup.exe (9 261 569 o, NSIS)."
+        },
+        {
+          "ts": "2026-11-20T15:34:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-7 cochee (Signature OFFICIELLE - workflow) : .github/workflows/release.yml present et prêt a l emploi — branche Azure azure/trusted-signing-action@v0 (secrets AZURE_TENANT_ID/AZURE_CLIENT_ID/AZURE_CLIENT_SECRET/AZURE_CERTIFICATE_NAME) + alternative SignPath.io (free OS) commentee ; signature CA sautee tant que les secrets ne sont pas renseignes (TAURI_ACTIONER_DISABLE_SIGNING=1), hook local TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD/TAURI_SIGNTOOL en secours. Aucun secret officiel disponible dans cet environnement -> l execution par CA reconnue est differee ; le cert local dev (ALC-163-6) reste le fallback en v0.4.0."
+        },
+        {
+          "ts": "2026-11-20T15:40:00.000+01:00",
+          "type": "column",
+          "message": "RELEASE v0.4.0 PUBLIEE. URL : https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.4.0. Executable autonome : AlcheMix-II-0.4.0-windows-x64.exe (32 130 280 o, signe Authenticode CN=AlcheMix II, SHA256 517C1BC0...) ; installeur : AlcheMix-II-0.4.0-x64-setup.exe (9 261 569 o) ; MSI : \"AlcheMix II_0.4.0_x64_en-US.msi\" (21 958 656 o). Commit c24c35c, tag 57868336. Bilan depuis v0.3.0 : separation 4 stems IA fiable (cache stems-v7, Wiener K(f) + gate vocal anti-bleed), correctifs mode stems (STOP/EJECT coupure materielle ctx.suspend). Validations : npm run check 0/0, cargo check 0/0, cargo test --lib 63/63. Signature officielle CA (Azure/SignPath) differee car secrets non fournis ; cert local dev en fallback."
         }
       ]
     },
