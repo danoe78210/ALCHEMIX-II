@@ -3,10 +3,13 @@
   import { onMount } from 'svelte';
   import BeatgridView from './BeatgridView.svelte';
   import LibraryView from './LibraryView.svelte';
+  import HorologicalDrawer from './HorologicalDrawer.svelte'; // ALC-186-3
 import { searchDeezer, type DeezerTrack } from '$lib/ipc/meta';
 import { libraryIpc, type LibraryTrack } from '$lib/ipc/client';
 import { findLocalBridgeTracks, type LocalBridgeResult } from '$lib/utils/mashupMatcher';
 import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pivotFrom } from '$lib/audio/harmony';
+
+  let oracleDrawerOpen = $state(false); // ALC-186-3 : tiroir Oracle Acoustique escamotable (fermé par défaut)
 
   const formattedDelta = $derived(
     mixerStore.bpmDelta > 0
@@ -409,7 +412,7 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
 <div class="relative bg-surface-container-lowest rounded-xl p-space-md shadow-[inset_0_4px_20px_rgba(0,0,0,0.95)] flex flex-col items-center justify-center overflow-hidden min-h-[490px]">
   <!-- Astronomical Venetian Camelot Wheel: Expanded Diameter -->
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-surface-container-lowest/80 to-surface-container-lowest pointer-events-none"></div>
-<div class="relative w-full max-w-[460px] aspect-square flex items-center justify-center my-1"><svg class="w-full h-full transform -rotate-90 pointer-events-none" viewBox="0 0 500 500">
+<div class="relative w-full max-w-[520px] aspect-square flex items-center justify-center my-1"><svg class="w-full h-full transform -rotate-90 pointer-events-none" viewBox="0 0 500 500">
 <defs>
   <filter id="glow-emerald-strong" x="-50%" y="-50%" width="200%" height="200%">
     <feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur>
@@ -594,6 +597,8 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
     </div>
   </div>
 
+  <!-- ALC-186-3 : Tiroir Oracle Acoustique & Itinéraires (escamotable, fermé par défaut) -->
+  <HorologicalDrawer bind:open={oracleDrawerOpen} title="ORACLE ACOUSTIQUE & ITINÉRAIRES" badge="3 PISTES" active={false} accent="emerald">
   <!-- Acoustic Oracle Advice Card (CONSEILS DE MIXAGE • ORACLE ACOUSTIQUE) - Restauré fidèlement -->
   <div class="bg-surface-container-high rounded-xl p-space-md shadow-[0_6px_18px_rgba(0,0,0,0.8)] flex flex-col gap-space-sm">
     <div class="flex items-center justify-between">
@@ -700,6 +705,7 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
     {/if}
     </div>
   </div>
+  </HorologicalDrawer>
   {/if}
 
 <!-- ALC-138-2 : Crossfader Master — partagé entre les vues, posé sous l'atelier Beatgrid et sous la console Camelot -->

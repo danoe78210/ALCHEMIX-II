@@ -1,11 +1,41 @@
 {
   "meta": {
     "project": "AlcheMix II — Journaux de travail individuels par ticket",
-    "version": "1.81.7",
-    "updatedAt": "2026-11-20T14:40:00.000Z",
+    "version": "1.83.4",
+    "updatedAt": "2026-11-20T15:24:00.000Z",
     "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
   },
   "journals": {
+    "ALC-186": {
+      "ticketId": "ALC-186",
+      "entries": [
+        {
+          "ts": "2026-11-20T14:50:00.000+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-186 cree (En cours, agent Maître Horloger) : refonte verticale par tiroirs horlogers escamotables (HorologicalDrawer reutilisable, 2 tiroirs/platine, Oracle en tiroir sur MixerCenter + Roue agrandie). Convention immutabilite Termine respectee ; coche atomique au fil de l eau. Note : le message de specification 3/4 du demandeur etait tronque (fin ALC-186-3 + ALC-186-4) ; perimetre implemente sur la base du spec explicite, cloture standard. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-20T15:05:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-186-1 cochee : composant reutilisable src/lib/components/HorologicalDrawer.svelte cree (Runes $props/$state/$derived, open bindable defaut false, titres/badge/LED active/accent emerald|blue). Plaque fermee 30px ebene laiton oxyde (#4f4539) + 4 micro-vis d angle, titre Space Grotesk majuscules, badge statut arrondi, micro-LED allumee si active (glow accent #10b981/#3b82f6), loquet or (▾/▴). Cuve interne ebene (#120d0a, ombre inset 0 4px 12px rgba(0,0,0,0.9), liseres laiton/canal) deployee via max-height+opacity, transition 220ms cubic-bezier(0.22,1,0.36,1). Ouvrable par programme (bindable open) + clic."
+        },
+        {
+          "ts": "2026-11-20T15:40:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-186-2 cochee (2 tiroirs sur DeckA & DeckB) : import HorologicalDrawer + etats stemsDrawerOpen/metaDrawerOpen ($state), derives stemsActive/stemsBadge/metaBadge, $effect ouverture AUTO si stemsStatus=separating. TIROIR 1 SEPARATION STEMS IA (accent emerald A / blue B, LED si ready ou mute/solo) encapsule le rack stems existant (bouton/barre progres/erreur, 4 boutons M/S VOIX/BATT/BASSE/INST, presets ACAPELLA/INST) sans rien casser ; TIROIR 2 METADONNEES & SPECS (accent blue, badge codec • ech.) encapsule bloc pochette/artiste/album/genre/annee + SPECIFICATIONS. Les blocs reflexe (en-tete, ROLL, cassette, galvanometre, EQ, transport, faders, telemettrie RhythmKeyTelemetry) restent toujours visibles. h-screen overflow-hidden preserve. npm run check 0/0."
+        },
+        {
+          "ts": "2026-11-20T16:00:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-186-3 cochee (MixerCenter Oracle + Roue) : import HorologicalDrawer + etat oracleDrawerOpen ($state false). La carte CONSEILS DE MIXAGE bullet ORACLE ACOUSTIQUE (conseil cadence + strategie harmonique + Ponts harmoniques + Itineraires Harmoniques Alternatifs 3 pistes) est encapsulee dans un HorologicalDrawer ferme par defaut (titre ORACLE ACOUSTIQUE & ITINERAIRES, badge 3 PISTES, accent emerald) place juste au-dessus du Crossfader Master. Roue de Camelot agrandie : max-w-[460px] -> [520px] (diametre augmente). NOTE : la partie BeatgridView de cette sous-tache etait tronquee dans le message source du demandeur -> non implementee pour eviter une mauvaise interpretation ; sera prise en charge si la spec complete est fournie. npm run check 0/0."
+        },
+        {
+          "ts": "2026-11-20T16:12:00.000+01:00",
+          "type": "column",
+          "message": "Statut : En cours -> En revue (4/4). RAPPORT FINAL : componant HorologicalDrawer.svelte cree (trappe laiton oxyde 30px, titre Space Grotesk, badge, micro-LED active, loquet or, cuve ebene inset shadow, transition 220ms cubic-bezier(0.22,1,0.36,1)) ; 2 tiroirs fermes par defaut sur DeckA & DeckB (SEPARATION STEMS IA auto-open si separating + LED si ready/mute/solo + presets ; METADONNEES & SPECS avec pochette/artiste/album/genre/annee + specs) ; MixerCenter : Oracle Acoustique & Itineraires en tiroir au-dessus du Crossfader + Roue de Camelot agrandie 460->520px ; blocs reflexe jamais masques ; h-screen overflow-hidden preserve ; npm run check 0/0. NOTE : la partie BeatgridView de la spec etait tronquee -> non implementee (a voir si spec complete fournie). Aucun ticket Termine modifie."
+        }
+      ]
+    },
     "ALC-185": {
       "ticketId": "ALC-185",
       "entries": [
@@ -668,6 +698,26 @@
           "ts": "2026-11-20T15:40:00.000+01:00",
           "type": "column",
           "message": "RELEASE v0.4.0 PUBLIEE. URL : https://github.com/danoe78210/ALCHEMIX-II/releases/tag/v0.4.0. Executable autonome : AlcheMix-II-0.4.0-windows-x64.exe (32 130 280 o, signe Authenticode CN=AlcheMix II, SHA256 517C1BC0...) ; installeur : AlcheMix-II-0.4.0-x64-setup.exe (9 261 569 o) ; MSI : \"AlcheMix II_0.4.0_x64_en-US.msi\" (21 958 656 o). Commit c24c35c, tag 57868336. Bilan depuis v0.3.0 : separation 4 stems IA fiable (cache stems-v7, Wiener K(f) + gate vocal anti-bleed), correctifs mode stems (STOP/EJECT coupure materielle ctx.suspend). Validations : npm run check 0/0, cargo check 0/0, cargo test --lib 63/63. Signature officielle CA (Azure/SignPath) differee car secrets non fournis ; cert local dev en fallback."
+        },
+        {
+          "ts": "2026-11-20T16:02:00.000+01:00",
+          "type": "column",
+          "message": "ALC-163 relance (RELEASE v0.5.0) : le ticket recurrent passe En cours pour publier la nouvelle release embarquant l amelioration visuelle par tiroirs horlogers escamotables (ALC-186 : HorologicalDrawer.svelte, 2 tiroirs/platine STEMS IA + METADONNEES & SPECS, Oracle en tiroir MixerCenter + Roue agrandie). Depuis v0.4.0 : uniquement ALC-186 (UI) + suivi. Versions 0.4.0 -> 0.5.0 (package.json/Cargo.toml/tauri.conf.json/SPECIFICATIONS)."
+        },
+        {
+          "ts": "2026-11-20T16:10:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-1 cochee (pre-contrle + version v0.5.0) : npm run check 0 erreur/0 warning ; cargo check 0/0 ; cargo test --lib -- --test-threads=1 -> 63 passed / 0 failed. Version alignee 0.4.0 -> 0.5.0 dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml, header docs/SPECIFICATIONS.md. Dernier tag v0.4.0 ; nouvelle SemVer v0.5.0 (amelioration UI tiroirs horlogers ALC-186). git status ~9 fichiers (composant HorologicalDrawer + DeckA/B/MixerCenter + suivi/spec)."
+        },
+        {
+          "ts": "2026-11-20T16:18:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-2 cochee (build exe v0.5.0) : npm run tauri build reussi — bundle targets=all (NSIS+MSI). alchemix_ii.exe = 32 124 416 o ; bundle/nsis/\"AlcheMix II_0.5.0_x64-setup.exe\" = 9 262 909 o (8,83 MiB) ; bundle/msi/\"AlcheMix II_0.5.0_x64_en-US.msi\" = 21 962 752 o (20,95 MiB). Copie versionnee creee : AlcheMix-II-0.5.0-windows-x64.exe (32 124 416 o)."
+        },
+        {
+          "ts": "2026-11-20T16:24:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-6 cochee (Signature Authenticode v0.5.0) : signtool x64 ; certificat CN=AlcheMix II (thumbprint 9B5E..) CurrentUser reutilise. signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /sha1 9B5E... AlcheMix-II-0.5.0-windows-x64.exe -> Successfully signed. Verif signtool verify /pa /v -> Issued to AlcheMix II, horodatage DigiCert SHA256 RSA4096, Successfully verified (Number of files successfully Verified: 1). (Cert local dev : fallback ; signature officielle CA = ALC-163-7.)"
         }
       ]
     },

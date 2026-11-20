@@ -12,10 +12,42 @@
       "En revue",
       "Terminé"
     ],
-    "version": "1.19.0",
-    "updatedAt": "2026-11-20T14:41:00.000Z"
+    "version": "1.20.4",
+    "updatedAt": "2026-11-20T15:24:00.000Z"
   },
   "tasks": [
+    {
+      "id": "ALC-186",
+      "title": "Refonte ergonomique verticale : tiroirs horlogers escamotables (trappes laiton oxyde) — HorologicalDrawer.svelte reutilisable ; 2 tiroirs par platine (SEPARATION STEMS IA + METADONNEES & SPECS) ; Oracle Acoustique & itineraires dans un tiroir sur MixerCenter + Roue de Camelot agrandie ; h-screen overflow-hidden preserve",
+      "status": "En revue",
+      "agent": "Maître Horloger",
+      "priority": "Moyenne",
+      "label": "UI / UX",
+      "label2": "Horlogerie",
+      "subtasks": [
+        {
+          "id": "ALC-186-1",
+          "title": "Creer le composant reutilisable HorologicalDrawer.svelte (Runes $props/$state) : plaque fermee 30px, titre Space Grotesk, badge statut, micro-LED activite, loquet or ; cuve ouverte ebene bordee laiton/canal, transition 220ms cubic-bezier(0.22,1,0.36,1). Chart Venezia 1889.",
+          "completed": true
+        },
+        {
+          "id": "ALC-186-2",
+          "title": "Integrer sur DeckA & DeckB 2 tiroirs fermes par defaut en bas de platine : TIROIR 1 SEPARATION STEMS IA (ouverture auto si stemsStatus processing, LED si ready/mute/solo ; bouton extraction + progression + 4 faders VOIX/BATTERIE/BASSE/INST + M/S + ACAPELLA/INSTRUMENTAL) ; TIROIR 2 METADONNEES & SPECS (resume MP3 44.1 KHZ, pochette, artiste/album/genre/annee, specs codec/echantillonnage/debit). Bloques reflexe (en-tete, ROLL, cassette, galvanometre, EQ, transport, faders, telemettrie) toujours visibles ; ~150px liberes ; h-screen overflow-hidden strict.",
+          "completed": true
+        },
+        {
+          "id": "ALC-186-3",
+          "title": "MixerCenter : encapsuler le bloc CONSEILS DE MIXAGE / ORACLE ACOUSTIQUE + 3 itineraires dans un HorologicalDrawer ferme par defaut (ORACLE ACOUSTIQUE & ITINERAIRES (3 PISTES)) place au-dessus du Crossfader ; profiter de la hauteur liberee pour agrandir legerement la Roue de Camelot.",
+          "completed": true
+        },
+        {
+          "id": "ALC-186-4",
+          "title": "Validation & cloture : npm run check 0/0 ; docs/SPECIFICATIONS.md ; barrer ALC-186-4 ; basculer ALC-186 En revue ; rapport final journals.json.",
+          "completed": true
+        }
+      ],
+      "createdAt": "2026-11-20T14:50:00.000+01:00"
+    },
     {
       "id": "ALC-185",
       "title": "Tests reels Bon Jovi - Livin On A Prayer (stems-v6) : excellent global 17,5/20 mais residus — cymbales crash >6,5 kHz dans les refrains denses et instruments solistes/talk-box dans les intros sans chant. Objectif : Wiener K(f) par bande + gate d activite vocale doux + cache v7",
@@ -2407,7 +2439,7 @@
       "id": "ALC-163",
       "title": "Release GitHub & exécutable Windows autonome (récurrent)",
       "recurrent": true,
-      "status": "Backlog",
+      "status": "En cours",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Release / Publication",
@@ -2415,12 +2447,12 @@
         {
           "id": "ALC-163-1",
           "title": "Pré-contrôle qualité & synchronisation de version : git status, npm run check, cargo test --lib (0 erreur / 100 % verts) ; dernier tag + git log pour la nouvelle SemVer ; version alignée dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml et docs/SPECIFICATIONS.md",
-          "completed": false
+          "completed": true
         },
         {
           "id": "ALC-163-2",
           "title": "Compilation de l'exécutable Windows 100 % autonome : vérif bundle (nsis/portable) dans tauri.conf.json ; npm run tauri build (profil release) ; contrôle taille non nulle + copie versionnée (ex. AlcheMix-II-<version>-windows-x64.exe)",
-          "completed": false
+          "completed": true
         },
         {
           "id": "ALC-163-3",
@@ -2440,7 +2472,7 @@
         {
           "id": "ALC-163-6",
           "title": "Signature numérique Authenticode (signtool / Azure Trusted Signing / SignPath.io) et vérification : détecter signtool.exe + certificat (env vars WINDOWS_CERTIFICATE/AZURE_TENANT_ID ou .pfx) ; si absent → cert local New-SelfSignedCertificate -Type CodeSigningCert CN=AlcheMix II + hook bundle.windows.signCommand (TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD) + signer AlcheMix-II-<version>-windows-x64.exe avec /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 + installer public dans Cert:\\CurrentUser\\Root ; vérifier signtool verify /pa /v et remplacer l'exécutable de la release GitHub",
-          "completed": false
+          "completed": true
         },
         {
           "id": "ALC-163-7",

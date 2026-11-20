@@ -3,6 +3,7 @@
   import RhythmKeyTelemetry from '$lib/components/RhythmKeyTelemetry.svelte';
   import { Player, mimeFromPath } from '$lib/audio/player';
   import MarqueeText from '$lib/components/MarqueeText.svelte';
+  import HorologicalDrawer from '$lib/components/HorologicalDrawer.svelte'; // ALC-186-2
   import { onMount, onDestroy } from 'svelte';
   import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
   import {
@@ -42,6 +43,26 @@
   let player = $state<Player | null>(null);
   let meterRaf = 0;
   let needleRaf = 0;
+  // ALC-186-2 : tiroirs horlogers escamotables (fermés par défaut, ouverture auto en extraction).
+  let stemsDrawerOpen = $state(false);
+  let metaDrawerOpen = $state(false);
+  const stemsActive = $derived(
+    deck.stemsStatus === 'ready' || Object.values(deck.stemMutes).some(Boolean)
+  );
+  const stemsBadge = $derived(
+    deck.stemsStatus === 'ready'
+      ? '4 STEMS'
+      : deck.stemsStatus === 'separating'
+        ? `${deck.stemsProgress}%`
+        : deck.stemsStatus === 'error'
+          ? 'ERREUR'
+          : deck.codec || '—'
+  );
+  const metaBadge = $derived(deck.codec ? `${deck.codec} • ${(deck.sampleRate || '').split(' / ')[0]}` : '—');
+  $effect(() => {
+    // ALC-186-2 : ouverture AUTOMATIQUE du tiroir STEMS dès que l'extraction démarre.
+    if (deck.stemsStatus === 'separating') stemsDrawerOpen = true;
+  });
 
   function readMeterFrame() {
     if (!player) return;
@@ -454,8 +475,10 @@
 </div>
 </div>
 {#if deck.filePath}
-  <!-- ALC-174-4 : Mini-rack horloger STEMS IA (HTDemucs / ONNX local) -->
-  <div class="bg-surface-container-high rounded-xl p-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
+  <!-- ALC-186-2 : Tiroir 1 — SÉPARATION STEMS IA (trappe horlogère, ouverture auto en extraction) -->
+  <HorologicalDrawer bind:open={stemsDrawerOpen} title="SÉPARATION STEMS IA" badge={stemsBadge} active={stemsActive} accent="blue">
+    <!-- ALC-174-4 : Mini-rack horloger STEMS IA (HTDemucs / ONNX local) -->
+    <div class="bg-surface-container-high rounded-xl p-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
     <div class="flex items-center justify-between pb-1 border-b border-surface-variant/40 mb-1 px-space-xs">
       <span class="font-label-sm text-[9px] text-[#edbf7a] uppercase tracking-widest">STEMS IA</span>
       <span class="font-mono text-[8px] text-outline uppercase">HTDemucs • local</span>
@@ -500,6 +523,7 @@
       </div>
     </div>
   </div>
+  </HorologicalDrawer>
 {/if}
 <!-- ALC-137-4 : ÉGALISEUR ANALOGIQUE 2 bandes (LOW EQ / HIGH EQ) pleine largeur -->
 <div class="bg-surface-container-high rounded-xl p-space-sm shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
@@ -630,6 +654,8 @@
 <!-- Télémétrie Rythme & Clef (ALC-128) : placée sous les 2 sliders, avant Info/Pochette -->
 <RhythmKeyTelemetry deck={deck} />
 
+<!-- ALC-186 : Tiroir 2 — MÉTADONNÉES & SPECS AUDIO (trappe horlogère) -->
+<HorologicalDrawer bind:open={metaDrawerOpen} title="MÉTADONNÉES & SPECS AUDIO" badge={metaBadge} active={false} accent="blue">
 <!-- Album Artwork Card & Technical Specification Plate -->
 <div class="grid grid-cols-1 sm:grid-cols-12 gap-space-sm bg-surface-container-high/40 p-space-sm rounded-xl">
 <!-- Album Thumbnail Placeholder -->
@@ -655,4 +681,5 @@
 
 </div>
 </div><div class="bg-surface-container-lowest/90 border border-surface-variant/40 rounded-xl p-space-sm shadow-[inset_0_2px_8px_rgba(0,0,0,0.7)] flex flex-col gap-space-xs"><div class="flex items-center justify-between pb-1 border-b border-surface-variant/40"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[14px] text-[#38bdf8]">settings_ethernet</span><span class="font-label-sm text-label-sm font-bold uppercase tracking-wider text-[#38bdf8]">SPÉCIFICATIONS TECHNIQUES • AUDIO</span></div></div><div class="grid grid-cols-2 gap-space-xs pt-1"><div class="bg-surface-container-low px-space-xs py-1 rounded flex flex-col"><span class="font-label-sm text-[8px] text-outline uppercase">Format / Codec</span><span class="font-label-md text-label-md text-primary font-mono font-bold">{deck.codec}</span></div><div class="bg-surface-container-low px-space-xs py-1 rounded flex flex-col"><span class="font-label-sm text-[8px] text-outline uppercase">Échantillonnage</span><span class="font-label-md text-label-md text-tertiary font-mono font-bold">{deck.sampleRate}</span></div><div class="bg-surface-container-low px-space-xs py-1 rounded flex flex-col"><span class="font-label-sm text-[8px] text-outline uppercase">Débit Binaire</span><span class="font-label-md text-label-md text-on-surface font-mono font-bold">{deck.bitrate}</span></div></div></div>
+</HorologicalDrawer>
 </div>

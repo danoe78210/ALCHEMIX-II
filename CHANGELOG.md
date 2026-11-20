@@ -5,6 +5,24 @@ Toutes les modifications notables d'**AlcheMix II** sont documentées dans ce fi
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et respecte
 [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.0] — 2026-11-20
+
+### ✨ Fonctionnalités majeures
+- **Tiroirs horlogers escamotables (refonte verticale ergonomique)** : nouveau composant
+  `HorologicalDrawer` (trappe laiton oxydé, micro-LED d'activité, loquet doré) — **2 tiroirs
+  repliables par platine** (`SÉPARATION STEMS IA` avec ouverture automatique en extraction,
+  `MÉTADONNÉES & SPECS AUDIO`) et l'**Oracle Acoustique & Itinéraires** en tiroir sur la console
+  centrale, **Roue de Camelot agrandie** pour profiter de la hauteur libérée.
+
+### 🪟 Installation Windows
+Voir `README.md` § Installation Windows. **Note SmartScreen** : certificat local de développement
+(`CN=AlcheMix II`) → « Informations complémentaires → Exécuter quand même » ; signature officielle
+Azure Trusted Signing / SignPath.io prête via `.github/workflows/release.yml` (secrets requis).
+
+### 📦 Artefacts v0.5.0
+- Exécutable autonome : `AlcheMix-II-0.5.0-windows-x64.exe` (signé Authenticode).
+- Installeurs : `AlcheMix II_0.5.0_x64-setup.exe`, `AlcheMix II_0.5.0_x64_en-US.msi`.
+
 ## [0.4.0] — 2026-11-20
 
 ### ✨ Fonctionnalités majeures
