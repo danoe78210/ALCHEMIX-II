@@ -12,11 +12,11 @@
       "En revue",
       "Terminé"
     ],
-    "version": "1.70.0",
-    "updatedAt": "2026-11-23T18:00:00.000+01:00"
+    "version": "1.72.0",
+    "updatedAt": "2026-11-23T18:40:00.000+01:00"
   },
   "tasks": [
-{
+    {
       "id": "ALC-259",
       "title": "DA & Ergonomie : alignement Librairie, symétrie Stems, physique des tiroirs et repères lumineux sliders",
       "status": "En cours",
@@ -59,7 +59,7 @@
       "completedAt": null,
       "createdAt": "2026-11-23T14:00:00.000+01:00"
     },
-{
+    {
       "id": "ALC-258",
       "title": "Audit & correctif DSP — précision BPM et Clé Camelot en Librairie : pénalité ratios non-binaires du peigne BPM, normalisation stricte hauteur battements, bornage tuning HPCP ±35 cents, ré-analyse contrôlée des pistes user_edited=0, tests synthétiques 123/121/91 BPM",
       "status": "En revue",
@@ -92,7 +92,7 @@
       "completedAt": null,
       "createdAt": "2026-11-23T12:30:00.000+01:00"
     },
-{
+    {
       "id": "ALC-257",
       "title": "Refonte UI/UX de l'onglet 03 · LIBRAIRIE (LibraryView.svelte + bandeau MixerCenter) selon brief-agent-dev-librairie.md : grille unifiée, cluster d'actions normalisé + suppression sécurisée, colonne Affinité pliable, en-tête compacte, sticky+scrollbar laiton, états dynamiques (Passe 3 / WP32..36)",
       "status": "En cours",
@@ -140,7 +140,7 @@
       "completedAt": null,
       "createdAt": "2026-11-23T11:30:00.000+01:00"
     },
-{
+    {
       "id": "ALC-256",
       "title": "Passe 2 UI/UX — Vue Camelot & platines A/B : reconstruction bloc Stems (grille 4 cols, états lisibles, presets VOIX…AUTRE), Oracle peek auto + bouton VOIR LES PONTS, alignement platines ±1px, façades de tiroirs (poignée/chevron/focus-visible), carrousel, Roue de Camelot, jauges & discipline palette, suppression redondance BPM/Clé",
       "status": "En cours",
@@ -198,7 +198,7 @@
       "completedAt": null,
       "createdAt": "2026-11-23T10:00:00.000+01:00"
     },
-{
+    {
       "id": "ALC-255",
       "title": "Polissage Interface Principale, Tiroirs Stems IA & Rack ID3 — Oracle auto-peek, pastilles BPM/Clé permanentes, infobulle VzTip, refonte tiroir Stems ≤150px, finitions ID3/Roue/jauges, discipline palette & alignement platines",
       "status": "En cours",
@@ -246,7 +246,7 @@
       "completedAt": null,
       "createdAt": "2026-11-23T08:44:00.000+01:00"
     },
-{
+    {
       "id": "ALC-254",
       "title": "Intégration CodeGraph (@colbymchenry/codegraph) : pré-index local du graphe de code Svelte/TS ↔ IPC Tauri ↔ Rust pour réduire les tokens d'exploration",
       "status": "En revue",
@@ -279,7 +279,7 @@
       "completedAt": null,
       "createdAt": "2026-11-23T07:54:00.000+01:00"
     },
-{
+    {
       "id": "ALC-253",
       "title": "Calage de phase percussif (drums downbeat) contre les voix à contre-temps, entrée OST rapide (≤ 8 mesures) et nudge ±1 temps",
       "status": "En revue",
@@ -312,7 +312,7 @@
       "completedAt": null,
       "createdAt": "2026-11-23T00:05:00.000+01:00"
     },
-{
+    {
       "id": "ALC-252",
       "title": "Retour au moteur Web Audio AudioBufferSourceNode échantillon-précis pour les 4 stems & purge complète des caches BPM ×1,25",
       "status": "En revue",
@@ -340,7 +340,7 @@
       "completedAt": null,
       "createdAt": "2026-11-22T23:45:00.000+01:00"
     },
-{
+    {
       "id": "ALC-251",
       "title": "Architecture Auto-Mashup pérenne : démarrage simultané sans autoplay différé, garde-fou anti-silence ENTRÉE VOIX et purge des caches BPM biaisés",
       "status": "En revue",
@@ -4626,7 +4626,7 @@
       "id": "ALC-163",
       "title": "Release GitHub & exécutable Windows autonome (récurrent)",
       "recurrent": true,
-      "status": "En cours",
+      "status": "Backlog",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Release / Publication",
@@ -4634,12 +4634,12 @@
         {
           "id": "ALC-163-1",
           "title": "Pré-contrôle qualité & synchronisation de version : git status, npm run check, cargo test --lib (0 erreur / 100 % verts) ; dernier tag + git log pour la nouvelle SemVer ; version alignée dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml et docs/SPECIFICATIONS.md",
-          "completed": true
+          "completed": false
         },
         {
           "id": "ALC-163-2",
           "title": "Compilation de l'exécutable Windows 100 % autonome : vérif bundle (nsis/portable) dans tauri.conf.json ; npm run tauri build (profil release) ; contrôle taille non nulle + copie versionnée (ex. AlcheMix-II-<version>-windows-x64.exe)",
-          "completed": true
+          "completed": false
         },
         {
           "id": "ALC-163-3",
@@ -4659,7 +4659,7 @@
         {
           "id": "ALC-163-6",
           "title": "Signature numérique Authenticode (signtool / Azure Trusted Signing / SignPath.io) et vérification : détecter signtool.exe + certificat (env vars WINDOWS_CERTIFICATE/AZURE_TENANT_ID ou .pfx) ; si absent → cert local New-SelfSignedCertificate -Type CodeSigningCert CN=AlcheMix II + hook bundle.windows.signCommand (TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD) + signer AlcheMix-II-<version>-windows-x64.exe avec /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 + installer public dans Cert:\\CurrentUser\\Root ; vérifier signtool verify /pa /v et remplacer l'exécutable de la release GitHub",
-          "completed": true
+          "completed": false
         },
         {
           "id": "ALC-163-7",
