@@ -25,6 +25,7 @@ pub fn run() {
             commands::detect_tempo_camelot,
             commands::extract_stems_onnx,
             commands::read_audio_file_bytes,
+            commands::read_audio_file_raw,
             commands::exit_app,
             library::library_list_tracks,
             library::library_upsert_track,
@@ -33,9 +34,12 @@ pub fn run() {
             library::library_toggle_duo,
             library::library_list_duos,
             library::library_update_track_meta,
+            library::library_apply_stems_telemetry,
+            library::library_reanalyze_analysis,
             stems::check_cached_stems,
             stems::separate_stems,
-            stems::export_stems_to_folder
+            stems::export_stems_to_folder,
+            stems::stems_telemetry
         ])
         .run(tauri::generate_context!())
         .expect("Erreur critique lors du lancement d'AlcheMix II");

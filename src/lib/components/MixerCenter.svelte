@@ -3,13 +3,25 @@
   import { onMount } from 'svelte';
   import BeatgridView from './BeatgridView.svelte';
   import LibraryView from './LibraryView.svelte';
+  import StemsMixerView from './StemsMixerView.svelte'; // ALC-187-3 : console centrale STEMS IA
+  import MashupGuideView from './MashupGuideView.svelte'; // ALC-191-3 : guide mashup pas à pas
   import HorologicalDrawer from './HorologicalDrawer.svelte'; // ALC-186-3
+  import FxRackView from './FxRackView.svelte'; // ALC-205-3 : coquille RACK FX
+  import LiveMixView from './LiveMixView.svelte'; // ALC-205-3 : coquille MIX LIVE
+  import HorologicalBarrelNav from './HorologicalBarrelNav.svelte'; // ALC-205-2
+  import VzTip from './VzTip.svelte'; // ALC-255 WP15
+  import VzSliderRail from './VzSliderRail.svelte'; // ALC-260-2
+  import { fly } from 'svelte/transition'; // ALC-209-1 : transition horizontale pure (zéro débordement vertical)
+  import { cubicOut } from 'svelte/easing';
 import { searchDeezer, type DeezerTrack } from '$lib/ipc/meta';
 import { libraryIpc, type LibraryTrack } from '$lib/ipc/client';
 import { findLocalBridgeTracks, type LocalBridgeResult } from '$lib/utils/mashupMatcher';
 import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pivotFrom } from '$lib/audio/harmony';
 
   let oracleDrawerOpen = $state(false); // ALC-186-3 : tiroir Oracle Acoustique escamotable (fermé par défaut)
+  let dragCross = $state(false); // ALC-260-2 : lueur micro-LEDs intensifiée pendant le drag du crossfader
+  // ALC-255 WP12 : aperçu (peek) auto de l'Oracle quand écart harmonique important OU pistes ponts.
+  let oraclePeek = $state(false);
 
   const formattedDelta = $derived(
     mixerStore.bpmDelta > 0
@@ -95,13 +107,15 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
     });
   });
 
-  // ALC-132-1 : jauge bipolaire centrée — Modulation Énergétique (lufsDelta ∈ [-4,4]).
+  // ALC-132-1 / ALC-255 WP18 : jauge bipolaire centrée — Modulation Énergétique (lufsDelta ∈ [-4,4]).
   const lufsSeg = $derived.by(() => {
     const n = bothLoaded ? Math.max(-1, Math.min(1, lufsDelta / 4)) : 0;
     const litMag = Math.round(Math.abs(n) * 7);
-    const color = n >= 0 ? '#10b981' : '#00A3FF';
+    // ALC-255 WP18 : segments allumés en LAITON (jaune #edbf7a) — plus jamais le bleu du Canal B
+    // pour la descente ; le repère zéro (index 7) garde une teinte distincte (ambre translucide).
+    const color = '#edbf7a';
     return Array.from({ length: 14 }, (_, i) => {
-      if (i === 7) return { on: false, center: true, color: 'rgba(237,191,122,0.35)' };
+      if (i === 7) return { on: false, center: true, color: 'rgba(191,163,117,0.55)' };
       let on = false;
       if (n >= 0) on = i >= 8 && i - 7 <= litMag;
       else on = i <= 6 && 7 - i <= litMag;
@@ -112,6 +126,10 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
   // ALC-104-3 : Conseil 1 — cadence rythmique 100 % dynamique selon le Δ BPM réel.
   const cadenceAdvice = $derived.by(() => {
     if (!bothLoaded) return '';
+    if (mixerStore.oracleApplyState.applied) {
+      // ALC-222 : conseil Oracle affiche la cadence effectivement synchronisée après APPLIQUER.
+      return `Cadence synchronisée à ${mixerStore.effectiveBpmA.toFixed(1)} BPM (Pitch B appliqué)`;
+    }
     const bpmA = mixerStore.effectiveBpmA;
     const bpmB = mixerStore.effectiveBpmB;
     const gapAbs = Math.abs(mixerStore.bpmDelta);
@@ -176,6 +194,19 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
       3,
       localDuos
     );
+  });
+
+  // ALC-255 WP12 : vérité — écart harmonique important (verdict rouge #ffb4ab = ring ≥ 3 hors relatif).
+  const isEcartHarmonique = $derived(!!verdict && verdict.cls.includes('ffb4ab'));
+  // Nombre de pistes ponts réellement disponibles (locale + Deezer), repli sur le badge existant « 3 PISTES ».
+  const bridgeCount = $derived(localBridges.length || bridgeTracks.length || (pivotInfo ? 3 : 0));
+  $effect(() => {
+    // ALC-255 WP12 : bascule automatique en peek quand écart harmonique important OU ponts présents.
+    if (isEcartHarmonique || bridgeCount > 0) {
+      if (!oracleDrawerOpen) oraclePeek = true;
+    } else {
+      oraclePeek = false;
+    }
   });
 
   function toggleLocalPreview(br: LocalBridgeResult) {
@@ -247,6 +278,7 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
     mixerStore.cancelAutoMix();
     const el = e.currentTarget as HTMLElement;
     el.setPointerCapture(e.pointerId);
+    dragCross = true;
     applyCross(e);
   }
   function moveCross(e: PointerEvent) {
@@ -318,44 +350,42 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
     const mid = ptOnCircle(angleA + diff / 2, r);
     return `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} Q ${mid.x.toFixed(1)} ${mid.y.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
   })());
+
+  // ALC-255 WP17 : point médian de l'arc A→B — pos de la plaque ébène d'intervalle.
+  
+
+  
+
+  // ALC-262-1 : écart signé en quintes (sens horaire +N, antihoraire -N) — ex. 11B → 9B = -2.
+  const signedQuintDelta = $derived(
+    keyA && keyB ? ((((keyB.num - keyA.num + 6) % 12) + 12) % 12) - 6 : 0
+  );
+  // ALC-263-2 : singulier QUINTE si |delta| ≤ 1, sinon QUINTES (ex. -1 QUINTE, +1 QUINTE, +2 QUINTES).
+  const qui = (n: number): string => `QUINT${Math.abs(n) <= 1 ? 'E' : 'ES'}`;
+  const signedInterval = $derived(
+    harmony
+      ? harmony.rel
+        ? 'RELATIF'
+        : harmony.ring === 0
+          ? 'MÊME CLÉ'
+          : signedQuintDelta > 0
+            ? `+${signedQuintDelta} ${qui(signedQuintDelta)}`
+            : signedQuintDelta < 0
+              ? `${signedQuintDelta} ${qui(signedQuintDelta)}`
+              : `Δ = ${harmony.ring} ${qui(harmony.ring)}`
+      : ''
+  );
+  // ALC-262-1 : bandeau supérieur cohérent avec le signe (plaque + moyeu + bandeau 100 % alignés).
+  const bannerText = $derived(
+    verdict && harmony && harmony.ring === 2 && !harmony.rel
+      ? `TRANSITION ÉNERGÉTIQUE (${signedQuintDelta > 0 ? '+' : ''}${signedQuintDelta} QUINTES)`
+      : verdict?.text ?? ''
+  );
 </script>
 
-<div class="flex flex-col gap-space-xs bg-surface-container-low p-space-sm rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.9)] relative overflow-hidden">
-  <!-- Center Console Mechanical Toggle Switch Bar -->
-  <div class="flex items-center justify-between gap-space-xs pb-space-xs">
-    <div class="flex items-center gap-space-xs w-full">
-      <button
-        type="button"
-        onclick={() => (mixerStore.centerView = 'camelot')}
-        class="flex-1 py-space-xs px-space-sm rounded font-label-sm text-[9px] font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1 transition-colors {mixerStore.centerView === 'camelot'
-          ? 'bg-primary-container text-on-primary-container shadow-[inset_0_1px_3px_rgba(255,221,176,0.3)]'
-          : 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant shadow-sm'}"
-      >
-        <span class="material-symbols-outlined text-[14px]">rotate_right</span>
-        <span>ROUE DE CAMELOT</span>
-      </button>
-      <button
-        type="button"
-        onclick={() => (mixerStore.centerView = 'beatgrid')}
-        class="flex-1 py-space-xs px-space-sm rounded font-label-sm text-[9px] uppercase tracking-wider text-center flex items-center justify-center gap-1 transition-colors {mixerStore.centerView === 'beatgrid'
-          ? 'bg-primary-container text-on-primary-container shadow-[inset_0_1px_3px_rgba(255,221,176,0.3)] font-bold'
-          : 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant shadow-sm'}"
-      >
-        <span class="material-symbols-outlined text-[14px]">grid_4x4</span>
-        <span>BEATGRID</span>
-      </button>
-      <button
-        type="button"
-        onclick={() => (mixerStore.centerView = 'library')}
-        class="flex-1 py-space-xs px-space-sm rounded font-label-sm text-[9px] uppercase tracking-wider text-center flex items-center justify-center gap-1 transition-colors {mixerStore.centerView === 'library'
-          ? 'bg-primary-container text-on-primary-container shadow-[inset_0_1px_3px_rgba(255,221,176,0.3)] font-bold'
-          : 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant shadow-sm'}"
-      >
-        <span class="material-symbols-outlined text-[14px]">library_music</span>
-        <span>LIBRAIRIE</span>
-      </button>
-    </div>
-  </div>
+<div class="flex flex-col gap-space-xs h-full justify-between min-h-0 bg-surface-container-low p-space-sm rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.9)] relative overflow-hidden">
+  <!-- ALC-205-2 : Barillet Horloger à 6 crans (remplace la barre plate Toggle Switch) -->
+  <HorologicalBarrelNav />
 
   <!-- ALC-124 : bandeau central ambré pendant l'analyse d'un plat -->
   {#if mixerStore.anyAnalyzing}
@@ -395,19 +425,57 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
         Piste analysée ({mixerStore.deckA.filePath ? mixerStore.deckA.camelotKey : mixerStore.deckB.camelotKey} • {(mixerStore.deckA.filePath ? mixerStore.effectiveBpmA : mixerStore.effectiveBpmB).toFixed(1)} BPM) — Charger le second canal
       </span>
     {:else}
-      {#if verdict}
-        <span class="font-headline-md text-[15px] uppercase font-bold tracking-wider {verdict.cls}">
-          {verdict.icon} {verdict.text}
-        </span>
-      {/if}
+      <div class="flex items-center gap-space-sm min-w-0">
+        {#if verdict}
+          <span class="font-headline-md text-[15px] uppercase font-bold tracking-wider {verdict.cls}">
+            {verdict.icon} {bannerText}
+          </span>
+        {/if}
+        {#if isEcartHarmonique || bridgeCount > 0}
+          <button
+            type="button"
+            onclick={() => { oraclePeek = false; oracleDrawerOpen = true; }}
+            class="shrink-0 flex items-center gap-1.5 px-3 h-[28px] rounded border border-[#8c6d3f] bg-transparent text-[#edbf7a] font-label-sm text-[11px] font-bold uppercase tracking-widest hover:bg-[#edbf7a]/10 hover:border-[#edbf7a] active:translate-y-[1px] transition-colors"
+          >
+            VOIR LES PONTS ({bridgeCount})
+          </button>
+        {/if}
+      </div>
     {/if}
   </div>
 
+  <!-- ALC-209-1 : scène centrale — chariot à ZÉRO débordement vertical. Les calques entrant/sortant
+       sont en absolute inset-0 dans un overflow-hidden : ils glissent côte à côte horizontalement,
+       jamais empilés verticalement, donc jamais sous le Crossfader Master. -->
+  <div class="relative flex-1 min-h-0 w-full overflow-hidden">
+    {#key mixerStore.centerView}
+    <div class="absolute inset-0 flex flex-col min-h-0 overflow-hidden"
+      in:fly={{ x: mixerStore.moduleStepDelta >= 0 ? 340 : -340, duration: 360, opacity: 0.15, easing: cubicOut }}
+      out:fly={{ x: mixerStore.moduleStepDelta >= 0 ? -340 : 340, duration: 360, opacity: 0.15, easing: cubicOut }}>
   {#if mixerStore.centerView === 'library'}
-  <!-- ALC-165-3 : Vue LIBRAIRIE — catalogue SQLite local + moteur de matching MASHUP -->
+  <div class="flex-1 min-h-0 w-full flex flex-col">
   <LibraryView />
+  </div>
   {:else if mixerStore.centerView === 'beatgrid'}
+  <div class="min-h-0 w-full">
   <BeatgridView />
+  </div>
+  {:else if mixerStore.centerView === 'stems'}
+  <div class="min-h-0 w-full">
+  <StemsMixerView />
+  </div>
+  {:else if mixerStore.centerView === 'fx_rack'}
+  <div class="min-h-0 w-full">
+  <FxRackView />
+  </div>
+  {:else if mixerStore.centerView === 'live_mix'}
+  <div class="min-h-0 w-full">
+  <LiveMixView />
+  </div>
+  {:else if mixerStore.centerView === 'guide'}
+  <div class="min-h-0 w-full">
+  <MashupGuideView />
+  </div>
   {:else}
 <div class="relative bg-surface-container-lowest rounded-xl p-space-md shadow-[inset_0_4px_20px_rgba(0,0,0,0.95)] flex flex-col items-center justify-center overflow-hidden min-h-[490px]">
   <!-- Astronomical Venetian Camelot Wheel: Expanded Diameter -->
@@ -474,18 +542,18 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
   <line x1="250" y1="250" x2="132" y2="45"></line>
 </g>
 
-<!-- Luminous Golden Connector Chord between 4B (405, 340) and 8B (95, 340) -->
+<!-- ALC-104-2 / ALC-255 WP17 : arc lumineux A→B (chemin harmonique le plus court ≤180°) -->
 {#if mixerStore.deckA.filePath && mixerStore.deckB.filePath}
-  <g id="harmonic-energy-bridge">
-  <!-- ALC-104-2 : arc lumineux extérieur (rayon 246) = chemin harmonique le plus court (≤180°) entre les clés actives -->
+  <g id="harmonic-energy-bridge" aria-label="Pont harmonique de la platine A vers la platine B">
   <path d={harmonyArcPath} fill="none" stroke="#7b581e" stroke-width="6" stroke-linecap="round" stroke-opacity="0.5" filter="url(#glow-gold)"></path>
   <path d={harmonyArcPath} fill="none" stroke="#edbf7a" stroke-width="3" stroke-linecap="round" class="harmonic-beam-glow"></path>
   <path d={harmonyArcPath} fill="none" stroke="#ffe8c2" stroke-width="1.5" stroke-linecap="round" class="harmonic-flow-line" style="stroke-dasharray: 6 24; animation-duration: 0.9s; filter: drop-shadow(0 0 6px #ffddb0) drop-shadow(0 0 10px #edbf7a);"></path>
-  <circle r="4" fill="#ffffff" style="filter: drop-shadow(0 0 8px #ffddb0);"><animatemotion path={harmonyMotionPath} dur="1.8s" repeatcount="indefinite"></animatemotion></circle>
-  <circle r="2.5" fill="#edbf7a" style="filter: drop-shadow(0 0 6px #edbf7a);"><animatemotion path={harmonyMotionPath} dur="1.8s" begin="0.9s" repeatcount="indefinite"></animatemotion></circle>
+  <circle r="4" fill="#ffffff" style="filter: drop-shadow(0 0 8px #ffddb0);"><title>Direction de modulation A → B</title><animatemotion path={harmonyMotionPath} dur="1.8s" repeatcount="indefinite"></animatemotion></circle>
+  <circle r="2.5" fill="#edbf7a" style="filter: drop-shadow(0 0 6px #edbf7a);"><title>Direction de modulation A → B</title><animatemotion path={harmonyMotionPath} dur="1.8s" begin="0.9s" repeatcount="indefinite"></animatemotion></circle>
+  <!-- ALC-263-1 : plaque d'intervalle SUPPRIMÉE — l'arc doré A→B reste pur et épuré
+       (l'intervalle est déjà lisible dans le moyeu central, pas de doublon sur le bord de la roue) -->
 </g>
 {/if}
-<path d="M 405 340 A 180 180 0 0 1 95 340" fill="none" stroke="#edbf7a" stroke-dasharray="8 6" stroke-width="2.5" stroke-opacity="0.7"></path>
 
 {#if mixerStore.deckA.filePath}
 <!-- 1. AIGUILLE A — squelette Breguet semi-transparente (ALC-123) — masquée si platine vide (ALC-126-4) -->
@@ -550,7 +618,7 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
         </div>
         <span class="font-label-sm text-[9px] text-outline uppercase font-bold tracking-widest">INTERVALLE</span>
         {#if bothLoaded}
-        <span class="font-title-md text-[16px] font-bold text-primary tracking-tight">{interval ? interval.hub : ''}</span>
+        <span class="font-title-md text-[16px] font-bold text-primary tracking-tight tabular-nums">{signedInterval}</span>
         <span class="font-label-sm text-[9px] text-emerald-400 mt-1 uppercase font-bold tabular-nums">
           Δ BPM : {formattedDelta}
         </span>
@@ -583,31 +651,62 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
           <span class="flex-1 h-full rounded-[1px] transition-colors duration-150" style="background:{s.on ? s.color : 'rgba(120,110,90,0.18)'}; box-shadow:{s.on ? `0 0 4px ${s.color}` : 'none'};"></span>
         {/each}
       </span>
-      <span class="font-label-sm text-[9px] text-tertiary">{#if bothLoaded}{interval ? interval.label : ''}{:else}En attente d'analyse{/if}</span>
+      <span class="font-label-sm text-[9px] text-tertiary mt-1.5">{#if bothLoaded}{interval ? interval.label : ''}{:else}En attente d'analyse{/if}</span>
     </div>
     <div class="bg-surface-container p-space-sm rounded-lg shadow-sm flex flex-col justify-between">
       <span class="font-label-sm text-[9px] text-outline uppercase">Modulation Énergétique</span>
-      <span class="font-headline-md text-[24px] text-secondary font-bold">{#if bothLoaded}{lufsDelta >= 0 ? '+' : ''}{lufsDelta.toFixed(1)} LUFS{:else}-- LUFS{/if}</span>
+      <span class="font-headline-md text-[24px] text-primary font-bold">{#if bothLoaded}{lufsDelta >= 0 ? '+' : ''}{lufsDelta.toFixed(1)} LUFS{:else}-- LUFS{/if}</span>
       <span class="flex items-center gap-0.5 h-2.5 mt-1" aria-hidden="true">
         {#each lufsSeg as s, i (i)}
           <span class="flex-1 h-full rounded-[1px] transition-colors duration-150" style="background:{s.center ? s.color : (s.on ? s.color : 'rgba(120,110,90,0.18)')}; box-shadow:{s.on ? `0 0 5px ${s.color}` : 'none'};"></span>
         {/each}
       </span>
-      <span class="font-label-sm text-[9px] text-on-surface-variant">{#if bothLoaded}{lufsDelta >= 0 ? 'Ascension de Tension Mesurée' : 'Descente de Tension Mesurée'}{:else}En attente de mesure{/if}</span>
+      <!-- ALC-255 WP18 : graduations réelles −6 · 0 · +6, repère zéro libellé -->
+      <div class="flex items-center justify-between font-mono text-[10px] text-outline tabular-nums mt-1.5 px-0.5" aria-hidden="true">
+        <span>−6</span>
+        <span class="text-[#edbf7a] font-bold">0</span>
+        <span>+6</span>
+      </div>
+      <span class="font-label-sm text-[9px] text-on-surface-variant mt-1">{#if bothLoaded}{lufsDelta >= 0 ? 'Ascension de Tension Mesurée' : 'Descente de Tension Mesurée'}{:else}En attente de mesure{/if}</span>
     </div>
   </div>
 
   <!-- ALC-186-3 : Tiroir Oracle Acoustique & Itinéraires (escamotable, fermé par défaut) -->
-  <HorologicalDrawer bind:open={oracleDrawerOpen} title="ORACLE ACOUSTIQUE & ITINÉRAIRES" badge="3 PISTES" active={false} accent="emerald">
+  <HorologicalDrawer bind:open={oracleDrawerOpen} title="ORACLE ACOUSTIQUE & ITINÉRAIRES" badge="3 PISTES" active={false} accent="emerald" peek={oraclePeek}>
   <!-- Acoustic Oracle Advice Card (CONSEILS DE MIXAGE • ORACLE ACOUSTIQUE) - Restauré fidèlement -->
   <div class="bg-surface-container-high rounded-xl p-space-md shadow-[0_6px_18px_rgba(0,0,0,0.8)] flex flex-col gap-space-sm">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-space-xs">
         <span class="material-symbols-outlined text-primary text-[18px]">psychology</span>
         <span class="font-label-md text-[11px] text-primary font-bold uppercase tracking-wider">
           CONSEILS DE MIXAGE • ORACLE ACOUSTIQUE
         </span>
       </div>
+      <!-- ALC-221 : appliquer / annuler les conseils de l'Oracle en un clic (visible si les 2 platines sont chargées) -->
+      {#if bothLoaded}
+        {#if mixerStore.oracleApplyState.applied}
+          <div class="flex items-center gap-1.5">
+            <VzTip text={mixerStore.oracleApplyState.summary}>
+              <span class="flex items-center gap-1 font-mono text-[10px] font-bold text-emerald-300 whitespace-nowrap"
+                >✓ RÉGLAGES APPLIQUÉS</span
+              >
+            </VzTip>
+            <button
+              type="button"
+              onclick={() => mixerStore.revertOracleAdvice()}
+              class="px-2 py-0.5 rounded border border-[#4f4539] text-on-surface-variant text-[9px] font-bold uppercase tracking-widest whitespace-nowrap hover:text-[#edbf7a] hover:border-[#edbf7a]/50"
+            >↺ ANNULER</button>
+          </div>
+        {:else}
+          <VzTip text="Appliquer les conseils de l'Oracle : Pitch B calé sur le tempo de A, préparation des basses LOW EQ, durée Auto-Mix">
+            <button
+              type="button"
+              onclick={() => mixerStore.applyOracleAdvice()}
+              class="px-2 py-0.5 rounded bg-gradient-to-b from-[#edbf7a] to-[#9a6f2f] text-[#120d0a] text-[9px] font-bold uppercase tracking-widest whitespace-nowrap shadow-[0_2px_6px_rgba(0,0,0,0.7)] hover:brightness-110"
+            >⚡ APPLIQUER</button>
+          </VzTip>
+        {/if}
+      {/if}
     </div>
 
     <div class="flex flex-col gap-space-xs bg-surface-container-lowest p-space-sm rounded-lg">
@@ -675,7 +774,7 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
               </div>
               <span class="shrink-0 text-[9px] font-mono text-primary font-bold px-1.5 py-0.5 rounded bg-primary/10 border border-primary/30">{br.score}% PONT</span>
               <button type="button" onclick={() => loadLocalBridge(br, 'A')} class="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-[#06423a] text-[#10b981] font-bold border border-[#10b981]/50 hover:bg-[#10b981] hover:text-black">→ A</button>
-              <button type="button" onclick={() => loadLocalBridge(br, 'B')} class="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-[#194f47]/50 text-[#3b82f6] font-bold border border-[#3b82f6]/50 hover:bg-[#3b82f6] hover:text-black">→ B</button>
+              <button type="button" onclick={() => loadLocalBridge(br, 'B')} class="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-[#194f47]/50 text-[#00A3FF] font-bold border border-[#00A3FF]/50 hover:bg-[#00A3FF] hover:text-black">→ B</button>
             </div>
           {/each}
         </div>
@@ -707,6 +806,9 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
   </div>
   </HorologicalDrawer>
   {/if}
+    </div>
+    {/key}
+  </div>
 
 <!-- ALC-138-2 : Crossfader Master — partagé entre les vues, posé sous l'atelier Beatgrid et sous la console Camelot -->
 <div class="mt-2 bg-surface-container-lowest rounded-xl p-space-sm border border-surface-variant/40">
@@ -724,15 +826,18 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
       if (e.key === 'ArrowLeft') { e.preventDefault(); setCross(mixerStore.crossfader - 2); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); setCross(mixerStore.crossfader + 2); }
     }}
+    onpointerup={() => (dragCross = false)}
     class="relative h-8 bg-surface-container-low rounded-lg flex items-center px-space-md cursor-ew-resize touch-none select-none shadow-[inset_0_3px_8px_rgba(0,0,0,0.95)]"
   >
+    <VzSliderRail value={Math.max(0, Math.min(1, mixerStore.crossfader / 100))} accent="cross" dragging={dragCross} ticks={[{ at: 0, label: 'A' }, { at: 0.25, label: '75/25' }, { at: 0.5, label: '50/50', lum: true }, { at: 0.75, label: '25/75' }, { at: 1, label: 'B' }]} />
     <div class="w-full h-1.5 bg-surface-variant rounded-full"></div>
-    <!-- Poignée laiton + micro-LED ambre centrale -->
+    <!-- Poignée laiton rainurée + trait central or -->
     <div
-      class="pointer-events-none absolute -translate-x-1/2 w-10 h-6 bg-gradient-to-b from-primary-fixed via-primary-container to-secondary-container rounded shadow-[0_4px_12px_rgba(0,0,0,0.9)] flex items-center justify-center"
+      class="pointer-events-none absolute -translate-x-1/2 w-10 h-6 rounded overflow-hidden border border-[#8c6d3f]/60 bg-gradient-to-b from-[#3a2f24] via-[#6b5a3c] to-[#18120e] shadow-[0_4px_12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,221,176,0.16),inset_0_-3px_6px_rgba(0,0,0,0.6)] flex items-center justify-center"
       style="left:{Math.max(6, Math.min(94, mixerStore.crossfader))}%;"
     >
-      <span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#edbf7a] animate-pulse"></span>
+      <span class="pointer-events-none absolute inset-0 opacity-50" style="background:repeating-linear-gradient(0deg,rgba(0,0,0,0.45) 0 1px,transparent 1px 3px);"></span>
+      <span class="relative w-[3px] h-4 rounded-full bg-primary shadow-[0_0_7px_#edbf7a]"></span>
     </div>
   </div>
   <!-- ALC-169 : AUTO-MIX 8 / 16 mesures — Crossfader assisté & Bass-Swap automatique -->
@@ -756,7 +861,7 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
       disabled={!mixerStore.deckA.filePath || !mixerStore.deckB.filePath}
       class="flex-1 flex items-center justify-center gap-1 rounded px-2 py-1 text-[9px] font-label-sm font-bold uppercase tracking-wider transition-colors {mixerStore.autoMixActive ? 'bg-primary/25 text-primary border border-primary/60 shadow-[0_0_12px_rgba(237,191,122,0.5)] animate-pulse cursor-default' : 'bg-gradient-to-b from-primary via-primary-container to-inverse-primary text-on-primary hover:brightness-110 shadow-[0_2px_6px_rgba(0,0,0,0.7)]'} disabled:opacity-40 disabled:cursor-not-allowed"
     >
-      <span>{mixerStore.autoMixActive ? '⇄ AUTO-MIX EN COURS' : (mixerStore.crossfader < 50 ? '⇄ AUTO-MIX → B' : '⇄ AUTO-MIX → A')}</span>
+      <span>{mixerStore.autoMixActive ? (mixerStore.autoMashupActive ? '⇄ AUTO-MASHUP (50/50)' : '⇄ AUTO-MIX EN COURS') : (mixerStore.crossfader < 50 ? '⇄ AUTO-MIX → B' : '⇄ AUTO-MIX → A')}</span>
     </button>
     <button
       type="button"

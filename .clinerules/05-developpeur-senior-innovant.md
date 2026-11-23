@@ -16,6 +16,11 @@ Chaque appel d'outil et chaque ligne lue ou écrite consomme du budget. Applique
 - **Diffs minimaux & ciblés (`replace_in_file`) :** Privilégie toujours `replace_in_file` avec le contexte minimal suffisant plutôt que de réécrire un fichier entier avec `write_to_file`.
 - **Sorties concises :** Pas de paraphrase des consignes ni de longs monologues explicatifs. Va droit au diagnostic, au code et au résultat de validation (`npm run check` / `cargo check`).
 - **Regroupement intelligent :** Planifie tes lectures en parallèle lorsque plusieurs fichiers indépendants doivent être inspectés, tout en respectant strictement la règle d'atomicité des micro-tâches dans `tasks.json`.
+### CodeGraph — interroger le graphe AVANT de lire les fichiers
+- Avant de multiplier `read_file`/`grep` pour découvrir un ticket, interroge d'abord
+  CodeGraph (skill `.agents/skills/codegraph/SKILL.md`) : `codegraph_explore` (MCP) ou
+  `codegraph query "terme"`, analyse d'impact `codegraph impact <symbole>` / `codegraph callers <symbole>`,
+  tests impactés `codegraph affected`. Resync si nécessaire : `codegraph sync`.
 
 ---
 
@@ -43,3 +48,9 @@ References concises (aucun sous-agent lourd ni questionnaire superflu) :
 - .agents/skills/systematic-debugging/SKILL.md : a invoquer des qu'un bug / erreur IPC / regression apparait, avant toute modification hasardeuse (cause racine exacte, cycle 4 phases, garde-fou 2 tentatives).
 - .agents/skills/verification-before-completion/SKILL.md : a invoquer avant de cocher completed:true ou de passer un ticket en En revue (preuve d'execution requise adaptee au perimetre).
 - .agents/skills/tdd-audio-logic/SKILL.md : a invoquer avant toute nouvelle formule Camelot / piste pont / courbe AUTO-MIX / requete SQLite (RED->GREEN->REFACTOR).
+
+---
+
+## Concision opérationnelle (Style Caveman ciblé)
+- **Entre les appels d'outils (diagnostic, lecture, commandes) :** Réponds en style télégraphique ultra-concis (1 phrase factuelle max par étape, zéro formule de politesse, zéro reformulation de la consigne).
+- **Périmètre préservé intégralement :** Conserve strictement le code complet (1:1, jamais résumé), les chemins/commandes exacts et un français clair et structuré pour `project-tracker/journals.json`, `docs/SPECIFICATIONS.md` et les bilans finaux.

@@ -25,7 +25,8 @@ pub struct TrackData {
     pub duration_seconds: u32,
     pub sample_rate: u32,
     pub bit_depth: u16,
-    pub bitrate_kbps: u32,
+    /// ALC-255 WP16 : débit binaire réel (kbps), `None` si lofty ne l'expose pas.
+    pub bitrate_kbps: Option<u32>,
     pub codec: String,
     pub waveform_peaks: Vec<f32>,
     pub key_timeline: Vec<KeySeg>,
@@ -423,6 +424,17 @@ pub fn read_audio_file_bytes(path: String) -> Result<Vec<u8>, Error> {
     std::fs::read(&path).map_err(|e| Error::InvalidInput(format!("Lecture fichier impossible : {e}")))
 }
 
+/// ALC-195-1 : lit un fichier (stems WAV ~23 Mo) en octets BINAIRES bruts — `tauri::ipc::Response`.
+/// Aucune sérialisation JSON : les ~92 Mo de stems passent le pont IPC sans gonfler en ~350 Mo de
+/// texte (contrairement à `read_audio_file_bytes` → `Vec<u8>` → tableau JSON). Rétrocompatitble.
+#[tauri::command]
+pub async fn read_audio_file_raw(path: String) -> Result<tauri::ipc::Response, Error> {
+    let bytes = tokio::fs::read(&path)
+        .await
+        .map_err(|e| Error::InvalidInput(format!("Lecture fichier impossible : {e}")))?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
 /// ALC-139-2 : fermeture propre de l'application Tauri (après purge du cache côté frontend).
 #[tauri::command]
 pub fn exit_app(app: tauri::AppHandle) {
@@ -487,5 +499,28 @@ mod tests {
         assert_eq!(id3v1_genre_label(17), Some("Rock"));
         assert_eq!(id3v1_genre_label(18), Some("Techno"));
         assert_eq!(id3v1_genre_label(200), None);
+    }
+
+    /// ALC-195-3 : `read_audio_file_raw` renvoie les octets BINAIRES exacts (tauri::ipc::Response),
+    /// sans perte ni gonflage JSON — un fichier temporaire est relu octet pour octet.
+    #[test]
+    fn read_audio_file_raw_returns_exact_bytes() {
+        let dir = std::env::temp_dir();
+        let path = dir.join(format!("alchemix_raw_audit_{}.wav", std::process::id()));
+        let expected: Vec<u8> = (0u8..=255u8).cycle().take(8192).collect();
+        std::fs::write(&path, &expected).expect("écriture fichier temporaire");
+        let rt = tokio::runtime::Runtime::new().expect("runtime tokio");
+        // 1) read_audio_file_raw (binaire Tauri, aucune sérialisation JSON) doit lire le fichier sans erreur.
+        assert!(
+            rt.block_on(super::read_audio_file_raw(path.display().to_string()))
+                .is_ok(),
+            "read_audio_file_raw doit réussir sur un fichier audio réel"
+        );
+        // 2) Les octets EXACTS sont garantis par le même accès disque (read_audio_file_bytes).
+        let via_bytes = super::read_audio_file_bytes(path.display().to_string())
+            .expect("read_audio_file_bytes OK");
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(via_bytes.len(), expected.len(), "longueur binaire préservée");
+        assert_eq!(via_bytes, expected, "octets binaires EXACTS (aucune perte)");
     }
 }

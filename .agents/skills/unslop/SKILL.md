@@ -189,6 +189,26 @@ It adds a few minutes, so make it only when the user wants it.
 1. **One story file.** Build `unslop-story/story.html`, a standalone copy of the original screen with its styles in the file. Keep the original rules as they are, they are step 0.
 2. **Steps.** Three to five, merging passes so each one changes something you can see, like `Spacing`, `Color and icons`, `Type and copy`, `Details`. A new chart or visual goes into the last step. List them in the head as `<meta name="unslop-steps" content="Spacing, Color and icons, Type and copy, Details">`. A name containing Spacing shows spacing measurements, one containing Details shows corner outlines.
 3. **Each step is CSS on top.** Write the changes of step 1 under `.s1`, step 2 under `.s2` and so on, like `.s1 .card { padding: 24px }` or `.s2 body { background-color: #141415 }`. The classes add up, so step 3 still has the rules of steps 1 and 2. Change values, never structure, so the browser can tween them.
+
+---
+
+## Standard Luxe Horloger & Dynamique (AlcheMix II)
+
+Règles **obligatoires** pour tout composant UI d'AlcheMix II, présents **et futurs** (Rack FX, Mix Live…). Toute dérogation doit être justifiée. Chaque composant respecte les 6 points suivants.
+
+1. **Matériaux nobles & profondeur stratifiée.** Superposer 3 niveaux de matière : **châssis ébène brossé** (`#17120f`), **plaques en laiton satiné** avec chanfrein lumineux supérieur (`box-shadow: inset 0 1px 0 rgba(255,221,176,0.14)`), et **cuves encastrées profondes** (`#120d0a` avec `box-shadow: inset 0 3px 10px rgba(0,0,0,0.92)`). Jamais une surface plate sans ces 3 couches.
+
+2. **Reflets spéculaires & verre saphir.** Sur chaque cadran, guichet ou VU-mètre, superposer un **reflet diagonal de verre saphir** (`background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 45%)`) et ajouter des **micro-vis d'angle en laiton** (`#8c7853` / `#edbf7a`) aux coins des cadrans et guichets.
+
+3. **Lisibilité typographique anti-cassure (`Anti-Wrap`).** Tout libellé de bouton, badge ou module actif reste sur **une seule ligne** (`whitespace-nowrap`), avec un **contraste élevé** (`#ffddb0` sur `#201a17`) et des chiffres en `JetBrains Mono` (`tabular-nums`). Interdiction de laisser un label clé re-casser sur deux lignes.
+
+4. **Affordance directionnelle & double codage.** Aucun état ni direction ne repose uniquement sur la couleur : combiner systématiquement une **icône / chevron directionnel explicite**, un **relief mécanique** (`translateY(1px)` au clic) et une **micro-LED diffusante** (`box-shadow` radiale douce). Un contrôle doit rester lisible même en dégradé (daltonisme).
+
+5. **Physique d'animation horlogère (60 fps).** Utiliser des **courbes à inertie mécanique** (`cubic-bezier(0.22, 1, 0.36, 1)`) avec micro-amortissement sur les rotations, faders et transitions de panneaux, sans jamais provoquer de **décalage de mise en page** (`h-screen overflow-hidden` convecté).
+
+6. **Réactivité lumineuse au signal audio.** Lier subtilement l'intensité des **halos LED** (émeraude `#10b981` pour la platine A, bleu `#3b82f6` pour B, or `#edbf7a` pour le master) à l'**activité réelle de lecture** (`transport === 'playing'`) et au niveau VU — le halo pulsera/intensifiera avec le signal, jamais à vide pour le décor.
+
+> **Tokens** : les constantes de couleur, rayons, ombres et courbes sont centralisées dans **`.stitch/DESIGN.md`** — toute création de composant lit d'abord ce fichier.
 4. **What cannot tween, and how to handle it.**
    - Gradients, glows and washes: put them on their own layer and fade its `opacity` to 0, with the solid color underneath changing. Gradient text goes on the `.from` span only, never on the swap or its parent, because a text clip also catches the hidden new text.
    - Pills: write their radius as half the height, like `23px`, not `9999px`, or the corner only changes in the last frame.

@@ -65,3 +65,6 @@ alchemix_codesign.cer
 result.txt
 build-*.log
 tests_out.txt
+
+# --- CodeGraph (graphe de code local, index SQLite) ---
+.codegraph/

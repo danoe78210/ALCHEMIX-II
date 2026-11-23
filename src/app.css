@@ -112,6 +112,105 @@
   --text-label-lg--font-weight: 600;
 }
 
+/* ============================================================
+   ALC-230 — Tokens du pupitre Beatgrid « Venezia 1889 » (VzKey)
+   + surfaces & brass existants (références .stitch/DESIGN.md)
+   ============================================================ */
+:root {
+  /* surfaces & brass (existing — keep) */
+  --vz-chassis-bg: #16110e;
+  --vz-chassis-edge: #544738;
+  --vz-well: #0f0b09;
+  --vz-key-top: #2b231d;
+  --vz-key-bottom: #17120e;
+  --vz-key-edge: #665643;
+  --vz-brass-text: #edbf7a;
+  --vz-ch-a: #10b981;
+  --vz-ch-b: #00A3FF;
+  /* ALC-255 : textes en couleur de canal (contraste ~6.9:1 sur surfaces sombres) */
+  --vz-ch-a-text: #34d399;
+  --vz-ch-b-text: #6cc4ff;
+
+  /* new — laiton 3 tons + encre */
+  --vz-brass-hi: #f0cc88;
+  --vz-brass-mid: #d3a255;
+  --vz-brass-lo: #b98a42;
+  --vz-ink-on-brass: #1a1209;
+  /* textes hiérarchisés */
+  --vz-text-hi: #f3dfbd;
+  --vz-text-mid: #b8a68a;
+  --vz-text-caption: #a89880;
+  --vz-text-disabled: #7a6a55;
+  --vz-disabled-bg: #14100d;
+  --vz-disabled-edge: #241d17;
+
+  /* géométrie */
+  --vz-key-h-hero: 44px;
+  --vz-key-h-lg: 40px;
+  --vz-key-h: 36px;
+  --vz-key-h-sm: 32px;
+  --vz-gap: 8px;
+  --vz-radius: 6px;
+
+  /* motion */
+  --vz-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --vz-t-press: 80ms;
+  --vz-t-release: 180ms;
+  --vz-t-hover: 140ms;
+  --vz-t-led: 160ms;
+
+  /* ombres : deux couches (contact serré + diffuse, source lumineuse zénithale) */
+  --vz-sh-raised:
+    inset 0 1px 0 rgba(237, 191, 122, 0.32),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(0, 0, 0, 0.9),
+    0 3px 6px rgba(0, 0, 0, 0.45);
+  --vz-sh-pressed:
+    inset 0 2px 5px rgba(0, 0, 0, 0.8),
+    inset 0 0 0 1px rgba(237, 191, 122, 0.18),
+    0 1px 0 rgba(237, 191, 122, 0.08);
+
+  /* ============================================================
+     ALC-259 — DA & Ergonomie : Drawer, Stems, Sliders
+     ============================================================ */
+  /* Drawer physics & elevation */
+  --vz-drawer-h: 34px;
+  --vz-drawer-bg: #181310;
+  --vz-drawer-well: #100c09;
+  --vz-drawer-edge: #4f4539;
+  --vz-drawer-shadow-open:
+    0 -12px 28px rgba(0, 0, 0, 0.65),
+    0 -2px 6px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(237, 191, 122, 0.22);
+
+  /* Stems unified height */
+  --vz-stems-panel-h: 142px;
+
+  /* Luminous slider tracks & markers */
+  --vz-slider-rail-bg: #100c09;
+  --vz-slider-rail-edge: #3a3128;
+  --vz-slider-tick-idle: #5a4e41;
+  --vz-slider-tick-zero: #edbf7a;
+  --vz-slider-glow-a: 0 0 8px rgba(16, 185, 129, 0.75);
+  --vz-slider-glow-b: 0 0 8px rgba(0, 163, 255, 0.75);
+  --vz-slider-glow-brass: 0 0 8px rgba(237, 191, 122, 0.75);
+
+  /* Motion (respect prefers-reduced-motion) */
+  --vz-ease-drawer: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --vz-t-drawer: 280ms;
+  --vz-t-key: 140ms;
+}
+
+/* Mode compact (1366x768 : tout reste visible, aucun défilement) */
+@media (max-height: 900px) {
+  :root {
+    --vz-key-h-hero: 38px;
+    --vz-key-h-lg: 34px;
+    --vz-key-h: 32px;
+    --vz-key-h-sm: 28px;
+  }
+}
+
 @layer base {
   html, body {
     margin: 0;

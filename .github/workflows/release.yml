@@ -70,6 +70,15 @@ jobs:
       - name: Build (release)
         run: npm run tauri build
 
+      # ALC-163 : l'exe autonome est nommé `alchemix_ii` par Cargo ; on le renomme sous le nom
+      # attendu par la signature (files-folder-filter) et la publication (glob `AlcheMix-II-*-windows-x64.exe`).
+      - name: Name standalone executable
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value
+          Copy-Item "src-tauri/target/release/alchemix_ii.exe" "src-tauri/target/release/AlcheMix-II-$v-windows-x64.exe" -Force
+          Get-Item "src-tauri/target/release/AlcheMix-II-$v-windows-x64.exe" | Select-Object Name, Length
+
       # ─── SIGNATURE OFFICIELLE (Azure Trusted Signing) ─────────────────────────────
       # Exécutée UNIQUEMENT si les 4 secrets Azure sont renseignés. `azure/trusted-signing-action`
       # signe l'exécutable autonome avec un certificat reconnu Microsoft (timestamp RFC 3161 inclus).

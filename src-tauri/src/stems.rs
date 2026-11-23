@@ -126,6 +126,22 @@ pub fn check_cached_stems(path: String) -> Option<StemPaths> {
     cached_stem_paths(&stems_dir_for_sha(&sha), p)
 }
 
+/// ALC-242 / ALC-243-1 : télémétrie HTDemucs d'un morceau (BPM sur drums, clé Camelot other+bass…).
+/// ASYNC + spawn_blocking : le calcul (décodage des 4 WAV + FFT) ne doit JAMAIS bloquer le thread IPC
+/// (cause racine du gel ÉTAPE 4/5 du pipeline AUTO-MASHUP quand `stems_meta.json` était absent).
+#[tauri::command]
+pub async fn stems_telemetry(
+    path: String,
+    reference_bpm: Option<f64>,
+    force: Option<bool>,
+) -> Option<crate::audio::StemsTelemetry> {
+    let force = force.unwrap_or(false);
+    tauri::async_runtime::spawn_blocking(move || stems_meta_for_source(&path, reference_bpm, force))
+        .await
+        .ok()
+        .flatten()
+}
+
 /// Assainit un préfixe de fichier pour Windows (interdit `< > : " / \ | ? *`, Ctrl, point).
 /// ALC-177 : retourne toujours un nom non vide (repli `"stem"`).
 fn sanitize_prefix(s: &str) -> String {
@@ -190,8 +206,114 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 
+/// ALC-242 : fichier de télémétrie HTDemucs (BPM sur drums, clé Camelot sur other+bass, …),
+/// écrit à côté des 4 WAV du cache.
+const STEMS_META_FILENAME: &str = "stems_meta.json";
+
+/// ALC-242 : exécute `audio::analyze_stems_telemetry` sur les 4 WAV d'un dossier de cache et
+/// persiste le résultat dans `stems_meta.json` (recalcul idempotent, n'écrase rien si présent).
+/// ALC-243-2 : `reference_bpm` borne le BPM drums (rejet des sauts non-binaires ×1.25).
+fn ensure_stems_meta(dir: &Path, reference_bpm: f64) -> Result<(), Error> {
+    let meta_path = dir.join(STEMS_META_FILENAME);
+    if meta_path.exists() {
+        // ALC-244-1 : si le cache est déjà à la version de schéma courante → lecture seule ;
+        // sinon (stems_meta.json v1, BPM ×1,25 / mix 0.30 bass) on purge et recalcule proprement.
+        if let Ok(bytes) = std::fs::read(&meta_path) {
+            if let Ok(tel) = serde_json::from_slice::<crate::audio::StemsTelemetry>(&bytes) {
+                if tel.telemetry_version >= 2 {
+                    // ALC-253-1/ALC-252-2 : toute lecture d un stems_meta.json existant (v2)
+                    // controle le bpm (±10 % vs référence) ET la présence du downbeat percussif.
+                    const BPM_TOLERANCE: f64 = 0.10;
+                    let bpm_ok = reference_bpm <= 0.0
+                        || !reference_bpm.is_finite()
+                        || tel.bpm.is_none()
+                        || tel.bpm.map_or(true, |b| {
+                            b <= 0.0
+                                || !b.is_finite()
+                                || ((b - reference_bpm).abs() / reference_bpm) <= BPM_TOLERANCE
+                        });
+                    if bpm_ok && tel.first_downbeat_seconds.is_some() {
+                        return Ok(()); // cache sain (bpm validé + downbeat présent)
+                    }
+                    if bpm_ok {
+                        // Cache antérieur sans downbeat (ex. 163,4 BPM de Depeche Mode) → purge +
+                        // recalcul complet (remplit bpm validé + first_downbeat_seconds).
+                        let _ = std::fs::remove_file(&meta_path);
+                    } else {
+                        // BPM biaisé (×1,25 …) → écrasement léger du champ bpm (downbeat conservé).
+                        let mut corrected = tel;
+                        corrected.bpm = Some((reference_bpm * 10.0).round() / 10.0);
+                        let cbytes = serde_json::to_vec(&corrected).map_err(|e| {
+                            Error::InvalidInput(format!("Sérialisation stems_meta.json impossible : {e}"))
+                        })?;
+                        std::fs::write(&meta_path, cbytes).map_err(|e| {
+                            Error::InvalidInput(format!("Écriture stems_meta.json impossible : {e}"))
+                        })?;
+                        eprintln!(
+                            "[STEMS] cache stems_meta.json au BPM biaisé corrigé → {:.1} (référence)",
+                            reference_bpm
+                        );
+                        return Ok(());
+                    }
+                }
+            }
+        }
+        let _ = std::fs::remove_file(&meta_path);
+    }
+    let tel = crate::audio::analyze_stems_telemetry(
+        &dir.join("drums.wav"),
+        &dir.join("bass.wav"),
+        &dir.join("other.wav"),
+        &dir.join("vocals.wav"),
+        reference_bpm,
+    )?;
+    let bytes = serde_json::to_vec(&tel).map_err(|e| {
+        Error::InvalidInput(format!("Sérialisation stems_meta.json impossible : {e}"))
+    })?;
+    std::fs::write(&meta_path, bytes).map_err(|e| {
+        Error::InvalidInput(format!("Écriture stems_meta.json impossible : {e}"))
+    })?;
+    Ok(())
+}
+
+/// ALC-242/243-1 : télémétrie HTDemucs d'un morceau (lecture / recalcul du `stems_meta.json`).
+/// `force` = true : purge le fichier erroné (ex. BPM ×1,25) puis recalcule proprement.
+pub(crate) fn stems_meta_for_source(
+    source_path: &str,
+    reference_bpm: Option<f64>,
+    force: bool,
+) -> Option<crate::audio::StemsTelemetry> {
+    let p = source_path.trim();
+    if p.is_empty() {
+        return None;
+    }
+    let Ok(sha) = sha256_hex_file(p) else {
+        return None;
+    };
+    let dir = stems_dir_for_sha(&sha);
+    if !dir.join("drums.wav").exists() {
+        return None;
+    }
+    if force {
+        let _ = std::fs::remove_file(dir.join(STEMS_META_FILENAME));
+    }
+    // Référence BPM : fournie par le frontend, sinon recalculée via l'analyse complète de la piste
+    // (coûteux, mais réservé au chemin « metadonnées absentes / force »).
+    let reference = reference_bpm.unwrap_or_else(|| {
+        crate::audio::analyze(Path::new(p))
+            .map(|a| a.bpm)
+            .unwrap_or(0.0)
+    });
+    if let Err(e) = ensure_stems_meta(&dir, reference) {
+        eprintln!("[STEMS] télémétrie indisponible ({e})");
+        return None;
+    }
+    let bytes = std::fs::read(dir.join(STEMS_META_FILENAME)).ok()?;
+    serde_json::from_slice(&bytes).ok()
+}
+
 /// Décode un fichier en stéréo f32 (canaux L/R séparés) au taux natif.
-fn decode_planar(path: &Path) -> Result<(Vec<f32>, Vec<f32>, u32), Error> {
+pub(crate) fn decode_planar(path: &Path) -> Result<(Vec<f32>, Vec<f32>, u32), Error> {
     let file = std::fs::File::open(path)
         .map_err(|_| Error::NotFound(path.display().to_string()))?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
@@ -337,7 +459,7 @@ fn run_window(sess: &mut Session, l: &[f32], r: &[f32], seg: usize) -> Result<[V
 }
 
 /// Sépare un signal planar et écrit 4 WAV dans `dir` (recouvrement 25 %, Hann normalisé).
-fn run_separation(l: &[f32], r: &[f32], dir: &Path, prog: Option<&tauri::ipc::Channel<f32>>) -> Result<(), Error> {
+fn run_separation(l: &[f32], r: &[f32], dir: &Path, prog: Option<&tauri::ipc::Channel<f32>>, reference_bpm: f64) -> Result<(), Error> {
     let seg = effective_segment(&session_guard()?.as_ref().unwrap()); // repli constant
     let total = l.len().min(r.len());
     let hop = (seg as f32 * HOP_RATIO) as usize;
@@ -421,6 +543,9 @@ fn run_separation(l: &[f32], r: &[f32], dir: &Path, prog: Option<&tauri::ipc::Ch
     for (s, name) in ["drums", "bass", "other", "vocals"].iter().enumerate() {
         write_wav_stereo_i16(&dir.join(format!("{name}.wav")), &norm_l[s], &norm_r[s], OUTPUT_RATE)?;
     }
+    // ALC-242 : télémétrie HTDemucs (BPM sur drums, clé Camelot sur other+bass, densité vocale,
+    // encombrement médium) écrite dans `stems_meta.json` — best-effort, n'empêche jamais l'extraction.
+    let _ = ensure_stems_meta(&dir, reference_bpm);
     if let Some(ch) = prog {
         let _ = ch.send(1.0);
     }
@@ -437,6 +562,16 @@ pub async fn separate_stems(path: String, on_progress: tauri::ipc::Channel<f32>)
     let sha = sha256_hex_file(&p)?;
     let dir = stems_dir_for_sha(&sha);
     if let Some(sp) = cached_stem_paths(&dir, &p) {
+        // ALC-242/243-1 : relecture d'un cache sans stems_meta.json → calcul en spawn_blocking
+        // (ne bloque JAMAIS le thread IPC — cause racine du gel ÉTAPE 4/5 du pipeline).
+        let d = dir.clone();
+        let _ = tauri::async_runtime::spawn_blocking(move || {
+            let reference = crate::audio::analyze(Path::new(&p))
+                .map(|a| a.bpm)
+                .unwrap_or(0.0);
+            let _ = ensure_stems_meta(&d, reference);
+        })
+        .await;
         return Ok(sp);
     }
     let pl = p.clone();
@@ -444,7 +579,14 @@ pub async fn separate_stems(path: String, on_progress: tauri::ipc::Channel<f32>)
     let res = tauri::async_runtime::spawn_blocking(move || -> Result<(), Error> {
         let (l0, r0, rate) = decode_planar(Path::new(&pl))?;
         let (l, r) = resample_to_44100(&l0, &r0, rate);
-        run_separation(&l, &r, &dl, Some(&on_progress))
+        // ALC-243-2 : BPM de référence = analyse du MIX complet (ex. 131,2/126,7) — borne le BPM drums.
+        let reference_bpm = if l.is_empty() || l.len() != r.len() {
+            0.0
+        } else {
+            let mono: Vec<f32> = l.iter().zip(&r).map(|(a, b)| (a + b) * 0.5).collect();
+            crate::audio::bpm_of_mono(&mono)
+        };
+        run_separation(&l, &r, &dl, Some(&on_progress), reference_bpm)
     })
     .await
     .map_err(|e| Error::OnnxInference(format!("tâche stems interrompue : {e}")))?;
@@ -600,8 +742,9 @@ fn wiener_soft_mask(
 
 /// ALC-185-1 : gate d'activité vocale doux (anti-bleed des intros / ponts instrumentaux).
 /// Trames lissées de 250 ms (attaque 20 ms, relâchement 100 ms) : si le RMS du stem `vocals`
-/// est < GATE_RATIO (12 %) de l'énergie instrumentale (drums+bass+other), on applique une
-/// atténuation douce `GATE_GAIN` (0.125 = -18 dB) sans jamais couper les attaques de mots.
+/// est < GATE_RATIO (10 %) de l'énergie instrumentale (drums+bass+other), on applique une
+/// atténuation douce `GATE_GAIN` (0.25 = -12 dB max, ALC-220 : jamais proche de 0) sans jamais
+/// couper les attaques de mots.
 fn apply_vocal_gate(
     voc_l: &[f32],
     voc_r: &[f32],
@@ -612,8 +755,8 @@ fn apply_vocal_gate(
     const GATE_FRAME_MS: f64 = 250.0;
     const GATE_ATTACK_MS: f64 = 20.0;
     const GATE_RELEASE_MS: f64 = 100.0;
-    const GATE_RATIO: f64 = 0.12;
-    const GATE_GAIN: f32 = 0.125; // -18 dB
+    const GATE_RATIO: f64 = 0.10;
+    const GATE_GAIN: f32 = 0.25; // -12 dB max — ALC-220 : atténuation douce, jamais proche de 0
 
     let n = voc_l.len().min(voc_r.len()).min(inst_l.len()).min(inst_r.len());
     if n == 0 {
@@ -762,7 +905,8 @@ mod tests {
     }
 
     /// ALC-185-2 (TDD) : le gate d'activité vocale atténue un passage purement instrumental de
-    /// faible ratio (gain ~0.125) tout en laissant passer une entrée vocale à gain unitaire (>= 0.95).
+    /// faible ratio (gain ~0.25 = -12 dB max) tout en laissant passer une entrée vocale à gain
+    /// unitaire (>= 0.95).
     #[test]
     fn vocal_gate_attenuates_instrumental_preserves_voice() {
         let rate = OUTPUT_RATE as f32;
@@ -793,7 +937,7 @@ mod tests {
             rout0 >= 0.95 * rin0,
             "voix preservee (rout={rout0:.3}, rin={rin0:.3})"
         );
-        let lo = (sr + sr / 2);
+        let lo = sr + sr / 2;
         let rin1 = rms(&voc, lo, n);
         let rout1 = rms(&out_l, lo, n);
         assert!(
@@ -817,7 +961,7 @@ mod tests {
         let cache = stems_dir_for_sha(&sha);
         let _ = std::fs::remove_dir_all(&cache);
 
-        run_separation(&l, &r, &cache, None).expect("séparation ONNX doit réussir");
+        run_separation(&l, &r, &cache, None, 0.0).expect("séparation ONNX doit réussir");
 
         // ALC-181 : intégrité de l'en-tête WAV (régression bitsPerSample=2 → bourdonnement saturé).
         for name in ["drums", "bass", "other", "vocals"] {
@@ -955,7 +1099,7 @@ mod tests {
         // Chemin de production exact : run_separation écrit les 4 WAV réels.
         let tmp = std::env::temp_dir().join(format!("alc181-ms-gate-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
-        run_separation(&l, &r, &tmp, None).unwrap();
+        run_separation(&l, &r, &tmp, None, 0.0).unwrap();
 
         let read_itl = |p: &std::path::Path| -> Vec<f32> {
             let raw = std::fs::read(p).unwrap();
@@ -1148,7 +1292,7 @@ mod tests {
         }
         let tmp = std::env::temp_dir().join("alchemix-fidelity-gate");
         let _ = std::fs::remove_dir_all(&tmp);
-        run_separation(&l, &r, &tmp, None).unwrap();
+        run_separation(&l, &r, &tmp, None, 0.0).unwrap();
         let mut sl = vec![0f32; n];
         let mut srr = vec![0f32; n];
         for name in ["drums", "bass", "other", "vocals"] {

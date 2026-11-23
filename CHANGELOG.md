@@ -5,6 +5,33 @@ Toutes les modifications notables d'**AlcheMix II** sont documentées dans ce fi
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et respecte
 [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.6.0] — 2026-11-23
+
+### ✨ Fonctionnalités majeures
+- **Passe UI/UX Venezia 1889 & ergonomie** : rampe de 13 micro-LEDs dynamiques (+ graduations)
+  sur les 5 sliders (LOW/HIGH EQ, Volume, Pitch, Crossfader) via le composant `VzSliderRail` ;
+  **Volume canal centré sur `0.0 dB` à 50 %** du rail (moitié gauche = atténuation jusqu'à coupure,
+  moitié droite = boost +6 dB) ; **grille unifiée de la Librairie** (colonnes alignées à ±1 px,
+  `scrollbar-gutter` stable) avec **tri à 4 critères** (Affinité / Titre / Clé Camelot logique /
+  Tempo) + bascule ▲/▼ et en-têtes de colonnes cliquables ; **suppression du vide mort** et de la
+  carte `MEILLEURE ASSOCIATION MASHUP` ancrée au-dessus du Crossfader ; **nom de l'artiste** sur les
+  cassettes (fallback `SERENISSIMA`) ; **horloge système `HH:MM:SS`** dans l'en-tête (Venezia 1889) ;
+  **Roue de Camelot** : delta de quintes **signé** (+N / −N) affiché dans le moyeu central et
+  **plaque d'intervalle épurée/supprimée** de l'arc doré ; pastilles du carrousel bronze/or ;
+  façades de tiroirs **Stems recentrés** (36 px) et **Métadonnées sans chevauchement**.
+- **Audit & correctif DSP BPM / Clé Camelot** : peigne normalisé par battement théorique + pénalité
+  des ratios non-binaires (un 4/4 House 121–123 BPM ne décroche plus sur 91,1 / 133,9 / 110,3),
+  bornage du tuning HPCP ±35 cents, commande `library_reanalyze_analysis` (ré-analyse `user_edited=0`).
+
+### 🪟 Installation Windows
+Voir `README.md` § Installation Windows. **Note SmartScreen** : certificat local de développement
+(`CN=AlcheMix II`) → « Informations complémentaires → Exécuter quand même » ; signature officielle
+Azure Trusted Signing / SignPath.io prête via `.github/workflows/release.yml` (secrets requis).
+
+### 📦 Artefacts v0.6.0
+- Exécutable autonome : `AlcheMix-II-0.6.0-windows-x64.exe` (signé Authenticode).
+- Installeurs : `AlcheMix II_0.6.0_x64-setup.exe`, `AlcheMix II_0.6.0_x64_en-US.msi`.
+
 ## [0.5.0] — 2026-11-20
 
 ### ✨ Fonctionnalités majeures

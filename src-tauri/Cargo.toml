@@ -1,6 +1,6 @@
 [package]
 name = "alchemix_ii"
-version = "0.5.0"
+version = "0.6.0"
 description = "Console de mixage harmonique DJ propulsée par Tauri 2, Rust ONNX et Svelte 5."
 authors = ["DJ Danoë"]
 edition = "2021"

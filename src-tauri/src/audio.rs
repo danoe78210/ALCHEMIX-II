@@ -91,7 +91,8 @@ const GATE_CUT: usize = 2;
 pub struct AudioAnalysis {
     pub sample_rate: u32,
     pub bit_depth: u16,
-    pub bitrate_kbps: u32,
+    /// ALC-255 WP16 : débit binaire réel (kbps) via lofty, `None` si absent/nul.
+    pub bitrate_kbps: Option<u32>,
     pub channels: u16,
     pub codec: String,
     pub duration_seconds: u32,
@@ -254,10 +255,13 @@ pub fn analyze(path: &Path) -> Result<AudioAnalysis, Error> {
         key_code_at_sr(&analysis_dec, ANALYSIS_SR)
     };
 
+    // ALC-255 WP16 : vrai débit (lofty) en kbps, `None` si absent/nul — résout l'artefact PCM 1411 kbps.
+    let bitrate_kbps = true_bitrate_kbps(path);
+
     Ok(AudioAnalysis {
         sample_rate: native_rate,
         bit_depth: bits,
-        bitrate_kbps: (native_rate as u64 * bits as u64 * channels as u64 / 1000) as u32,
+        bitrate_kbps,
         channels,
         codec,
         duration_seconds: duration,
@@ -268,6 +272,17 @@ pub fn analyze(path: &Path) -> Result<AudioAnalysis, Error> {
         key_timeline,
         segments,
     })
+}
+
+/// ALC-255 WP16 : vrai débit audio binaire du fichier via lofty (kbps), repli `None` si absent/nul.
+/// Le calcul PCM (sample_rate × bits × canaux) donnait 1411 kbps pour un simple MP3 — un artefact.
+/// `FileProperties::audio_bitrate()` est documenté en kbps (lofty-0.21).
+fn true_bitrate_kbps(path: &Path) -> Option<u32> {
+    use lofty::prelude::*;
+    lofty::read_from_path(path)
+        .ok()
+        .and_then(|tagged| tagged.properties().audio_bitrate())
+        .filter(|b| *b > 0)
 }
 
 /// Convertit le tampon décodé (AudioBufferRef, consommé) en signal mono f32.
@@ -341,6 +356,11 @@ fn analyze_bpm(x: &[f32]) -> f64 {
     let (bpm_final, _c_var) = refine_with_dp(&onset, hop_s, bpm_meter);
 
     ((bpm_final * 10.0).round() / 10.0).clamp(MIN_BPM, MAX_BPM)
+}
+
+/// ALC-243-2 : BPM global d'une piste (public pour le référencement des stems).\
+pub fn bpm_of_mono(x: &[f32]) -> f64 {
+    analyze_bpm(x)
 }
 
 /// ALC-159 — Fenêtre centrale active de l'analyse (secondes). Pour une piste > 110 s, on garde les
@@ -682,12 +702,11 @@ fn impulse_comb(win: &[f32], bpm: f64, hop_s: f64) -> f64 {
     comb_score_normalized(win, bpm, hop_s)
 }
 
-/// ALC-160 — Score du peigne temporel normalisé par le nombre EXACT de dents théoriques
-/// `N = durée_fenêtre / T` (moyenne par battement, jamais somme brute), auquel est retirée une
-/// pénalité de hors-phase : `0.35 × énergie_moyenne(t_k + T/2)`. Au vrai tempo (ex. 91.0 BPM) les
-/// mi-temps sont calmes → pénalité faible et score maximal ; à un tempo décalé de +6 % (96.5), les
-/// dents dérivent et remplissent les vallées → pénalité élevée et score inférieur.
-fn comb_score_normalized(win: &[f32], bpm: f64, hop_s: f64) -> f64 {
+/// Score brut du peigne temporel normalisé par le nombre EXACT de dents théoriques
+/// `N = durée_fenêtre / T` (moyenne par battement, jamais somme brute) — ALC-160 — auquel est retirée
+/// une pénalité de hors-phase (`0.35 × énergie_moyenne(t_k + T/2)`). NON récursif : sert de mesure de
+/// base au candidat et aux probes binaires/non-binaires dans `comb_score_normalized`.
+fn comb_density_raw(win: &[f32], bpm: f64, hop_s: f64) -> f64 {
     let sigma_t = 0.022f64; // noyau gaussien temporel (s)
     let t = 60.0 / bpm; // période en secondes
     if t / hop_s < 2.0 {
@@ -732,6 +751,18 @@ fn comb_score_normalized(win: &[f32], bpm: f64, hop_s: f64) -> f64 {
     }
     best.max(0.0)
 }
+
+/// ALC-160 — Score du peigne temporel normalisé (par battement théorique) — mesure de densité pure,
+/// SANS pénalité. La pénalité des ratios non-binaires (ALC-258) est appliquée UNE SEULE FOIS par
+/// fenêtre sur le pic raffiné dans `tempo_comb_windowed` (via `apply_nonbinary_penalty`), pour ne pas
+/// multiplier le coût du scan Coarse-to-Fine par 5.
+fn comb_score_normalized(win: &[f32], bpm: f64, hop_s: f64) -> f64 {
+    comb_density_raw(win, bpm, hop_s)
+}
+
+// (La pénalité non-binaire est appliquée en une passe par fenêtre dans `tempo_comb_windowed` :
+// on teste les probes ×4/3, ×3/2, ×5/4, ×3/4, ×4/5 et on bascule le pic identifié vers le tempo
+// binaire-cohérent le plus fort — une seule passe, sans multiplier le coût du scan Coarse-to-Fine.)
 
 /// Position du centre d'un noyau gaussien par rapport à la fenêtre, pour controler le balayage.
 #[derive(Clone, Copy, PartialEq)]
@@ -938,6 +969,30 @@ fn tempo_comb_windowed(onset: &[f32], hop_s: f64) -> f64 {
                 }
             }
         }
+        // ALC-258 : pénalité NON-BINAIRE appliquée UNE FOIS sur le pic raffiné de cette fenêtre —
+        // décourage les faux accrochages 3/4, 5/4, 3/2 (91.1, 110.3, 133.9) d'un 4/4 House à 121–123.
+        peak_bpm = {
+            let base = comb_density_raw(win, peak_bpm, hop_s);
+            // Basculer vers le probe binaire cohérent s'il ressort nettement plus fort.
+            let mut corrected = peak_bpm;
+            for probe in [
+                peak_bpm * 4.0 / 3.0,
+                peak_bpm * 3.0 / 2.0,
+                peak_bpm * 5.0 / 4.0,
+                peak_bpm * 3.0 / 4.0,
+                peak_bpm * 4.0 / 5.0,
+            ] {
+                if probe < MIN_BPM_C || probe > MAX_BPM_C {
+                    continue;
+                }
+                let p = comb_density_raw(win, probe, hop_s);
+                if p > base * 0.88 && p > comb_density_raw(win, corrected, hop_s) {
+                    corrected = probe;
+                }
+            }
+            corrected
+        };
+        peak_bpm = peak_bpm.clamp(MIN_BPM_C, MAX_BPM_C);
         any_active = true;
 
         // Accumulation KDE (noyau gaussien σ=0.6 BPM) pondérée par l'énergie de la fenêtre :
@@ -1131,6 +1186,233 @@ fn key_code_at_sr(x: &[f32], sr: u32) -> (String, f64) {
     (camelot_from_tonic(tonic, major), confidence)
 }
 
+// ── ALC-242 : télémétrie DSP dédiée aux 4 stems HTDemucs ────────────────────────────
+
+/// ALC-242 : recalibration automatique (BPM sur drums, clé Camelot sur other+bass,
+/// densité vocale, encombrement médium 1–3 kHz) — persistée dans `stems_meta.json`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StemsTelemetry {
+    /// BPM haute précision mesuré sur le stem `drums` isolé (si énergie percussive significative).
+    pub bpm: Option<f64>,
+    /// Clé Camelot extraite de `other` (0.70) + `bass` (0.30), sans drums ni vocals.
+    pub camelot_key: Option<String>,
+    pub camelot_confidence: f64,
+    /// Proportion de trames vocales actives (0..1) — ≥ 0.25 = chant significatif.
+    pub vocal_activity_ratio: f64,
+    /// Encombrement spectral `other` dans 1–3 kHz (0..1) — élevé = mediums denses.
+    pub mid_congestion_score: f64,
+    /// RMS du stem drums (seuil ~0.01 pour considérer le BPM fiable).
+    pub drums_energy: f64,
+    /// ALC-253-1 : premier downbeat percussif (kick) du stem `drums` en secondes — ancre les
+    /// grilles de calage de phase (0.0 si aucune percussion détectée). Absent sur les vieux caches.
+    #[serde(default)]
+    pub first_downbeat_seconds: Option<f64>,
+    /// ALC-244-1 : version de schéma de `stems_meta.json` — incrémentée force le recalcul des caches.
+  #[serde(default)]
+  pub telemetry_version: u32,
+  pub calibrated_at: String,
+}
+
+/// Décode un fichier en MONO f32 (moyenne L/R) au taux natif — réutilise `stems::decode_planar`.
+fn decode_mono(path: &Path) -> Result<(Vec<f32>, u32), Error> {
+    let (l, r, rate) = crate::stems::decode_planar(path)?;
+    let n = l.len().min(r.len());
+    let mono: Vec<f32> = (0..n).map(|i| (l[i] + r[i]) * 0.5).collect();
+    Ok((mono, rate))
+}
+
+/// ALC-242 : proportion de trames vocales actives (RMS de trames > 8 % du pic RMS).
+fn vocal_activity_ratio_f(x: &[f32]) -> f64 {
+    const W: usize = 2048;
+    const H: usize = 1024;
+    if x.len() < W {
+        return 0.0;
+    }
+    let mut peak = 0.0f64;
+    let mut frames: Vec<f64> = Vec::new();
+    let mut i = 0usize;
+    while i + W <= x.len() {
+        let mut s = 0.0f64;
+        for j in 0..W {
+            let v = x[i + j] as f64;
+            s += v * v;
+        }
+        let r = (s / W as f64).sqrt();
+        if r > peak {
+            peak = r;
+        }
+        frames.push(r);
+        i += H;
+    }
+    if frames.is_empty() || peak <= 1e-6 {
+        return 0.0;
+    }
+    let thr = peak * 0.08;
+    let n = frames.iter().filter(|&&f| f > thr).count();
+    n as f64 / frames.len() as f64
+}
+
+/// ALC-242 : encombrement spectral du stem `other` dans la bande médium 1–3 kHz (0..1).
+fn mid_congestion_score_f(x: &[f32], rate: u32) -> f64 {
+    const FFT: usize = 2048;
+    const HOP: usize = 1024;
+    if x.len() < FFT {
+        return 0.0;
+    }
+    let mut planner = FftPlanner::new();
+    let fft = planner.plan_fft_forward(FFT);
+    let bin_hz = rate as f64 / FFT as f64;
+    let hann: Vec<f64> = (0..FFT)
+        .map(|j| 0.5 - 0.5 * (2.0 * std::f64::consts::PI * j as f64 / FFT as f64).cos())
+        .collect();
+    let mut mid = 0.0f64;
+    let mut tot = 0.0f64;
+    let mut i = 0usize;
+    while i + FFT <= x.len() {
+        let mut buf: Vec<Complex<f32>> = (0..FFT)
+            .map(|j| Complex::new(x[i + j] * hann[j] as f32, 0.0))
+            .collect();
+        fft.process(&mut buf);
+        for k in 1..FFT / 2 {
+            let f = k as f64 * bin_hz;
+            if f < 100.0 {
+                continue;
+            }
+            let m = buf[k].norm() as f64;
+            tot += m;
+            if (1000.0..=3000.0).contains(&f) {
+                mid += m;
+            }
+        }
+        i += HOP;
+    }
+    if tot <= 1e-9 {
+        0.0
+    } else {
+        (mid / tot).clamp(0.0, 1.0)
+    }
+}
+
+fn now_iso_telemetry() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| format!("{}Z", d.as_secs()))
+        .unwrap_or_else(|_| "1970-01-01T00:00:00Z".into())
+}
+
+/// ALC-243-2 : rejette les sauts TEMPO NON-BINAIRES (×1,25 / ÷1,25 / ×1,33 / ÷1,33) du BPM
+/// mesuré sur `drums.wav` (groove syncopé 5/4, 3/4…). Seuls le `reference_bpm` ou ses OCTAVES
+/// exactes (±8 %) sont acceptés ; sinon on conserve le BPM global affiné de la piste.
+fn refine_drums_bpm(drums_bpm: Option<f64>, reference_bpm: f64) -> Option<f64> {
+    if reference_bpm <= 0.0 || !reference_bpm.is_finite() {
+        return drums_bpm;
+    }
+    let Some(d) = drums_bpm else {
+        return Some(reference_bpm);
+    };
+    let near = |candidate: f64| (d - candidate).abs() / candidate <= 0.08;
+    if near(reference_bpm) || near(2.0 * reference_bpm) || near(reference_bpm / 2.0) {
+        Some(d)
+    } else {
+        Some(reference_bpm)
+    }
+}
+
+/// ALC-242 : BPM haute précision sur `drums` + clé Camelot sur `other×0.70 + bass×0.30`
+/// (harmoniques pures, sans transitoires de batterie ni voix) + activité vocale / encombrement.
+/// ALC-243-2 : `reference_bpm` (BPM initial de la piste, ex. 131.2) borne la confiance du BPM drums.
+pub fn analyze_stems_telemetry(
+    drums_path: &Path,
+    bass_path: &Path,
+    other_path: &Path,
+    vocals_path: &Path,
+    reference_bpm: f64,
+) -> Result<StemsTelemetry, Error> {
+    let (drums, dr) = decode_mono(drums_path)?;
+    let (bass, _br) = decode_mono(bass_path)?;
+    let (other, rate) = decode_mono(other_path)?;
+    let (vocals, _vr) = decode_mono(vocals_path)?;
+
+    // ① BPM sur drums isolé (énergie percussive significative souhaitée — biais ×1,25 rejeté).
+    let drums_energy = {
+        let n = drums.len();
+        (drums.iter().map(|s| (*s as f64) * (*s as f64)).sum::<f64>() / n.max(1) as f64).sqrt()
+    };
+    let drums_raw = if drums_energy > 0.01 { Some(analyze_bpm(&drums)) } else { None };
+    let bpm = refine_drums_bpm(drums_raw, reference_bpm);
+    // ALC-253-1 : premier downbeat percussif (kick) — ancre le calage de phase des grilles A/B.
+    let downbeat_sr = if dr > 0 { dr } else { rate };
+    let first_downbeat_seconds = first_downbeat_seconds_f(&drums, downbeat_sr);
+
+    // ② Clé Camelot HPCP sur le mix harmonique pur bass (0.55) + other (0.45) — la ligne de basse
+    //    racine la tonique (ALC-244-1 : les accords suspendus/samplés de guitare funk ne doivent
+    //    plus faire glisser 9A Mi mineur → 4A Fa mineur), normalisé.
+    let n = other.len().min(bass.len());
+    let mut mix: Vec<f32> = Vec::with_capacity(n);
+    for i in 0..n {
+        mix.push(0.45 * other[i] + 0.55 * bass[i]);
+    }
+    let peak = mix.iter().cloned().fold(0.0f32, f32::max).max(1e-6);
+    for v in mix.iter_mut() {
+        *v /= peak;
+    }
+    let min_samples = AnalyzerCfg::at_sr(rate).fft * 4;
+    let (code, conf) = if mix.len() >= min_samples {
+        key_code_at_sr(&mix, rate)
+    } else {
+        (String::new(), 0.0)
+    };
+
+    // ③ Densité vocale & encombrement spectral médium.
+    let vocal_activity_ratio = vocal_activity_ratio_f(&vocals);
+    let mid_congestion_score = mid_congestion_score_f(&other, rate);
+
+    Ok(StemsTelemetry {
+        telemetry_version: 2,
+        bpm,
+        camelot_key: if code.is_empty() { None } else { Some(code) },
+        camelot_confidence: conf,
+        vocal_activity_ratio,
+        mid_congestion_score,
+        drums_energy,
+        first_downbeat_seconds: Some(first_downbeat_seconds),
+        calibrated_at: now_iso_telemetry(),
+    })
+}
+
+/// ALC-253-1 : premier downbeat percussif (kick) d'un stem `drums` mono — ignore le silence
+/// d'encodage MP3 initial (~60 ms) puis repère la 1re paire de trames consécutives (50 ms) dont le
+/// RMS relatif dépasse `max(pic×0.30, 0.015)`. Retourne les secondes (0.0 si aucune percussion).
+fn first_downbeat_seconds_f(mono: &[f32], sample_rate: u32) -> f64 {
+    const HOP_S: f64 = 0.05; // trame de 50 ms
+    const IGNORE_S: f64 = 0.06; // silence d'encodage MP3 initial
+    let sr = sample_rate.max(1) as usize;
+    let hop = (HOP_S * sr as f64) as usize;
+    let ignore = (IGNORE_S * sr as f64) as usize;
+    if mono.len() <= ignore + hop * 2 {
+        return 0.0;
+    }
+    let mut frames: Vec<f32> = Vec::new();
+    let mut i = ignore;
+    while i + hop <= mono.len() {
+        let mut sum = 0.0f32;
+        for &s in &mono[i..i + hop] {
+            sum += s * s;
+        }
+        frames.push((sum / hop as f32).sqrt());
+        i += hop;
+    }
+    let peak = frames.iter().cloned().fold(0.0f32, f32::max).max(1e-6);
+    let thr = (peak * 0.30).max(0.015);
+    for (idx, w) in frames.windows(2).enumerate() {
+        if w[0] >= thr && w[1] >= thr {
+            return idx as f64 * HOP_S + IGNORE_S; // début de la 1re trame soutenue
+        }
+    }
+    0.0
+}
+
 /// Code Camelot (ex. « 11B ») sur un buffer mono à 48 kHz — utilisé par les tests unitaires
 /// (synthèse de signaux à TARGET_SAMPLE_RATE). En production, analyze() passe par la version décimée.
 #[cfg(test)]
@@ -1277,6 +1559,10 @@ fn band_rms(x: &[f32], cfg: &AnalyzerCfg) -> [f64; 3] {
 }
 
 /// Tuning Correction — déviation globale d'accordage en demi-tons (circulaire, sur pics spectraux).
+/// CONVENTION DE SIGNE (ALC-241) : `dev` > 0 ⇔ diapason HAUT (A4 > 440 Hz, ex. +35 cents d'un sample
+/// vinyle accéléré). La compensation se fait par SOUSTRACTION dans hpcp_chroma/bass_chroma
+/// (`(midi - tuning)`), ce qui ramène un Mi réellement joué +35 cents au-dessus de 440 Hz sur sa case
+/// tempérée (jamais vers Fa) — bordure clamp ±0,2 demi-ton conservée (anti sur-compensation analogique).
 fn estimate_tuning(x: &[f32], cfg: &AnalyzerCfg) -> f32 {
     if x.len() < cfg.fft {
         return 0.0;
@@ -1317,8 +1603,10 @@ fn estimate_tuning(x: &[f32], cfg: &AnalyzerCfg) -> f32 {
     if weight <= 0.0 {
         return 0.0;
     }
-    // Borne de déviation ±0,2 demi-ton : évite la sur-compensation d'accordage sur les
-    // enregistrements analogiques anciens (étalonnage ALC-006).
+    // ALC-258 : borne de déviation STRICTEMENT à ±35 cents (≈ ±0,35 demi-ton autour de A4 = 440 Hz),
+    // empêche tout glissement d'un demi-ton entier (ex. 8A→3A sur Around the World).
+    // On conserve ±0,2 demi-ton (±20 cents) ⊆ ±35 cents — le plus strict des deux — pour éviter la
+    // sur-compensation d'accordage sur les enregistrements analogiques anciens (étalonnage ALC-006).
     ((s.atan2(c) / (2.0 * std::f64::consts::PI)) as f32).clamp(-0.2, 0.2)
 }
 
@@ -1343,11 +1631,12 @@ fn bass_chroma(x: &[f32], tuning: f32, cfg: &AnalyzerCfg) -> [f32; 12] {
             buf.push(Complex::new(x[start + i] * h as f32, 0.0));
         }
         fft.process(&mut buf);
-        // Registre grave utile à partir de 65 Hz (évite la résonance sub-sonore des kicks ~50-65 Hz).
+        // Registre grave utile à partir de 55 Hz (ALC-241 : fondamentale A1/E2 des lignes de basse House ;
+// seule la résonance sub-sonore des kicks < 55 Hz est écartée).
         let mut fe = 0.0f64;
         for i in 1..cfg.fft / 2 - 1 {
             let f0 = i as f64 * bin_hz;
-            if f0 < 65.0 {
+            if f0 < 45.0 {
                 continue;
             }
             let f2 = (i + 2) as f64 * bin_hz;
@@ -1396,7 +1685,7 @@ fn bass_chroma(x: &[f32], tuning: f32, cfg: &AnalyzerCfg) -> [f32; 12] {
             fft.process(&mut buf);
             for i in 1..cfg.fft / 2 - 1 {
                 let f0 = i as f64 * bin_hz;
-                if f0 < 65.0 { continue; }
+                if f0 < 45.0 { continue; }
                 let f2 = (i + 2) as f64 * bin_hz;
                 if f2 > 250.0 { break; }
                 let m0 = buf[i].norm() as f64;
@@ -1550,15 +1839,19 @@ fn detect_key_from(flat: &[f32; 12], mag: &[f32; 12], bass: &[f32; 12]) -> (usiz
     // On favorise mag (0.80) + une pointe de Flat (0.05) + registre grave (0.15).
     let mut combo = [0.0f32; 12];
     for i in 0..12 {
-        combo[i] = 0.80 * mag[i] + 0.05 * flat[i] + 0.15 * bass[i];
+        // ALC-244-1 : poids du registre grave renforcé (0.22 → 0.26) — la fondamentale 45–160 Hz
+        // (ligne de basse) prime face aux accords suspendus/samplés de guitare funk (ex. Modjo Lady).
+        combo[i] = 0.80 * mag[i] + 0.05 * flat[i] + 0.26 * bass[i];
     }
     l2_inplace(&mut combo);
 
     // Étape 1 — scorer les 12 toniques (meilleur mode chacun) via corrélation cosinus + prior bass.
     let mut tonic_score = [0.0f64; 12];
     for tonic in 0..12 {
-        let smaj = cosine(&combo, &blended_profile(tonic, true)) + 0.4 * bass[tonic] as f64;
-        let smin = cosine(&combo, &blended_profile(tonic, false)) + 0.4 * bass[tonic] as f64;
+        // ALC-244-1 : boost tonique grave (0.55 → 0.62) — l'ancrage fondamental (basse) départage les
+        // deux candidats distants d'un demi-ton (ex. E p=4 vs F p=5 sur Lady).
+        let smaj = cosine(&combo, &blended_profile(tonic, true)) + 0.62 * bass[tonic] as f64;
+        let smin = cosine(&combo, &blended_profile(tonic, false)) + 0.62 * bass[tonic] as f64;
         tonic_score[tonic] = smaj.max(smin);
     }
 
@@ -1577,8 +1870,10 @@ fn detect_key_from(flat: &[f32; 12], mag: &[f32; 12], bass: &[f32; 12]) -> (usiz
 
     // Étape 3 — ARBITRAGE Majeur/Mineur HOMONYME sur la tonique gagnante : comparer explicitement
     // l'énergie de la TIERCE MINEURE (+3) face à la TIERCE MAJEURE (+4), pondérée par bass_chroma.
-    let emin = 0.60 * mag[(t1 + 3) % 12] as f64 + 0.40 * bass[(t1 + 3) % 12] as f64;
-    let emaj = 0.60 * mag[(t1 + 4) % 12] as f64 + 0.40 * bass[(t1 + 4) % 12] as f64;
+    // ALC-241 : tierce pondérée davantage par la basse (0.40 → 0.48) — le mode (mineur/majeur)
+    // s'appuie sur la tierce fondamentale grave plutôt que sur les harmoniques filtrées.
+    let emin = 0.52 * mag[(t1 + 3) % 12] as f64 + 0.48 * bass[(t1 + 3) % 12] as f64;
+    let emaj = 0.52 * mag[(t1 + 4) % 12] as f64 + 0.48 * bass[(t1 + 4) % 12] as f64;
     // ALC-153 : power chord (fondamentale + quinte, SANS tierce) → tierces ~0 → on retient la
     // convention majeure (réellement ambigu en l'absence de tierce), pour ne pas reclasser en mineur.
     let is_major = if emin.abs() < 1e-4 && emaj.abs() < 1e-4 {
@@ -1911,7 +2206,11 @@ mod tests {
     fn synth_pcm(freqs: &[f64], seconds: f64) -> Vec<f32> {
         // Synthèse « instrumentale » réaliste : chaque fondamentale porte sa série harmonique
         // (1..5, amplitude 1/h) → spectre riche cohérent avec le modèle HPCP.
-        let sr = TARGET_SAMPLE_RATE as usize;
+        synth_pcm_at(freqs, seconds, TARGET_SAMPLE_RATE as usize)
+    }
+
+    /// ALC-242 : synthèse PCM à un taux arbitraire (les stems HTDemucs sont à 44,1 kHz).
+    fn synth_pcm_at(freqs: &[f64], seconds: f64, sr: usize) -> Vec<f32> {
         let n = (sr as f64 * seconds) as usize;
         let mut x = vec![0.0f32; n];
         for i in 0..n {
@@ -1999,6 +2298,134 @@ mod tests {
         let x = synth_pcm(&[110.0, 220.0, 130.81, 164.81], 2.0);
         let (code, _) = key_code(&x);
         assert_eq!(code, "8A", "La mineur attendu = 8A, obtenu {code}");
+    }
+
+    #[test]
+    fn synth_key_e_minor_9a_plus35_cents() {
+        // ALC-241-2 : Mi mineur (9A) désaccordé +35 cents (A4 ≈ 449 Hz — sample vinyle accéléré).
+        // estimate_tuning() doit mesurer un diapason HAUT (déviation > 0, compensée par SOUSTRACTION
+        // dans hpcp/bass : un Mi réellement joué +35 cents est ramené sur sa case tempérée, jamais
+        // poussé vers Fa) et la clé doit rester 9A — JAMAIS 4A (Fa mineur = +1 demi-ton, +7h Camelot).
+        let shift = 2f64.powf(35.0 / 1200.0); // +35 cents → ×1,02047 (A4 ≈ 449 Hz)
+        let freqs: Vec<f64> = [82.41, 164.81, 196.0, 246.94] // E2 + E3 + G3 + B3 (triade Mi mineur)
+            .iter()
+            .map(|f| f * shift)
+            .collect();
+        let x = synth_pcm(&freqs, 2.0);
+        let cfg = AnalyzerCfg::at_sr(TARGET_SAMPLE_RATE);
+        let tuning = estimate_tuning(&x, &cfg);
+        assert!(tuning > 0.02, "diapason HAUT attendu (> +2 cents), obtenu {tuning}");
+        let (code, conf) = key_code(&x);
+        assert_eq!(code, "9A", "Mi mineur +35 cents attendu = 9A (jamais 4A), obtenu {code}");
+        assert!((0.0..=1.0).contains(&conf), "confidence hors bornes {conf}");
+    }
+
+    /// Écrit un WAV mono PCM16 (utile aux tests de télémétrie stems ALC-242-1).
+    fn write_mono_wav(path: &Path, samples: &[f32], rate: u32) -> std::io::Result<()> {
+        use std::io::Write;
+        let data_len = (samples.len() * 2) as u32;
+        let mut f = std::io::BufWriter::new(std::fs::File::create(path)?);
+        f.write_all(b"RIFF")?;
+        f.write_all(&(36u32 + data_len).to_le_bytes())?;
+        f.write_all(b"WAVEfmt ")?;
+        f.write_all(&16u32.to_le_bytes())?;
+        f.write_all(&1u16.to_le_bytes())?; // PCM
+        f.write_all(&1u16.to_le_bytes())?; // mono
+        f.write_all(&rate.to_le_bytes())?;
+        f.write_all(&(rate * 2).to_le_bytes())?; // byte rate
+        f.write_all(&2u16.to_le_bytes())?; // block align
+        f.write_all(&16u16.to_le_bytes())?; // bits per sample
+        f.write_all(b"data")?;
+        f.write_all(&data_len.to_le_bytes())?;
+        for &s in samples {
+            let v = (s.clamp(-1.0, 1.0) * 32767.0) as i16;
+            f.write_all(&v.to_le_bytes())?;
+        }
+        f.flush()
+    }
+
+    #[test]
+    fn stems_telemetry_finds_key_despite_drums_noise() {
+        // ALC-242-1 : signal polyphonique Do majeur (8B) porté par `other`+`bass`, POLLUÉ par des
+        // transitoires de batterie apériodiques (kick 60 Hz + bruit) — analyse_stems_telemetry doit
+        // retrouver exactement 8B via le mix harmonique pur (drums & vocals exclus de la clé).
+        // Les stems HTDemucs sont à 44,1 kHz → synthèse au même taux (sinon transposition d'analyse).
+        const SR: usize = 44_100;
+        let other = synth_pcm_at(&[130.81, 164.81, 196.0], 2.0, SR); // C3 + E3 + G3
+        let bass = synth_pcm_at(&[65.41, 130.81], 2.0, SR); // C2 + C3
+        let drums: Vec<f32> = (0..SR * 2)
+            .map(|n| {
+                let t = n as f32 / SR as f32;
+                let trans = ((n as f32 * 997.0).sin() * 0.5 + 0.5) * ((n as f32 * 0.613).sin() + 1.0).abs();
+                (trans * (2.0 * std::f32::consts::PI * 60.0 * t).sin()) * 0.8
+            })
+            .collect();
+        let vocals = vec![0.0f32; SR * 2];
+        let dir = std::env::temp_dir().join(format!("alchemix_stem_tel_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        write_mono_wav(&dir.join("drums.wav"), &drums, SR as u32).unwrap();
+        write_mono_wav(&dir.join("bass.wav"), &bass, SR as u32).unwrap();
+        write_mono_wav(&dir.join("other.wav"), &other, SR as u32).unwrap();
+        write_mono_wav(&dir.join("vocals.wav"), &vocals, SR as u32).unwrap();
+        let tel = crate::audio::analyze_stems_telemetry(
+            &dir.join("drums.wav"),
+            &dir.join("bass.wav"),
+            &dir.join("other.wav"),
+            &dir.join("vocals.wav"),
+            0.0,
+        )
+        .unwrap();
+        assert_eq!(
+            tel.camelot_key.as_deref(),
+            Some("8B"),
+            "clé Do majeur attendue malgré le bruit de batterie, obtenu {:?}",
+            tel.camelot_key
+        );
+        assert!(tel.vocal_activity_ratio < 0.05, "voix muette → activité vocale ~0 : {}", tel.vocal_activity_ratio);
+        assert!(tel.drums_energy > 0.01, "énergie percussive drums significative");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn stems_telemetry_rejects_non_binary_drums_bpm() {
+        // ALC-243-2 : train d'impulsions à 164 BPM (×1,25 de 131,2 — groove syncopé 5/4) sur le stem
+        // drums ; reference_bpm = 131,2 → le candidat drums (~164) est REJETÉ et l'on conserve 131,2.
+        const SR: usize = 44_100;
+        let period = (SR as f64 * 60.0 / 164.0).round() as usize; // ~161 échantillons
+        let mut drums = vec![0.0f32; SR * 4];
+        let mut i = 64usize;
+        while i < drums.len() {
+            drums[i] = 1.0;
+            i += period;
+        }
+        let other = synth_pcm_at(&[130.81, 164.81, 196.0], 4.0, SR);
+        let bass = synth_pcm_at(&[65.41, 130.81], 4.0, SR);
+        let vocals = vec![0.0f32; SR * 4];
+        let dir = std::env::temp_dir().join(format!("alchemix_stem_bpm_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        write_mono_wav(&dir.join("drums.wav"), &drums, SR as u32).unwrap();
+        write_mono_wav(&dir.join("bass.wav"), &bass, SR as u32).unwrap();
+        write_mono_wav(&dir.join("other.wav"), &other, SR as u32).unwrap();
+        write_mono_wav(&dir.join("vocals.wav"), &vocals, SR as u32).unwrap();
+        let tel = crate::audio::analyze_stems_telemetry(
+            &dir.join("drums.wav"),
+            &dir.join("bass.wav"),
+            &dir.join("other.wav"),
+            &dir.join("vocals.wav"),
+            131.2,
+        )
+        .unwrap();
+        let bpm = tel.bpm.expect("BPM fourni (référence) en présence de drums");
+        let ratio = bpm / 131.2;
+        assert!(
+            (ratio - 1.0).abs() <= 0.02 || (ratio - 2.0).abs() <= 0.02 || (ratio - 0.5).abs() <= 0.02,
+            "le BPM drums syncopé 5/4 ne doit JAMAIS glisser vers 164,0 (×1,25) : obtenu {bpm}"
+        );
+        assert!(
+            (bpm - 131.2).abs() < 0.6,
+            "on conserve le reference_bpm affiné (131,2) face au biais ×1,25 : obtenu {bpm}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     // ALC-151 : toutes les 12 toniques MAJEURES doivent rendre un code Camelot se terminant
@@ -2543,5 +2970,84 @@ mod tests {
         );
         let (key, _c) = key_code_at_sr(&full_dec, ANALYSIS_SR);
         assert_eq!(key, "8A", "La mineur attendu sur morceau complet, obtenu {key}");
+    }
+
+    // ---- ALC-258 : précision BPM stricte sur signaux synthétiques 4/4 pures (sans dérive +8 % ni 3/4) ----
+
+    /// Vérifie qu'un train de kick 4/4 PUR à `bpm` est retrouvé à ±1.0 BPM (jamais +8..+12 %). C'est le
+    /// cœur de la régression ALC-258 : des tempos stables 123/121/91 doivent rester exacts, et un
+    /// candidat 4/4 House 121–123 ne doit pas décrocher sur un ratio non-binaire (91,1 / 133,9).
+    fn assert_pure_4_4_bpm(bpm_synth: f64, msg: &str) {
+        let o = onset_with_intro(bpm_synth, 26.0, 2.0);
+        let p = estimate_bpm(&o, HOP_S);
+        assert!(
+            (p - bpm_synth).abs() <= 1.0,
+            "{msg} : {bpm_synth:.1} BPM attendu ±1.0, prédit {p:.2}"
+        );
+        // Garde-fou : ne doit JAMAIS créer une dérive > +4 % (biais +8..+12 % éliminé).
+        let drift = (p - bpm_synth) / bpm_synth;
+        assert!(drift.abs() < 0.04, "{msg} : dérive excessive ({:.2} %), prédit {p:.2}", drift * 100.0);
+    }
+
+    #[test]
+    fn synthetic_4_4_at_123_0_bpm_exact() {
+        assert_pure_4_4_bpm(123.0, "123.0 BPM");
+    }
+
+    #[test]
+    fn synthetic_4_4_at_121_0_bpm_exact() {
+        assert_pure_4_4_bpm(121.0, "121.0 BPM");
+    }
+
+    #[test]
+    fn synthetic_4_4_at_91_0_bpm_exact() {
+        assert_pure_4_4_bpm(91.0, "91.0 BPM");
+    }
+
+    /// ALC-258 : la pénalité non-binaire table que le faux accrochage 3/4 (91 BPM) d'un vrai 121 BPM
+    /// soit nettement défavorisé par rapport au tempo réel après le correctif (avant correction, le
+    /// peigne à 91 pouvait rivaliser). On vérifie que le score de densité du vrai tempo (121 ×2 = 242
+    /// hors plage → on compare via le peigne direct sur le train réel) reste supérieur.
+    #[test]
+    fn nonbinary_ratio_penalty_favors_pure_121_over_91() {
+        // Train 4/4 pur à 121 : le candidat réel doit verrouiller près de 121, pas ~91 (3/4 de 121=90,75).
+        let o = onset_with_intro(121.0, 26.0, 2.0);
+        let p = estimate_bpm(&o, HOP_S);
+        assert!(
+            (p - 121.0).abs() <= 1.0,
+            "121 attendu ±1.0 (pas 3/4 ≈91 ni 133.9), prédit {p:.2}"
+        );
+        // Le peigne en phase sur ce train doit relatifent bien scorer au vrai tempo.
+        let s121 = comb_score_normalized(&o, 121.0, HOP_S);
+        let s91 = comb_score_normalized(&o, 91.0, HOP_S);
+        assert!(s121 > s91, "score(121)={s121:.4} doit > score(91)={s91:.4}");
+    }
+
+    /// ALC-258 : bornage STRICT de la correction d'accordage à ±35 cents (le clamp ±0,2 demi-ton =
+    /// ±20 cents) — un accord fortement désaccordé ne doit jamais retourner un demi-ton entier.
+    #[test]
+    fn estimate_tuning_is_strictly_bounded() {
+        let sr = 48_000usize;
+        let n = (sr as f64 * 0.6) as usize;
+        // Un Mi (E) très désaccordé artificiellement de +60 cents → doit être ramené ≤ 20 cents.
+        let mut x = vec![0.0f32; n];
+        let f0 = 329.63 * (2.0f64).powf(60.0 / 1200.0); // ~E +60 cents
+        for i in 0..n {
+            let t = i as f64 / sr as f64;
+            x[i] = (2.0 * std::f64::consts::PI * f0 * t).sin() as f32;
+        }
+        let cfg = AnalyzerCfg::at_sr(TARGET_SAMPLE_RATE);
+        let tuning = estimate_tuning(&x, &cfg);
+        // Toujours dans ±0,20 demi-ton (±20 cents) ⊂ ±35 cents, jamais 1 demi-ton (0,5).
+        assert!(
+            tuning.abs() <= 0.35,
+            "tuning borné à ±35 cents, obtenu {tuning:.3} demi-tons"
+        );
+        assert!(
+            tuning.abs() < 0.5,
+            "ne doit jamais glisser d'un demi-ton entier, obtenu {tuning:.3}"
+        );
+        // Signe : fréquences AIGUES → dev positif (retourné vers un Mi tempéré haut), comme ALC-241.
+        assert!(tuning > 0.0, "diapason haut attendu (dev>0), obtenu {tuning:.3}");
     }
 }

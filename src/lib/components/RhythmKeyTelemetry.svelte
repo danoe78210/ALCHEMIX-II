@@ -98,6 +98,12 @@
         </span>
         <span class="font-label-sm text-[8px] font-mono {accentSoft} truncate">
           {deck.baseBpm.toFixed(1)} BPM • {pitchSign}{deck.pitchPercent}%
+          {#if deck.stemsCalibrated}
+            <span
+              class="text-[9px] leading-none text-[#e0a860]"
+              title="BPM (drums) & clé Camelot (other+bass) recalibrés par HTDemucs"
+            >✦</span>
+          {/if}
         </span>
       </div>
       <!-- CLÉ CAMELOT -->

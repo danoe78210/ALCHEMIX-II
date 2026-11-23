@@ -3,14 +3,17 @@
   // Fidèle au mockup `sources/Library v4.html` (Venezia 1889, grille 84px 1fr 72px 42px 76px 110px),
   // branchée sur le backend Rust (`library.rs`) via `libraryIpc` et sur le matcher `mashupMatcher.ts`.
   import { onMount, onDestroy } from 'svelte';
-  import { convertFileSrc } from '@tauri-apps/api/core';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { open, save } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+  import VzTip from './VzTip.svelte'; // ALC-257 WP30 : infobulles horlogères remplaçant les title natifs
   import { mixerStore } from '$lib/stores/mixer.svelte';
+  import { createPreviewObjectUrl } from '$lib/utils/audioBytes';
   import {
     libraryIpc,
+    audioIpc,
     type LibraryTrack,
+    type LibraryTrackTagPayload,
     type LibraryScanProgress,
   } from '$lib/ipc/client';
   import { scoreMatch, isSameTrack, findLocalBridgeTracks, type LocalBridgeResult } from '$lib/utils/mashupMatcher';
@@ -19,7 +22,8 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
   let duos = $state<Set<string>>(new Set());
   let query = $state('');
   let filter = $state<'all' | 'compatA' | 'compatB' | 'duos'>('all');
-  let sortKey = $state<'affinity' | 'key' | 'tempo'>('affinity');
+  let sortKey = $state<'affinity' | 'title' | 'key' | 'tempo'>('affinity');
+  let sortDir = $state<'asc' | 'desc'>('desc'); // ALC-262-2 : ▲ / ▼
   let importing = $state(false);
   let importingPct = $state(0);
   let error = $state('');
@@ -32,7 +36,118 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
   let editing = $state<{ id: number; field: 'title' | 'genre' } | null>(null);
   let editValue = $state('');
 
+  // ── ALC-232 : panneau d'édition complète des tags (Titre, Artiste, Genre, BPM, Clé Camelot) ──
+  let editingTags = $state<LibraryTrack | null>(null);
+  let tagTitle = $state('');
+  let tagArtist = $state('');
+  let tagGenre = $state('');
+  let tagBpm = $state<number>(120);
+  let tagKey = $state('8A');
+  let tagWriteFile = $state(true);
+  let savedToast = $state('');
+  let _toastTimer: number | undefined;
+  // ALC-257 WP30 : confirmation de suppression en 2 temps par ligne (id en attente).
+  let confirmingDelete = $state<number | null>(null);
+  let _confirmTimer: number | undefined;
+  function askDelete(id: number) {
+    confirmingDelete = id;
+    if (_confirmTimer) window.clearTimeout(_confirmTimer);
+    _confirmTimer = window.setTimeout(() => (confirmingDelete = null), 4000);
+  }
+  function cancelDelete() {
+    confirmingDelete = null;
+    if (_confirmTimer) window.clearTimeout(_confirmTimer);
+  }
+
+  // Table officielle des 24 clés Camelot du projet (ALC-125) — équivalents tonaux lisibles.
+  const CAMELOT_OPTIONS: { code: string; label: string; mode: 'A' | 'B' }[] = [
+    { code: '1A', label: 'Sol♯ mineur', mode: 'A' }, { code: '2A', label: 'Ré♯ mineur', mode: 'A' },
+    { code: '3A', label: 'La♯ mineur', mode: 'A' }, { code: '4A', label: 'Fa mineur', mode: 'A' },
+    { code: '5A', label: 'Do mineur', mode: 'A' }, { code: '6A', label: 'Sol mineur', mode: 'A' },
+    { code: '7A', label: 'Ré mineur', mode: 'A' }, { code: '8A', label: 'La mineur', mode: 'A' },
+    { code: '9A', label: 'Mi mineur', mode: 'A' }, { code: '10A', label: 'Si mineur', mode: 'A' },
+    { code: '11A', label: 'Fa♯ mineur', mode: 'A' }, { code: '12A', label: 'Do♯ mineur', mode: 'A' },
+    { code: '1B', label: 'Si majeur', mode: 'B' }, { code: '2B', label: 'Fa♯ majeur', mode: 'B' },
+    { code: '3B', label: 'Ré♭ majeur', mode: 'B' }, { code: '4B', label: 'La♭ majeur', mode: 'B' },
+    { code: '5B', label: 'Mi♭ majeur', mode: 'B' }, { code: '6B', label: 'Si♭ majeur', mode: 'B' },
+    { code: '7B', label: 'Fa majeur', mode: 'B' }, { code: '8B', label: 'Do majeur', mode: 'B' },
+    { code: '9B', label: 'Sol majeur', mode: 'B' }, { code: '10B', label: 'Ré majeur', mode: 'B' },
+    { code: '11B', label: 'La majeur', mode: 'B' }, { code: '12B', label: 'Mi majeur', mode: 'B' },
+  ];
+
+  const clampBpm = (v: number) => Math.max(40, Math.min(240, Math.round(v * 10) / 10));
+  const bpmHalve = () => (tagBpm = clampBpm(tagBpm / 2));
+  const bpmDouble = () => (tagBpm = clampBpm(tagBpm * 2));
+
+  function openTagEditor(t: LibraryTrack) {
+    editing = null; // ferme l'édition inline titre/genre éventuelle
+    editingTags = t;
+    tagTitle = t.title || '';
+    tagArtist = t.artist || '';
+    tagGenre = t.genre || '';
+    tagBpm = t.bpm > 0 ? clampBpm(t.bpm) : 120;
+    const k = (t.camelotKey || '').trim().toUpperCase();
+    tagKey = CAMELOT_OPTIONS.some((o) => o.code === k) ? k : '8A';
+    // ALC-234 : les .wav ne supportent pas l'écriture ID3 → case « écrire dans le fichier » désactivée.
+    tagWriteFile = !(t.filePath || '').toLowerCase().endsWith('.wav');
+  }
+  // ALC-234 : la piste éditée est-elle un WAV ? (pas de tags ID3 → conservation en base uniquement)
+  const isWavFile = $derived(!!editingTags && editingTags.filePath.toLowerCase().endsWith('.wav'));
+  function closeTagEditor() {
+    editingTags = null;
+  }
+
+  function showToast(msg: string) {
+    savedToast = msg;
+    if (_toastTimer) window.clearTimeout(_toastTimer);
+    _toastTimer = window.setTimeout(() => (savedToast = ''), 2000);
+  }
+
+  // ALC-232 : la touche Échap ferme la modale d'édition (écouteur actif seulement quand elle est ouverte).
+  $effect(() => {
+    if (!editingTags) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeTagEditor();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+  // ALC-257 WP30 : Échap annule la confirmation de suppression en cours.
+  $effect(() => {
+    if (confirmingDelete === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') cancelDelete();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  async function saveTagEditor() {
+    const t = editingTags;
+    if (!t) return;
+    const payload: LibraryTrackTagPayload = {
+      title: tagTitle.trim(),
+      artist: tagArtist.trim(),
+      genre: tagGenre.trim(),
+      bpm: Number.isFinite(tagBpm) && tagBpm > 0 ? tagBpm : null,
+      camelotKey: tagKey,
+      writeToFile: tagWriteFile,
+    };
+    closeTagEditor();
+    error = '';
+    try {
+      const updated = await mixerStore.updateLibraryTrackTags(t.id, payload);
+      // Remplacement immédiat de la ligne : tous les $derived (affinités, filtres, Oracle, Ponts)
+      // sont recalculés instantanément, sans re-requêter la base.
+      tracks = tracks.map((tr) => (tr.id === updated.id ? updated : tr));
+      showToast('TAGS ENREGISTRÉS ✓');
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Mise à jour des tags interrompue';
+    }
+  }
+
   let previewAudio: HTMLAudioElement | null = null;
+  let previewUrl: string | null = null;
   let unlistenScan: UnlistenFn | null = null;
 
   interface Row {
@@ -148,14 +263,24 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
     });
   });
 
+  // ALC-262-2 : rang Camelot logique (1A,1B,2A,2B...12A,12B) — jamais de tri texte (10A > 2A).
+  const cmpCamelotRank = (k: string): number => {
+    const m = (k || '').match(/(\d{1,2})([AB])/);
+    if (!m) return 9999;
+    const n = Math.min(12, Math.max(1, parseInt(m[1], 10) || 1));
+    return (n - 1) * 2 + (m[2] === 'B' ? 1 : 0);
+  };
   const sortedRows = $derived.by<Row[]>(() => {
     const arr = [...visibleRows];
-    if (sortKey === 'key') {
-      arr.sort((a, b) => (a.track.camelotKey || 'zzz').localeCompare(b.track.camelotKey || 'zzz') || b.track.id - a.track.id);
+    const dirM = sortDir === 'asc' ? 1 : -1;
+    if (sortKey === 'title') {
+      arr.sort((a, b) => (a.track.title || '').localeCompare(b.track.title || '', 'fr') * dirM || b.track.id - a.track.id);
+    } else if (sortKey === 'key') {
+      arr.sort((a, b) => (cmpCamelotRank(a.track.camelotKey) - cmpCamelotRank(b.track.camelotKey)) * dirM || b.track.id - a.track.id);
     } else if (sortKey === 'tempo') {
-      arr.sort((a, b) => a.track.bpm - b.track.bpm || b.track.id - a.track.id);
+      arr.sort((a, b) => (((a.track.bpm || 0) - (b.track.bpm || 0)) * dirM) || b.track.id - a.track.id);
     } else {
-      arr.sort((a, b) => (b.aff ?? 0) - (a.aff ?? 0) || b.track.id - a.track.id);
+      arr.sort((a, b) => (((a.aff ?? -1) - (b.aff ?? -1)) * dirM) || b.track.id - a.track.id);
     }
     // ALC-167-1 : les pistes déjà chargées (SUR PLATINE A/B) passent en bas de liste,
     // quel que soit le tri, pour mettre en avant les vrais partenaires de mashup.
@@ -284,6 +409,8 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
     try {
       const [list, duoList] = await Promise.all([libraryIpc.listTracks(), libraryIpc.listDuos()]);
       tracks = list.sort((a, b) => b.id - a.id);
+      // ALC-234 : hydrate le cache Store (source des métadonnées éditées au chargement sur platine).
+      mixerStore.setLibraryTracks(tracks);
       duos = new Set(duoList.map((d) => duoKey(d.trackAId, d.trackBId)));
     } catch (e) {
       error = e instanceof Error ? e.message : 'Impossible de charger la Librairie';
@@ -293,30 +420,52 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
   function stopPreview() {
     previewAudio?.pause();
     previewAudio = null;
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+    }
     previewing = null;
     previewPos = 0;
     previewDur = 0;
   }
 
-  function togglePreview(track: LibraryTrack) {
+  async function togglePreview(track: LibraryTrack) {
     if (previewing === track.id) {
       stopPreview();
       return;
     }
     stopPreview();
-    const audio = new Audio(convertFileSrc(track.filePath));
-    audio.volume = previewVolume;
-    audio.addEventListener('ended', stopPreview);
-    audio.addEventListener('loadedmetadata', () => {
-      previewDur = audio.duration || 0;
-      previewPos = 0;
-    });
-    audio.addEventListener('timeupdate', () => {
-      previewPos = audio.currentTime || 0;
-    });
-    audio.play().catch(() => stopPreview());
-    previewAudio = audio;
-    previewing = track.id;
+    try {
+      // ALC-192-1 : pipeline mémoire Rust → Blob URL (jamais asset:// / convertFileSrc, bloqué WebView2).
+      const bytes: number[] = await audioIpc.readAudioFileBytes(track.filePath);
+      const url = createPreviewObjectUrl(bytes, track.filePath);
+      const audio = new Audio(url);
+      audio.volume = previewVolume;
+      audio.addEventListener('ended', stopPreview);
+      audio.addEventListener('error', () => {
+        console.error('[Pré-écoute] décodage impossible :', track.filePath);
+        stopPreview();
+      });
+      audio.addEventListener('loadedmetadata', () => {
+        previewDur = audio.duration || 0;
+        previewPos = 0;
+      });
+      audio.addEventListener('timeupdate', () => {
+        previewPos = audio.currentTime || 0;
+      });
+      previewUrl = url;
+      previewAudio = audio;
+      previewing = track.id;
+      try {
+        await audio.play();
+      } catch (err) {
+        console.error('[Pré-écoute] lecture impossible :', track.filePath, err);
+        stopPreview();
+      }
+    } catch (err) {
+      console.error('[Pré-écoute] lecture des octets impossible :', track.filePath, err);
+      stopPreview();
+    }
   }
 
   // ALC-166-2 : volume casque dédié à la pré-écoute (évite la superposition sonore avec les platines).
@@ -475,11 +624,27 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
     }
   }
 
+  const SORT_KEYS = ['affinity', 'title', 'key', 'tempo'] as const;
+  // ALC-262-2 : clic sur un en-tête = activer le tri, second clic = inverser ▲/▼.
+  function setSort(k: (typeof SORT_KEYS)[number]) {
+    if (k === sortKey) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortKey = k;
+      sortDir = k === 'affinity' ? 'desc' : 'asc';
+    }
+  }
   function cycleSort() {
-    sortKey = sortKey === 'affinity' ? 'key' : sortKey === 'key' ? 'tempo' : 'affinity';
+    const i = SORT_KEYS.indexOf(sortKey);
+    const nk = SORT_KEYS[(i + 1) % SORT_KEYS.length];
+    sortKey = nk;
+    sortDir = nk === 'affinity' ? 'desc' : 'asc';
   }
 
-  const sortLabel = $derived(sortKey === 'key' ? 'CLÉ' : sortKey === 'tempo' ? 'TEMPO' : 'AFFINITÉ');
+  const sortLabel = $derived(
+    sortKey === 'title' ? 'TITRE' : sortKey === 'key' ? 'CLÉ' : sortKey === 'tempo' ? 'TEMPO' : 'AFFINITÉ'
+  );
+  const sortArrow = $derived(sortDir === 'asc' ? '▲' : '▼');
 
   onMount(async () => {
     await loadLibrary();
@@ -497,7 +662,7 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
 </script>
 
 <div
-  class="w-full flex-1 flex flex-col min-h-[440px] bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.85)] overflow-hidden"
+  class="w-full h-full flex flex-col min-h-0 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.85)] overflow-hidden"
 >
   <!-- ARCHIVER PLATINE A / B -->
   <div class="px-3 pt-2 grid grid-cols-2 gap-2 shrink-0">
@@ -546,8 +711,6 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
       />
       {#if importing}
         <span class="font-label-sm text-[9px] text-primary bg-surface-container px-1.5 py-0.5 rounded tracking-widest uppercase border border-primary/40 shrink-0">IMPORT {importingPct}%</span>
-      {:else}
-        <span class="font-label-sm text-[9px] text-outline bg-surface-container px-1.5 py-0.5 rounded tracking-widest uppercase border border-outline-variant/30 shrink-0">{tracks.length} TITRES ARCHIVÉS</span>
       {/if}
       <button
         type="button"
@@ -612,7 +775,7 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
         title="Changer le tri"
       >
         <span class="material-symbols-outlined text-[14px] text-primary">swap_vert</span>
-        <span>TRI : {sortLabel} ▼</span>
+        <span>TRI : {sortLabel} {sortArrow}</span>
       </button>
     </div>
   </div>
@@ -639,117 +802,126 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
           {/if}
         </div>
       </div>
-      <div class="grid px-2.5 py-1.5 bg-surface-container-high text-outline font-label-sm text-[10px] tracking-widest uppercase border-b border-[#4f4539]/40 shrink-0" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
-        <div class="flex items-center gap-0.5 text-primary font-bold">AFFINITÉ <span class="text-[9px]">▼</span></div>
-        <div>TITRE &amp; ARTISTE</div>
-        <div class="text-center">GENRE</div>
-        <div class="text-center">CLÉ</div>
-        <div class="text-right">TEMPO</div>
-        <div class="text-center">ACTIONS</div>
+      <div class="vz-lib-grid vz-lib-head" class:has-ref={reference}>
+        <div class="vz-head-aff">
+          <button type="button" onclick={() => setSort('affinity')} aria-label="Trier par affinité" class="inline-flex items-center gap-1 cursor-pointer {sortKey === 'affinity' ? 'text-[#edbf7a]' : 'text-[#8a7c66]'} hover:text-[#ffddb0]">
+            AFFINITÉ {#if sortKey === 'affinity'}<span class="text-[9px]">{sortArrow}</span>{/if}
+          </button>
+        </div>
+        <div class="vz-head-cover" aria-hidden="true"></div>
+        <div class="min-w-0">
+          <button type="button" onclick={() => setSort('title')} aria-label="Trier par titre" class="inline-flex items-center gap-1 min-w-0 w-full text-left cursor-pointer {sortKey === 'title' ? 'text-[#edbf7a]' : 'text-[#9b8f80]'} hover:text-[#ffddb0]">
+            <span class="truncate">TITRE &amp; ARTISTE</span>{#if sortKey === 'title'}<span class="text-[9px] shrink-0">{sortArrow}</span>{/if}
+          </button>
+        </div>
+        <div class="vz-head-genre">GENRE</div>
+        <div class="vz-head-key">
+          <button type="button" onclick={() => setSort('key')} aria-label="Trier par clé Camelot" class="inline-flex items-center justify-center gap-1 w-full cursor-pointer {sortKey === 'key' ? 'text-[#edbf7a]' : 'text-[#9b8f80]'} hover:text-[#ffddb0]">
+            CLÉ {#if sortKey === 'key'}<span class="text-[9px]">{sortArrow}</span>{/if}
+          </button>
+        </div>
+        <div class="vz-head-bpm">
+          <button type="button" onclick={() => setSort('tempo')} aria-label="Trier par tempo (BPM)" class="inline-flex items-center justify-end gap-1 w-full cursor-pointer {sortKey === 'tempo' ? 'text-[#edbf7a]' : 'text-[#9b8f80]'} hover:text-[#ffddb0]">
+            TEMPO {#if sortKey === 'tempo'}<span class="text-[9px]">{sortArrow}</span>{/if}
+          </button>
+        </div>
+        <div class="vz-head-act">ACTIONS</div>
       </div>
-      <div class="flex-1 overflow-y-auto">
+      <div class="vz-lib-scroll min-h-0 flex-1 overflow-y-auto">
         {#if sortedRows.length === 0}
           <div class="flex items-center justify-center h-full px-3 text-center text-on-surface-variant font-label-sm text-[10px] tracking-widest uppercase py-6">
             {tracks.length === 0 ? 'Librairie vide — importez un dossier ou archivez une platine' : 'Aucun résultat pour ce filtre'}
           </div>
         {:else}
           {#each sortedRows as r (r.track.id)}
-            <div class="grid px-2.5 py-1 relative group hover:bg-surface-container transition-colors {r.aff !== null && r.aff >= 82 ? 'bg-surface-container-low/90' : 'bg-surface-container-lowest'}" style="grid-template-columns: 84px 1fr 72px 42px 76px 110px; gap: 6px; align-items: center;">
-              <div class="flex flex-col justify-center">
-                {#if r.loaded}
-                  <span class="text-[9px] font-label-sm font-bold {r.onA ? 'text-[#10b981]' : 'text-[#3b82f6]'} tracking-wider uppercase whitespace-nowrap">SUR PLATINE {r.onA ? 'A' : 'B'}</span>
+            <div class="vz-lib-grid vz-lib-row group {r.aff !== null && r.aff >= 82 && !r.loaded ? 'vz-row-high' : ''}" class:has-ref={reference} style="--line-accent:{r.onA ? '#10b981' : r.onB ? '#00A3FF' : 'transparent'}">
+              <!-- cellule Affinité -->
+              <div class="vz-cell-aff">
+                {#if reference && !r.loaded}
+                  <div class="flex items-center gap-1 font-label-sm text-[11px] font-bold {r.color} whitespace-nowrap">
+                    {#if r.aff !== null}<span class="tabular-nums">{Math.round(r.aff)}%</span>{:else}<span class="text-outline-variant">—</span>{/if}
+                    {#if r.duo}<span class="text-primary text-[9px]">★</span>{/if}
+                  </div>
+                  <div class="vz-aff-bar" aria-hidden="true">
+                    {#each [0,1,2,3,4] as i (i)}
+                      <span class="vz-aff-seg {r.aff !== null && i < Math.ceil((r.aff ?? 0) / 20) ? 'on' : ''}"></span>
+                    {/each}
+                  </div>
+                {:else if r.loaded}
+                  <span class="text-[9px] font-label-sm font-bold {r.onA ? 'text-[#10b981]' : 'text-[#00A3FF]'} tracking-wider uppercase whitespace-nowrap">SUR PLATINE {r.onA ? 'A' : 'B'}</span>
                 {:else}
-                  <div class="flex items-center gap-1 font-label-sm text-[11px] font-bold {r.color}">
-                    {#if r.aff !== null}<span>{Math.round(r.aff)}%</span>{:else}<span class="text-outline-variant">—</span>{/if}
-                    {#if r.duo}<span class="text-primary text-[9px]">★ DUO</span>{/if}
-                  </div>
-                  <div class="w-16 h-1 bg-surface-container rounded-full overflow-hidden mt-0.5">
-                    <div class="h-full {r.color}" style="width:{r.aff !== null ? r.aff : 0}%"></div>
-                  </div>
-                  <span class="text-[8px] font-label-sm font-bold {r.color} tracking-wider mt-0.5 uppercase">{r.aff !== null ? r.label : ''}</span>
+                  <span class="text-outline-variant text-[11px]">—</span>
                 {/if}
               </div>
-              <div class="min-w-0 pr-1 flex items-center gap-2">
-                {#if r.track.coverData}
-                  <div class="w-7 h-7 rounded-[2px] overflow-hidden border border-[#c89d5c]/60 bg-surface-container shadow-[0_1px_3px_rgba(0,0,0,0.6)] shrink-0">
+              <!-- pochette toujours réservée -->
+              <div class="vz-cell-cover">
+                <div class="vz-cover">
+                  {#if r.track.coverData}
                     <img src={r.track.coverData} alt="" class="w-full h-full object-cover" />
-                  </div>
-                {/if}
-                <div class="min-w-0 flex-1">
-                  <div class="font-medium text-[13px] text-[#ece0da] truncate group-hover:text-primary transition-colors flex items-center gap-1.5">
+                  {:else}
+                    <span class="material-symbols-outlined text-[13px] text-[#7a6a55]">album</span>
+                  {/if}
+                </div>
+              </div>
+              <!-- Titre + Artiste -->
+              <div class="vz-cell-title min-w-0">
+                <div class="font-medium text-[13px] text-[#ece0da] truncate group-hover:text-[#edbf7a] transition-colors">
                   {#if editing && editing.id === r.track.id && editing.field === 'title'}
-                    <input
-                      type="text"
-                      value={editValue}
-                      oninput={(e) => (editValue = (e.currentTarget as HTMLInputElement).value)}
-                      onkeydown={(e) => {
-                        if (e.key === 'Enter') void saveEdit(r.track);
-                        else if (e.key === 'Escape') cancelEdit();
-                      }}
-                      onblur={() => void saveEdit(r.track)}
-                      class="bg-surface-container-high rounded px-1 text-[12px] text-on-surface w-full min-w-0 outline-none border border-primary/50"
-                    />
+                    <input type="text" value={editValue} oninput={(e) => (editValue = (e.currentTarget as HTMLInputElement).value)} onkeydown={(e) => { if (e.key === 'Enter') void saveEdit(r.track); else if (e.key === 'Escape') cancelEdit(); }} onblur={() => void saveEdit(r.track)} class="bg-surface-container-high rounded px-1 text-[12px] text-on-surface w-full min-w-0 outline-none border border-[#edbf7a]/60" />
                   {:else}
                     <span class="truncate cursor-text" role="button" tabindex="0" ondblclick={() => startEdit(r.track, 'title')} onkeydown={(e) => { if (e.key === 'Enter') startEdit(r.track, 'title'); }} title="Double-clic pour éditer le titre">{r.track.title || fileBase(r.track.filePath)}</span>
                   {/if}
-                  {#if previewing === r.track.id}
-                    <span class="text-[8px] font-label-sm font-bold text-primary tracking-widest uppercase px-1 py-0.2 rounded bg-primary/10 border border-primary/30 shrink-0">ÉCOUTE EN COURS</span>
-                  {/if}
-                  {#if r.onA}
-                    <span class="text-[8px] font-label-sm font-bold text-[#10b981] tracking-widest uppercase px-1 py-0.2 rounded bg-[#10b981]/20 border border-[#10b981]/40 shrink-0">SUR PLATINE A</span>
-                  {/if}
-                  {#if r.onB}
-                    <span class="text-[8px] font-label-sm font-bold text-[#3b82f6] tracking-widest uppercase px-1 py-0.2 rounded bg-[#3b82f6]/20 border border-[#3b82f6]/40 shrink-0">SUR PLATINE B</span>
-                  {/if}
                 </div>
                 <div class="text-[11px] text-[#9b8f80] truncate font-body-sm">{r.track.artist || '—'}</div>
-                </div>
+                {#if previewing === r.track.id}
+                  <span class="text-[8px] font-label-sm font-bold text-[#edbf7a] tracking-widest uppercase px-1 py-0.2 rounded bg-[#edbf7a]/10 border border-[#edbf7a]/30 shrink-0">ÉCOUTE EN COURS</span>
+                {/if}
               </div>
-              <div class="flex justify-center">
+              <div class="vz-cell-genre">
                 {#if editing && editing.id === r.track.id && editing.field === 'genre'}
-                    <input
-                      type="text"
-                      value={editValue}
-                      oninput={(e) => (editValue = (e.currentTarget as HTMLInputElement).value)}
-                      onkeydown={(e) => {
-                        if (e.key === 'Enter') void saveEdit(r.track);
-                        else if (e.key === 'Escape') cancelEdit();
-                      }}
-                      onblur={() => void saveEdit(r.track)}
-                      class="bg-surface-container-high rounded px-1 text-[10px] text-on-surface w-16 outline-none border border-[#3b82f6]/50 text-center uppercase tracking-wider"
-                    />
-                  {:else}
-                    <span class="text-[9px] border border-[#4f4539]/60 bg-[#120d0a] rounded px-1.5 py-0.5 text-outline font-label-sm tracking-wider uppercase cursor-text" role="button" tabindex="0" ondblclick={() => startEdit(r.track, 'genre')} onkeydown={(e) => { if (e.key === 'Enter') startEdit(r.track, 'genre'); }} title="Double-clic pour éditer le genre">{r.track.genre || '—'}</span>
-                  {/if}
+                  <input type="text" value={editValue} oninput={(e) => (editValue = (e.currentTarget as HTMLInputElement).value)} onkeydown={(e) => { if (e.key === 'Enter') void saveEdit(r.track); else if (e.key === 'Escape') cancelEdit(); }} onblur={() => void saveEdit(r.track)} class="bg-surface-container-high rounded px-1 text-[10px] text-on-surface w-20 outline-none border border-[#00A3FF]/50 text-center uppercase tracking-wider" />
+                {:else if r.track.genre}
+                  <span class="vz-genre" title={r.track.genre} role="button" tabindex="0" ondblclick={() => startEdit(r.track, 'genre')} onkeydown={(e) => { if (e.key === 'Enter') startEdit(r.track, 'genre'); }}>{r.track.genre}</span>
+                {:else}
+                  <span class="vz-genre vz-genre-empty" aria-hidden="true">—</span>
+                {/if}
               </div>
-              <div class="flex justify-center">
-                <span class="font-label-sm text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-container-high {r.color} {keyBadgeBorder(r)}">{r.track.camelotKey || '—'}</span>
+              <div class="vz-cell-key">
+                <span class="font-label-sm text-[11px] font-bold px-1.5 py-1 rounded bg-surface-container-high {r.color} {keyBadgeBorder(r)}">{r.track.camelotKey || '—'}</span>
               </div>
-              <div class="text-right font-label-sm text-[11px]">
+              <div class="vz-cell-bpm text-right font-label-sm text-[11px]">
                 <span class="text-on-surface font-bold tabular-nums whitespace-nowrap">{r.track.bpm ? r.track.bpm.toFixed(1) : '—'}</span> <span class="text-outline text-[9px]">BPM</span>
                 {#if r.aff !== null}<div class="text-[9px] {r.color} font-semibold leading-none tabular-nums">{deltaPct(r.track.bpm)}</div>{/if}
               </div>
-              <div class="flex items-center justify-end gap-1.5">
-                <button type="button" onclick={() => togglePreview(r.track)} class="w-6 h-6 rounded-full border flex items-center justify-center transition-colors cursor-pointer shrink-0 {previewing === r.track.id ? 'border-primary bg-primary/20 text-primary shadow-[0_0_8px_#edbf7a] animate-pulse' : 'border-outline-variant text-[#edbf7a] hover:bg-[#edbf7a]/20'}" title="Pré-écouter / Arrêter">
-                  <span class="text-[11px] leading-none">{previewing === r.track.id ? '❚❚' : '▶'}</span>
-                </button>
-                <button type="button" onclick={() => loadToDeck('A', r.track)} class="w-6 h-6 rounded-[2px] bg-[#06423a] border border-[#10b981]/50 text-[#10b981] font-bold text-[11px] font-label-sm hover:bg-[#10b981] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Charger Platine A">A</button>
-                <button type="button" onclick={() => loadToDeck('B', r.track)} class="w-6 h-6 rounded-[2px] bg-[#194f47]/50 border border-[#3b82f6]/50 text-[#3b82f6] font-bold text-[11px] font-label-sm hover:bg-[#3b82f6] hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Charger Platine B">B</button>
-                <div class="border-l border-[#4f4539]/50 pl-1.5 ml-0.5 flex items-center">
-                  <button type="button" onclick={() => removeTrack(r.track)} class="text-[#9b8f80] hover:text-red-400 font-bold text-[13px] leading-none transition-colors cursor-pointer" title="Retirer de la Librairie">×</button>
-                </div>
+              <div class="vz-cell-act flex items-center justify-end gap-1.5">
+                <VzTip text={previewing === r.track.id ? 'Arrêter la pré-écoute' : 'Pré-écouter au casque'}>
+                  <button type="button" aria-pressed={previewing === r.track.id} onclick={() => togglePreview(r.track)} class="vz-act vz-act-primary {previewing === r.track.id ? 'enabled' : ''}"><span class="vz-act-led"></span><span class="vz-act-icon">{previewing === r.track.id ? '❚❚' : '▶'}</span></button>
+                </VzTip>
+                <VzTip text="Charger sur la platine A">
+                  <button type="button" aria-pressed={r.onA} onclick={() => loadToDeck('A', r.track)} class="vz-load-a {r.onA ? 'enabled' : ''}"><span class="vz-load-led"></span>→ A</button>
+                </VzTip>
+                <VzTip text="Charger sur la platine B">
+                  <button type="button" aria-pressed={r.onB} onclick={() => loadToDeck('B', r.track)} class="vz-load-b {r.onB ? 'enabled' : ''}"><span class="vz-load-led"></span>→ B</button>
+                </VzTip>
+                <VzTip text="Éditer les tags">
+                  <button type="button" onclick={() => openTagEditor(r.track)} class="vz-act vz-act-edit"><span class="material-symbols-outlined text-[15px]">edit</span></button>
+                </VzTip>
+                <div class="vz-act-sep"></div>
+                {#if confirmingDelete === r.track.id}
+                  <VzTip text="Confirmer le retrait de la librairie">
+                    <button type="button" onclick={cancelDelete} class="vz-act vz-act-conf-cancel">✕</button>
+                  </VzTip>
+                  <VzTip text={`Retirer définitivement ${r.track.title || fileBase(r.track.filePath)}`}>
+                    <button type="button" onclick={() => { cancelDelete(); void removeTrack(r.track); }} class="vz-act vz-act-confirm" aria-label="Confirmer le retrait">RETIRER ?</button>
+                  </VzTip>
+                {:else}
+                  <VzTip text="Retirer de la librairie">
+                    <button type="button" onclick={() => askDelete(r.track.id)} aria-label="Retirer de la librairie" class="vz-act vz-act-del"><span class="material-symbols-outlined text-[15px]">delete</span></button>
+                  </VzTip>
+                {/if}
                 {#if previewing === r.track.id}
-                  <div
-                      class="absolute inset-x-0 bottom-0 h-[2px] cursor-pointer bg-primary/20 hover:bg-primary/40 z-10"
-                      onpointerdown={scrubPreview}
-                      role="slider"
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                      aria-valuenow={previewDur > 0 ? Math.round((previewPos / previewDur) * 100) : 0}
-                      title="Naviguer dans la pré-écoute"
-                      tabindex="-1"
-                    >
-                    <div class="h-full bg-primary" style="width:{previewDur > 0 ? Math.round((previewPos / previewDur) * 100) : 0}%"></div>
+                  <div class="absolute inset-x-0 bottom-0 h-[2px] cursor-pointer bg-[#edbf7a]/25 hover:bg-[#edbf7a]/45 z-10" onpointerdown={scrubPreview} role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow={previewDur > 0 ? Math.round((previewPos / previewDur) * 100) : 0} title="Naviguer dans la pré-écoute" tabindex="-1">
+                    <div class="h-full bg-[#edbf7a]" style="width:{previewDur > 0 ? Math.round((previewPos / previewDur) * 100) : 0}%"></div>
                   </div>
                 {/if}
               </div>
@@ -830,4 +1002,271 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
       </div>
     </div>
   {/if}
+
+  {#if editingTags}
+    <div class="fixed inset-0 z-50 bg-black/65 backdrop-blur-[1px] flex items-center justify-center p-4" role="presentation" onpointerdown={closeTagEditor}>
+      <form
+        class="w-full max-w-[430px] max-h-[90vh] overflow-y-auto rounded-lg bg-surface-container-high border border-[#665643] shadow-[0_14px_44px_rgba(0,0,0,0.92),inset_0_1px_0_rgba(237,191,122,0.1)] flex flex-col"
+        onsubmit={(e) => { e.preventDefault(); void saveTagEditor(); }}
+        onpointerdown={(e) => e.stopPropagation()}
+      >
+        <!-- En-tête : pochette miniature + fichier source (tronqué, infobulle) -->
+        <div class="flex items-center gap-2.5 px-3 py-2.5 border-b border-[#544738]">
+          <div class="w-9 h-9 rounded-[2px] overflow-hidden border border-[#c89d5c]/60 bg-surface-container-lowest shrink-0 flex items-center justify-center shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
+            {#if editingTags.coverData}
+              <img src={editingTags.coverData} alt="" class="w-full h-full object-cover" />
+            {:else}
+              <span class="material-symbols-outlined text-[16px] text-[#9b8f80]">music_note</span>
+            {/if}
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="font-label-sm text-[9px] uppercase tracking-widest text-[#edbf7a] font-bold">Édition des tags</div>
+            <div class="font-mono text-[10px] text-outline truncate" title={editingTags.filePath}>{editingTags.filePath || '—'}</div>
+          </div>
+          <span class="material-symbols-outlined text-[15px] text-outline-variant">edit_note</span>
+        </div>
+
+        <div class="px-3 py-3 flex flex-col gap-2 min-h-0">
+          <label class="flex flex-col gap-1">
+            <span class="font-label-sm text-[9px] uppercase tracking-widest text-outline">Titre</span>
+            <input bind:value={tagTitle} type="text" placeholder="Titre du morceau" class="w-full bg-surface-container-lowest border border-[#4f4539] rounded px-2 py-1.5 text-[12px] text-on-surface outline-none focus:border-[#edbf7a]/70 focus:shadow-[0_0_0_1px_rgba(237,191,122,0.25)]" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="font-label-sm text-[9px] uppercase tracking-widest text-outline">Artiste</span>
+            <input bind:value={tagArtist} type="text" placeholder="Artiste / Compositeur" class="w-full bg-surface-container-lowest border border-[#4f4539] rounded px-2 py-1.5 text-[12px] text-on-surface outline-none focus:border-[#edbf7a]/70" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="font-label-sm text-[9px] uppercase tracking-widest text-outline">Genre</span>
+            <input bind:value={tagGenre} type="text" list="genre-suggestions" placeholder="Pop, Rock, OST / Cinéma…" class="w-full bg-surface-container-lowest border border-[#4f4539] rounded px-2 py-1.5 text-[12px] text-on-surface outline-none focus:border-[#edbf7a]/70" />
+          </label>
+          <datalist id="genre-suggestions">
+            {#each ['Pop', 'Rock', 'House', 'Electro', 'Synthpop', 'Hip-Hop', 'R&B', 'Funk', 'OST / Cinéma', 'Trance'] as g (g)}
+              <option value={g}></option>
+            {/each}
+          </datalist>
+          <label class="flex flex-col gap-1">
+            <span class="font-label-sm text-[9px] uppercase tracking-widest text-outline">BPM</span>
+            <div class="flex items-center gap-1.5">
+              <input bind:value={tagBpm} type="number" step="0.1" min="40" max="240" class="w-24 bg-surface-container-lowest border border-[#4f4539] rounded px-2 py-1.5 text-[12px] tabular-nums text-on-surface outline-none focus:border-[#edbf7a]/70" />
+              <button type="button" onclick={bpmHalve} class="px-2 py-1 rounded border border-[#4f4539]/70 text-[#edbf7a] font-label-sm text-[10px] font-bold tracking-wider hover:bg-[#edbf7a]/10 transition-colors cursor-pointer whitespace-nowrap" title="Diviser par 2 (corriger une erreur d'octave rythmique)">÷2</button>
+              <button type="button" onclick={bpmDouble} class="px-2 py-1 rounded border border-[#4f4539]/70 text-[#edbf7a] font-label-sm text-[10px] font-bold tracking-wider hover:bg-[#edbf7a]/10 transition-colors cursor-pointer whitespace-nowrap" title="Multiplier par 2 (corriger une erreur d'octave rythmique)">×2</button>
+              <span class="font-mono text-[9px] text-outline tabular-nums">BPM</span>
+            </div>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="font-label-sm text-[9px] uppercase tracking-widest text-outline">Clé Camelot</span>
+            <div class="flex items-center gap-1.5">
+              <select bind:value={tagKey} class="flex-1 min-w-0 bg-surface-container-lowest border border-[#4f4539] rounded px-2 py-1.5 text-[12px] font-bold outline-none focus:border-[#edbf7a]/70 {tagKey.endsWith('A') ? 'text-[#10b981]' : 'text-[#00A3FF]'}">
+                {#each CAMELOT_OPTIONS as o (o.code)}
+                  <option value={o.code} class="text-on-surface">{o.code} · {o.label}</option>
+                {/each}
+              </select>
+            </div>
+          </label>
+          <label class={"flex items-center gap-2 mt-0.5 " + (isWavFile ? 'cursor-not-allowed' : 'cursor-pointer select-none')}>
+            <input type="checkbox" bind:checked={tagWriteFile} disabled={isWavFile} class="accent-[#edbf7a] w-3.5 h-3.5 shrink-0" />
+            <span class="font-label-sm text-[10px] tracking-wider text-outline uppercase leading-tight">
+              {isWavFile
+                ? 'Format WAV : métadonnées sauvegardées dans la base AlcheMix II (tags ID3 non supportés par WAV)'
+                : 'Écrire aussi dans les tags du fichier audio (ID3 / Vorbis / MP4)'}
+            </span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 px-3 py-2.5 border-t border-[#544738]">
+          <button type="button" onclick={closeTagEditor} class="px-3 py-1.5 rounded bg-surface-container border border-[#4f4539]/70 text-outline font-label-sm text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container-high hover:text-on-surface transition-colors cursor-pointer whitespace-nowrap">Annuler</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-gradient-to-b from-[#edbf7a] to-[#9a6f2f] text-[#120d0a] font-label-sm text-[10px] font-bold uppercase tracking-widest shadow-[0_2px_6px_rgba(0,0,0,0.7)] hover:brightness-110 transition-all cursor-pointer whitespace-nowrap">ENREGISTRER LES TAGS</button>
+        </div>
+      </form>
+    </div>
+  {/if}
+
+  {#if savedToast}
+    <div class="fixed inset-x-0 bottom-4 z-[60] flex justify-center pointer-events-none">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded bg-gradient-to-b from-[#201a17] to-[#16110e] border border-[#edbf7a]/50 shadow-[0_8px_24px_rgba(0,0,0,0.8)] font-label-sm text-[10px] font-bold tracking-widest uppercase text-[#edbf7a] whitespace-nowrap">
+        <span class="material-symbols-outlined text-[14px]">check_circle</span>
+        <span>{savedToast}</span>
+      </div>
+    </div>
+  {/if}
 </div>
+
+<style>
+  /* ALC-257 WP32 : grille unifiée Librairie (en-tête + lignes) */
+  .vz-lib-grid {
+    display: grid;
+    align-items: center;
+    column-gap: 10px;
+    padding: 0 12px;
+    width: 100%;
+    grid-template-columns: 32px minmax(0, 1fr) 96px 48px 82px 212px;
+  }
+  /* ALC-261-2 : platine de référence chargée → colonne AFFINITÉ 68px en tête */
+  .vz-lib-grid.has-ref {
+    grid-template-columns: 68px 32px minmax(0, 1fr) 96px 48px 82px 212px;
+  }
+  .vz-lib-head {
+    height: 36px;
+    padding: 0 26px 0 12px; /* ALC-261-2 : décalage droit = 12px grille + ~14px scrollbar-gutter de la liste */
+    gap: 0;
+    font-family: var(--font-label-sm, ui-monospace, 'JetBrains Mono', monospace);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #9b8f80;
+    white-space: nowrap;
+  }
+  .vz-lib-head > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .vz-head-aff { display: flex; align-items: center; gap: 4px; font-weight: 700; color: #edbf7a; }
+  .vz-head-genre { text-align: left; }
+  .vz-head-key { text-align: center; }
+  .vz-head-bpm { text-align: right; }
+  .vz-head-act { text-align: right; }
+  .vz-lib-head .vz-head-cover, .vz-lib-head .vz-head-aff { padding-right: 0; }
+
+  .vz-lib-row {
+    position: relative;
+    height: 44px;
+    /* ALC-261-2 : padding géré par .vz-lib-grid (0 12px) pour un alignement identique en-tête/lignes */
+    border-left: 3px solid var(--line-accent, transparent);
+    border-bottom: 1px solid rgba(237, 191, 122, 0.06);
+    background: #120d0a;
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+  .vz-lib-row:hover { background: rgba(237, 191, 122, 0.06); }
+  .vz-lib-row:focus-within { outline: 2px solid rgba(237, 191, 122, 0.7); outline-offset: -2px; }
+  .vz-row-high { background: rgba(237, 191, 122, 0.045); }
+
+  /* ALC-261-2 : cellule AFFINITÉ masquée sans platine de référence (grille 6 colonnes) */
+  .vz-lib-head:not(.has-ref) .vz-head-aff,
+  .vz-lib-row:not(.has-ref) .vz-cell-aff { display: none; }
+
+  /* ALC-261-2 : gouttière de scroll stable → colonnes alignées avec l'en-tête, même sans barre */
+  .vz-lib-scroll { scrollbar-gutter: stable; }
+
+  /* ALC-261-2 : alignements des cellules de données */
+  .vz-cell-key { text-align: center; }
+  .vz-cell-bpm { text-align: right; }
+  .vz-cell-act { text-align: right; min-width: 0; }
+
+  /* pochette toujours réservée */
+  .vz-cell-cover { display: flex; align-items: center; }
+  .vz-cover {
+    width: 28px;
+    height: 28px;
+    border-radius: 2px;
+    border: 1px solid #8c6d3f;
+    background: #17120f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex: none;
+  }
+  .vz-cell-aff, .vz-cell-title, .vz-cell-genre, .vz-cell-key, .vz-cell-bpm, .vz-cell-act { min-width: 0; }
+
+  /* barre laiton 5 segments */
+  .vz-aff-bar { display: flex; gap: 2px; margin-top: 4px; }
+  .vz-aff-seg { flex: 1; height: 3px; border-radius: 1px; background: rgba(120,110,90,0.25); }
+  .vz-aff-seg.on { background: #edbf7a; }
+
+  /* genre 104px une ligne */
+  .vz-genre {
+    display: inline-block;
+    max-width: 104px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--font-label-sm, ui-monospace, monospace);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #d2c4b4;
+    cursor: text;
+  }
+  .vz-genre-empty { color: #7a6a55; cursor: default; }
+
+  /* actions cluster via .vz-key */
+  .vz-act {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--vz-key-edge, #665643);
+    background: transparent;
+    color: var(--vz-text-mid, #b8a68a);
+    flex: none;
+    cursor: pointer;
+    transition: filter 140ms var(--vz-ease, cubic-bezier(0.22,1,0.36,1)), transform 80ms;
+  }
+  .vz-act:hover { filter: brightness(1.12); }
+  .vz-act:active { transform: translateY(1px); }
+  .vz-act-led { width: 6px; height: 6px; position: absolute; display: none; border-radius: 50%; background: #34d399; }
+  .vz-act-primary { position: relative; color: #edbf7a; }
+  .vz-act-primary.enabled { border-color: #edbf7a; background: rgba(237,191,122,0.14); }
+  .vz-act-primary.enabled .vz-act-led { display: block; top: 3px; right: 3px; }
+  .vz-load-a, .vz-load-b {
+    height: 32px;
+    padding: 0 8px;
+    min-width: 36px;
+    border-radius: 6px;
+    border: 1px solid;
+    font-family: var(--font-label-sm, ui-monospace, monospace);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    cursor: pointer;
+    transition: filter 140ms var(--vz-ease, cubic-bezier(0.22,1,0.36,1)), transform 80ms;
+  }
+  .vz-load-a { border-color: rgba(16,185,129,0.5); color: #34d399; background: rgba(16,185,129,0.10); }
+  .vz-load-b { border-color: rgba(0,163,255,0.5); color: #6cc4ff; background: rgba(0,163,255,0.10); }
+  .vz-load-a:hover { background: rgba(16,185,129,0.20); }
+  .vz-load-b:hover { background: rgba(0,163,255,0.20); }
+  .vz-act-edit { color: var(--vz-text-mid, #b8a68a); }
+  .vz-act-edit:hover { color: #edbf7a; border-color: rgba(237,191,122,0.6); }
+  .vz-act-del { color: #9b8f80; }
+  .vz-act-del:hover { color: #f87171; border-color: rgba(248,113,113,0.5); }
+  /* ALC-257 WP30 : séparateur + LED de chargement + états enclenchés →A/→B */
+  .vz-act-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.10); margin: 0 2px; flex: none; }
+  .vz-load-a, .vz-load-b { position: relative; }
+  .vz-load-led { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 4px; background: transparent; }
+  .vz-load-a.enabled, .vz-load-b.enabled {
+    border-color: currentColor;
+    filter: brightness(1.15);
+    box-shadow: inset 0 0 0 1px rgba(237,191,122,0.12);
+  }
+  .vz-load-a.enabled .vz-load-led { background: #10b981; box-shadow: 0 0 6px #10b981; }
+  .vz-load-b.enabled .vz-load-led { background: #00A3FF; box-shadow: 0 0 6px #00A3FF; }
+  /* Confirmation en 2 temps */
+  .vz-act-confirm {
+    width: auto;
+    min-width: 76px;
+    height: 32px;
+    padding: 0 8px;
+    border-color: rgba(248,113,113,0.6);
+    color: #f87171;
+    background: rgba(248,113,113,0.08);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    font-family: var(--font-label-sm, ui-monospace, monospace);
+    text-transform: uppercase;
+  }
+  .vz-act-confirm:hover { background: rgba(248,113,113,0.18); filter: none; }
+  .vz-act-conf-cancel { color: #9b8f80; }
+
+  /* recherche : bouton × pour vider */
+  .vz-search-clear {
+    width: 22px; height: 22px; border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #9b8f80; cursor: pointer; flex: none;
+  }
+  .vz-search-clear:hover { color: #edbf7a; background: rgba(237,191,122,0.10); }
+</style>

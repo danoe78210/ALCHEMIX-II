@@ -24,6 +24,26 @@ export interface BridgePivot {
   query: string;
 }
 
+/**
+ * ALC-234 : table officielle des 24 clés Camelot → libellé tonal lisible (source unique).
+ * Table officielle du projet (ALC-125, traduite en français). Ex. `8A` → « La mineur », `9B` → « Sol majeur ».
+ */
+export const CAMELOT_LABELS: Record<string, string> = {
+  '1A': 'Sol♯ mineur', '2A': 'Ré♯ mineur', '3A': 'La♯ mineur', '4A': 'Fa mineur',
+  '5A': 'Do mineur', '6A': 'Sol mineur', '7A': 'Ré mineur', '8A': 'La mineur',
+  '9A': 'Mi mineur', '10A': 'Si mineur', '11A': 'Fa♯ mineur', '12A': 'Do♯ mineur',
+  '1B': 'Si majeur', '2B': 'Fa♯ majeur', '3B': 'Ré♭ majeur', '4B': 'La♭ majeur',
+  '5B': 'Mi♭ majeur', '6B': 'Si♭ majeur', '7B': 'Fa majeur', '8B': 'Do majeur',
+  '9B': 'Sol majeur', '10B': 'Ré majeur', '11B': 'La majeur', '12B': 'Mi majeur',
+};
+
+/** ALC-234 : libellé lisible d'une clé Camelot — ex. « 8A (La mineur) », repli si inconnue. */
+export function camelotLabelFromKey(code: string): string {
+  const c = (code || '').trim().toUpperCase();
+  const name = CAMELOT_LABELS[c];
+  return name ? `${c} (${name})` : c;
+}
+
 /** Parse une clé Camelot ("8B" → { num: 8, mode: 'B' }). */
 export function parseCamelot(code: string): CamelotKey {
   const m = (code || '').toUpperCase().match(/(\d{1,2})([AB])/);

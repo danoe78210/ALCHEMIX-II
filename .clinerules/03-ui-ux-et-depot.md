@@ -33,3 +33,12 @@ References concises (aucun sous-agent lourd ni questionnaire superflu) :
 - .agents/skills/systematic-debugging/SKILL.md : a invoquer des qu'un bug / erreur IPC / regression apparait, avant toute modification hasardeuse (cause racine exacte, cycle 4 phases, garde-fou 2 tentatives).
 - .agents/skills/verification-before-completion/SKILL.md : a invoquer avant de cocher completed:true ou de passer un ticket en En revue (preuve d'execution requise adaptee au perimetre).
 - .agents/skills/tdd-audio-logic/SKILL.md : a invoquer avant toute nouvelle formule Camelot / piste pont / courbe AUTO-MIX / requete SQLite (RED->GREEN->REFACTOR).
+
+## Compétences Design Engineering (`.agents/skills/`)
+Skills ciblées (issues de `jakubkrehel/skills`) à invoquer selon le besoin, en complément d'`unslop` :
+- **`.agents/skills/better-motion/SKILL.md`** : Pour toute animation UI (Tambour Chronographe, rotation de roues/potentiomètres, glissement des colonnes, VU-mètres, transitions de panneaux) — imposer des courbes physiques fluides **60 fps** (`cubic-bezier(0.22, 1, 0.36, 1)`) sans désynchronisation d'état.
+- **`.agents/skills/better-ui/SKILL.md`** : Pour les contrôles tactiles (potentiomètres rotatifs, faders, pads, boutons directionnels) — alignement optique, rayons concentriques laiton/ébène, zones de clic confortables et états de survol/actif nets.
+- **`.agents/skills/better-typography/SKILL.md`** : Pour les badges, titres de modules et valeurs télémétriques — empêcher toute cassure sur 2 lignes des libellés courts (`whitespace-nowrap`), imposer `tabular-nums` sur tous les chiffres (BPM, fréquences, durées, dB) et soigner le contraste sur fond sombre.
+- **`.agents/skills/build-design/SKILL.md`** : En binôme avec `.agents/skills/stitch-to-svelte/SKILL.md` lors de la conversion de maquettes Stitch (comme les vues *Rack FX* et *Mix Live*) vers Svelte 5.
+
+**Clause de priorité stricte :** `.stitch/DESIGN.md` (*Venezia 1889*) et le cadrage plein écran `h-screen overflow-hidden` restent prioritaires en cas de divergence stylistique avec ces skills.

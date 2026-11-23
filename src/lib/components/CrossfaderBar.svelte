@@ -74,13 +74,13 @@
       class="relative h-10 bg-surface-container-lowest rounded-lg flex items-center px-space-md shadow-[inset_0_3px_8px_rgba(0,0,0,0.95)] cursor-ew-resize touch-none select-none"
     >
       <div class="w-full h-1.5 bg-surface-variant rounded-full"></div>
-      <!-- Crossfader Chiseled Brass Handle -->
+      <!-- Crossfader Brass Knurled Handle (laiton rainuré + trait central or) -->
       <div
-        class="pointer-events-none absolute -translate-x-1/2 w-14 h-8 bg-gradient-to-b from-primary-fixed via-primary-container to-secondary-container rounded shadow-[0_4px_12px_rgba(0,0,0,0.9)] flex items-center justify-center border-none"
+        class="pointer-events-none absolute -translate-x-1/2 w-14 h-8 rounded overflow-hidden border border-[#8c6d3f]/60 bg-gradient-to-b from-[#3a2f24] via-[#6b5a3c] to-[#18120e] shadow-[0_4px_12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,221,176,0.16),inset_0_-3px_6px_rgba(0,0,0,0.6)] flex items-center justify-center border-none"
         style="left: {Math.max(8, Math.min(92, value))}%;"
       >
-        <!-- Micro-LED ambre/dorée au cœur de la poignée du crossfader -->
-        <span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#edbf7a] animate-pulse"></span>
+        <span class="pointer-events-none absolute inset-0 opacity-50" style="background:repeating-linear-gradient(0deg,rgba(0,0,0,0.45) 0 1px,transparent 1px 3px);"></span>
+        <span class="relative w-[3px] h-5 rounded-full bg-primary shadow-[0_0_8px_#edbf7a]"></span>
       </div>
       <input
         type="range"

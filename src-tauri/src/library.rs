@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Instant;
 
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, Manager, State};
 
@@ -251,6 +251,10 @@ pub fn open_db(app: &tauri::AppHandle) -> Result<Connection, Error> {
     // ALC-166-3 : migration idempotente — ajoute cover_data aux bases créées avant cette colonne.
     let _ = conn.execute_batch(
         "ALTER TABLE tracks ADD COLUMN cover_data TEXT NOT NULL DEFAULT ''",
+    );
+    // ALC-242 : migration idempotente — verrou de rétro-alimentation stems (éditions manuelles).
+    let _ = conn.execute_batch(
+        "ALTER TABLE tracks ADD COLUMN user_edited INTEGER NOT NULL DEFAULT 0",
     );
     Ok(conn)
 }
@@ -546,23 +550,205 @@ pub fn library_list_duos(state: State<'_, LibraryState>) -> Result<Vec<Validated
     Ok(duos)
 }
 
-/// ALC-166-4 : édition rapide des métadonnées (titre / genre) directement en base,
-/// sans ré-écraser les champs par les tags du fichier (contrairement à `library_upsert_track`).
+/// ALC-232 : réécrit les tags embarqués du fichier audio (ID3v2 / Vorbis / MP4) via `lofty`.
+/// Best-effort : un fichier verrouillé / en lecture seule ne doit JAMAIS bloquer la sauvegarde SQLite.
+fn write_tags_to_file(
+    path: &Path,
+    title: &str,
+    artist: &str,
+    genre: &str,
+    bpm: f64,
+    camelot_key: &str,
+) -> Result<(), Error> {
+    use lofty::config::WriteOptions;
+    use lofty::prelude::*;
+    use lofty::tag::{ItemKey, Tag};
+
+    let tagged = lofty::read_from_path(path)
+        .map_err(|e| Error::Library(format!("Lecture des tags du fichier : {e}")))?;
+    // On partage le tag existant (préserve album/année/pochette) ou on en crée un neuf du bon type.
+    let primary = tagged.primary_tag().cloned();
+    let fallback = tagged.first_tag().cloned();
+    let mut tag = primary
+        .or(fallback)
+        .unwrap_or_else(|| Tag::new(tagged.primary_tag_type()));
+
+    // Préserve la pochette embarquée (CoverFront) si présente.
+    if let Some(src) = tagged.primary_tag().or_else(|| tagged.first_tag()) {
+        for pic in src.pictures() {
+            tag.push_picture((*pic).clone());
+        }
+    }
+
+    if !title.is_empty() {
+        tag.set_title(title.to_owned());
+    }
+    if !artist.is_empty() {
+        tag.set_artist(artist.to_owned());
+    }
+    if !genre.is_empty() {
+        tag.set_genre(genre.to_owned());
+    }
+    if bpm.is_finite() && bpm > 0.0 {
+        let bpm_text = format!("{bpm:.1}");
+        tag.insert_text(ItemKey::IntegerBpm, bpm_text.clone()); // frame TBPM (ID3) / BPM (Vorbis)
+        tag.insert_text(ItemKey::Bpm, bpm_text);
+    }
+    if !camelot_key.is_empty() {
+        tag.insert_text(ItemKey::InitialKey, camelot_key.to_owned()); // frame TKEY / INITIALKEY
+    }
+
+    tag.save_to_path(path, WriteOptions::default())
+        .map_err(|e| Error::Library(format!("Réécriture des tags (lofty) : {e}")))?;
+    Ok(())
+}
+
+/// ALC-232 : mise à jour ATOMIQUE des 5 champs principaux d'une piste (SQLite) avec validation :
+/// titre non vide (trimé), artiste / genre (trimés), BPM dans la plage DJ [40..240],
+/// clé Camelot normalisée (`normalize_camelot_key`, ex. « 8a » → « 8A », « Am » → « 8A »).
+fn update_track_meta_conn(
+    conn: &Connection,
+    id: i64,
+    title: Option<String>,
+    artist: Option<String>,
+    genre: Option<String>,
+    bpm: Option<f64>,
+    camelot_key: Option<String>,
+) -> Result<LibraryTrack, Error> {
+    // ALC-242 : une édition MANUELLE (ALC-232) verrouille la piste — la rétro-alimentation
+    // automatique des stems (BPM/clé) ne pourra plus écraser ces valeurs (user_edited = 1).
+    conn.execute("UPDATE tracks SET user_edited = 1 WHERE id = ?1", params![id])
+        .map_err(conn_err)?;
+    if let Some(t) = title {
+        let t = t.trim().to_string();
+        if t.is_empty() {
+            return Err(Error::InvalidInput("Le titre ne peut pas être vide".into()));
+        }
+        conn.execute("UPDATE tracks SET title = ?1 WHERE id = ?2", params![t, id])
+            .map_err(conn_err)?;
+    }
+    if let Some(a) = artist {
+        conn.execute(
+            "UPDATE tracks SET artist = ?1 WHERE id = ?2",
+            params![a.trim().to_string(), id],
+        )
+        .map_err(conn_err)?;
+    }
+    if let Some(g) = genre {
+        conn.execute(
+            "UPDATE tracks SET genre = ?1 WHERE id = ?2",
+            params![g.trim().to_string(), id],
+        )
+        .map_err(conn_err)?;
+    }
+    if let Some(b) = bpm {
+        if !(b.is_finite() && b >= 40.0 && b <= 240.0) {
+            return Err(Error::InvalidInput(format!("BPM hors plage DJ [40..240] : {b}")));
+        }
+        conn.execute("UPDATE tracks SET bpm = ?1 WHERE id = ?2", params![b, id])
+            .map_err(conn_err)?;
+    }
+    if let Some(k) = camelot_key {
+        let k = normalize_camelot_key(&k);
+        if k.is_empty() {
+            return Err(Error::InvalidInput("Clé Camelot non reconnue".into()));
+        }
+        conn.execute(
+            "UPDATE tracks SET camelot_key = ?1 WHERE id = ?2",
+            params![k, id],
+        )
+        .map_err(conn_err)?;
+    }
+    conn.query_row(
+        &format!("SELECT {TRACK_COLUMNS} FROM tracks WHERE id = ?1"),
+        params![id],
+        track_from_row,
+    )
+    .map_err(conn_err)
+}
+
+/// ALC-166-4 / ALC-232 : édition des métadonnées (titre / artiste / genre / BPM / clé Camelot)
+/// directement en base, sans ré-écraser les champs par les tags du fichier. `write_to_file` (optionnel)
+/// déclenche en plus la réécriture des tags embarqués ID3 / Vorbis / MP4 via `lofty` (best-effort).
 #[tauri::command]
 pub fn library_update_track_meta(
     state: State<'_, LibraryState>,
     id: i64,
     title: Option<String>,
+    artist: Option<String>,
     genre: Option<String>,
+    bpm: Option<f64>,
+    camelot_key: Option<String>,
+    write_to_file: Option<bool>,
 ) -> Result<LibraryTrack, Error> {
     let conn = state.0.lock().map_err(lock_err)?;
-    if let Some(t) = title {
-        conn.execute("UPDATE tracks SET title = ?1 WHERE id = ?2", params![t, id])
-            .map_err(conn_err)?;
+    let track = update_track_meta_conn(&conn, id, title, artist, genre, bpm, camelot_key)?;
+    // Réécriture best-effort des tags du fichier audio si demandée : un fichier en lecture seule
+    // ne bloque jamais la sauvegarde SQLite (l'erreur est journalisée côté terminal).
+    if write_to_file.unwrap_or(false) && Path::new(&track.file_path).is_file() {
+        // ALC-234 : les fichiers WAV ne supportent pas l'écriture de tags ID3 standard — on conserve
+        // leurs métadonnées en base uniquement (le frontend désactive aussi la case dans la modale).
+        let is_wav = Path::new(&track.file_path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.eq_ignore_ascii_case("wav"))
+            .unwrap_or(false);
+        if is_wav {
+            eprintln!(
+                "[Library] format WAV : tags ID3 non supportés — métadonnées conservées en base uniquement (id={id})."
+            );
+        } else if let Err(e) = write_tags_to_file(
+            Path::new(&track.file_path),
+            track.title.trim(),
+            track.artist.trim(),
+            track.genre.trim(),
+            track.bpm,
+            track.camelot_key.trim(),
+        ) {
+            eprintln!("[Library] réécriture des tags embarqués impossible : {e}");
+        }
     }
-    if let Some(g) = genre {
-        conn.execute("UPDATE tracks SET genre = ?1 WHERE id = ?2", params![g, id])
+    Ok(track)
+}
+
+/// ALC-166-4 / ALC-242 : rétro-alimentation AUTOMATIQUE de la Librairie depuis `stems_meta.json`.
+/// Met à jour `bpm` et `camelot_key` d'une piste SEULEMENT si le DJ n'a pas verrouillé ses tags
+/// manuellement (`user_edited = 0`, verrou posé par l'éditeur ALC-232). Retourne la piste mise à
+/// jour, ou `None` si la piste est absente du catalogue ou verrouillée.
+#[tauri::command]
+pub fn library_apply_stems_telemetry(
+    state: State<'_, LibraryState>,
+    file_path: String,
+    bpm: Option<f64>,
+    camelot_key: Option<String>,
+) -> Result<Option<LibraryTrack>, Error> {
+    let conn = state.0.lock().map_err(lock_err)?;
+    let id: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM tracks WHERE file_path = ?1 AND user_edited = 0",
+            params![file_path.trim()],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(conn_err)?;
+    let Some(id) = id else {
+        return Ok(None);
+    };
+    if let Some(b) = bpm {
+        if b.is_finite() && (40.0..=240.0).contains(&b) {
+            conn.execute("UPDATE tracks SET bpm = ?1 WHERE id = ?2", params![b, id])
+                .map_err(conn_err)?;
+        }
+    }
+    if let Some(k) = camelot_key {
+        let k = normalize_camelot_key(&k);
+        if !k.is_empty() {
+            conn.execute(
+                "UPDATE tracks SET camelot_key = ?1 WHERE id = ?2",
+                params![k, id],
+            )
             .map_err(conn_err)?;
+        }
     }
     let track = conn
         .query_row(
@@ -571,7 +757,48 @@ pub fn library_update_track_meta(
             track_from_row,
         )
         .map_err(conn_err)?;
-    Ok(track)
+    Ok(Some(track))
+}
+
+/// ALC-258-3 : ré-analyse contrôlée des pistes archivées (BPM + Clé Camelot).
+/// Réexécute `crate::audio::analyze` sur chaque piste de `library.db` **dont `user_edited = 0`**
+/// (jamais les corrections manuelles de l'utilisateur via l'éditeur ALC-232), puis met à jour
+/// `bpm` et `camelot_key`. Renvoie le nombre de pistes ré-analysées.
+#[tauri::command]
+pub fn library_reanalyze_analysis(state: State<'_, LibraryState>) -> Result<u32, Error> {
+    let conn = state.0.lock().map_err(lock_err)?;
+    // Sélectionne uniquement les pistes non verrouillées par édition manuelle.
+    let rows: Vec<(i64, String)> = conn
+        .prepare("SELECT id, file_path FROM tracks WHERE user_edited = 0")
+        .map_err(conn_err)?
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+        .map_err(conn_err)?
+        .collect::<Result<_, _>>()
+        .map_err(conn_err)?;
+
+    let mut updated = 0u32;
+    for (id, path) in rows {
+        let p = Path::new(&path);
+        match crate::audio::analyze(p) {
+            Ok(analysis) => {
+                // BPM dans le domaine valide 30–240, clé Camelot normalisée.
+                let bpm = if analysis.bpm.is_finite() && (30.0..=240.0).contains(&analysis.bpm) {
+                    (analysis.bpm * 10.0).round() / 10.0
+                } else {
+                    0.0
+                };
+                let key = normalize_camelot_key(&analysis.camelot_key);
+                conn.execute(
+                    "UPDATE tracks SET bpm = ?1, camelot_key = ?2 WHERE id = ?3",
+                    params![bpm, key, id],
+                )
+                .map_err(conn_err)?;
+                updated += 1;
+            }
+            Err(_) => continue, // fichier illisible/supprimé → piste conservée, analyse ignorée
+        }
+    }
+    Ok(updated)
 }
 
 #[cfg(test)]
@@ -584,6 +811,9 @@ mod tests {
         conn.execute_batch("PRAGMA foreign_keys = ON").unwrap();
         conn.execute_batch(SCHEMA_TRACKS).unwrap();
         conn.execute_batch(SCHEMA_DUOS).unwrap();
+        // ALC-242 : verrou de rétro-alimentation stems sur les bases de test (supplément du schéma).
+        conn.execute_batch("ALTER TABLE tracks ADD COLUMN user_edited INTEGER NOT NULL DEFAULT 0")
+            .unwrap();
         conn
     }
 
@@ -648,6 +878,79 @@ mod tests {
             .unwrap();
         assert_eq!(duos, 0, "le duo doit disparaitre en cascade avec sa piste");
         assert_eq!(query_tracks(&conn).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn update_track_meta_validates_and_normalizes() {
+        let conn = open_memory_db();
+        let t = upsert_conn(&conn, &sample_input("C:\\DJ\\a.mp3", "Titre A")).unwrap();
+
+        // Mise à jour complète des 5 champs principaux : title non vide (trimé), artist/genre (trimés),
+        // BPM dans [40..240], clé Camelot normalisée (« 8a » → « 8A »).
+        let upd = update_track_meta_conn(
+            &conn,
+            t.id,
+            Some("  Nouveau Titre  ".into()),
+            Some("  Artiste B  ".into()),
+            Some(" OST / Cinéma  ".into()),
+            Some(174.5),
+            Some("8a".into()),
+        )
+        .unwrap();
+        assert_eq!(upd.title, "Nouveau Titre");
+        assert_eq!(upd.artist, "Artiste B");
+        assert_eq!(upd.genre, "OST / Cinéma");
+        assert_eq!(upd.bpm, 174.5);
+        assert_eq!(upd.camelot_key, "8A");
+
+        // Notation musicale → Camelot (table officielle du projet : « Am » → « 8A »).
+        let upd2 = update_track_meta_conn(&conn, t.id, None, None, None, None, Some("Am".into())).unwrap();
+        assert_eq!(upd2.camelot_key, "8A");
+
+        // Rejets : titre vide, BPM hors plage, clé non reconnue.
+        assert!(update_track_meta_conn(&conn, t.id, Some("   ".into()), None, None, None, None).is_err());
+        assert!(update_track_meta_conn(&conn, t.id, None, None, None, Some(320.0), None).is_err());
+        assert!(update_track_meta_conn(&conn, t.id, None, None, None, None, Some("Xy".into())).is_err());
+
+        // La ligne en base reste exactement l'état validé après les rejets.
+        let after = query_tracks(&conn).unwrap().into_iter().find(|r| r.id == t.id).unwrap();
+        assert_eq!(after.title, "Nouveau Titre");
+        assert_eq!(after.bpm, 174.5);
+        assert_eq!(after.camelot_key, "8A");
+    }
+
+    #[test]
+    fn write_tags_to_file_rewrites_id3v2_frames() {
+        use lofty::config::WriteOptions;
+        use lofty::prelude::*;
+        use lofty::tag::{Tag, TagType};
+
+        // Placeholder MP3 minimal (mêmes octets que le test ALC-157), reconnu par lofty.
+        let dir = std::env::temp_dir();
+        let path = dir.join(format!("alchemix_alc232_{}.mp3", std::process::id()));
+        const FRAME: usize = 417; // MPEG1 Layer III 128k / 44.1k
+        let mut placeholder: Vec<u8> = Vec::with_capacity(FRAME * 6);
+        for _ in 0..6 {
+            placeholder.extend_from_slice(&[0xFF, 0xFB, 0x90, 0x00]);
+            placeholder.extend(std::iter::repeat(0u8).take(FRAME - 4));
+        }
+        std::fs::write(&path, &placeholder).unwrap();
+        // Fichier déjà tagué (album) pour vérifier que l'édition clone/conserve le tag existant.
+        let mut seed = Tag::new(TagType::Id3v2);
+        seed.set_album("Venezia".to_owned());
+        seed.save_to_path(&path, WriteOptions::default()).unwrap();
+
+        // Réécriture ALC-232 : titre / artiste / genre / TBPM / TKEY.
+        write_tags_to_file(&path, "Golden Hour", "Danoë", "Synthpop", 123.0, "8A").unwrap();
+
+        // Relit via read_tags (chemins exacts de la librairie).
+        let tags = read_tags(&path);
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(tags.title.as_deref(), Some("Golden Hour"));
+        assert_eq!(tags.artist.as_deref(), Some("Danoë"));
+        assert_eq!(tags.genre.as_deref(), Some("Synthpop"));
+        assert_eq!(tags.tag_bpm, Some(123.0));
+        assert_eq!(tags.tag_key.as_deref(), Some("8A"));
     }
 }
 

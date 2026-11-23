@@ -17,7 +17,8 @@ export interface TrackData {
   durationSeconds: number;
   sampleRate: number;
   bitDepth: number;
-  bitrateKbps: number;
+  /** ALC-255 WP16 : débit binaire réel (kbps), `null` si lofty ne l'expose pas. */
+  bitrateKbps: number | null;
   codec: string;
   waveformPeaks: number[];
   keyTimeline: KeySeg[];
@@ -59,6 +60,18 @@ export interface StemPaths {
   other: string;
   modelVersion: string;
   processingTimeMs: number;
+}
+
+/** ALC-242 : télémétrie HTDemucs (BPM sur drums, clé Camelot sur other+bass, densité vocale…). */
+export interface StemsTelemetry {
+  bpm: number | null;
+  camelotKey: string | null;
+  camelotConfidence: number;
+  vocalActivityRatio: number;
+  midCongestionScore: number;
+  drumsEnergy: number;
+  firstDownbeatSeconds: number | null; // ALC-253-1 : downbeat percussif (kick) en secondes
+  calibratedAt: string;
 }
 
 export interface IpcErrorPayload {
@@ -110,6 +123,10 @@ export const audioIpc = {
   readAudioFileBytes(path: string): Promise<number[]> {
     return safeInvoke<number[]>('read_audio_file_bytes', { path });
   },
+  /** ALC-195-2 : lit un fichier en ArrayBuffer BRUT (invoke binaire `read_audio_file_raw`) — aucun JSON. */
+  readAudioFileRaw(path: string): Promise<ArrayBuffer> {
+    return invoke<ArrayBuffer>('read_audio_file_raw', { path });
+  },
   /** ALC-139-2 : fermeture propre de l'application Tauri. */
   exitApp(): Promise<void> {
     return safeInvoke<void>('exit_app');
@@ -141,6 +158,15 @@ export const audioIpc = {
   exportStemsToFolder(filePath: string, destDir: string, trackPrefix: string | null): Promise<string[]> {
     return safeInvoke<string[]>('export_stems_to_folder', { filePath, destDir, trackPrefix });
   },
+  /** ALC-242 / ALC-243 : télémétrie HTDemucs (lit `stems_meta.json` ; `referenceBpm` borne le BPM
+   * drums et `force=true` purge/recalcule les métadonnées erronées — ex. biais ×1,25). */
+  stemsTelemetry(path: string, referenceBpm?: number | null, force?: boolean): Promise<StemsTelemetry | null> {
+    return safeInvoke<StemsTelemetry | null>('stems_telemetry', {
+      path,
+      referenceBpm: referenceBpm ?? null,
+      force: force ?? false,
+    });
+  },
 };
 
 // ── ALC-165 : catalogue de la LIBRAIRIE (base SQLite locale, backend `library.rs`) ──────────────
@@ -170,6 +196,17 @@ export interface LibraryTrackInput {
   bpm?: number | null;
   durationSec?: number | null;
   coverData?: string | null;
+}
+
+/** ALC-232 : payload d'édition manuelle des tags (tous les champs optionnels). */
+export interface LibraryTrackTagPayload {
+  title?: string | null;
+  artist?: string | null;
+  genre?: string | null;
+  bpm?: number | null;
+  camelotKey?: string | null;
+  /** Réécrit aussi les tags embarqués du fichier audio (ID3 / Vorbis / MP4) via lofty. */
+  writeToFile?: boolean;
 }
 
 /** Bilan d'un import de dossier (Serde camelCase). */
@@ -220,5 +257,29 @@ export const libraryIpc = {
   /** ALC-166-4 : édition rapide des métadonnées (titre/genre Option) directement en base. */
   updateTrackMeta(id: number, title: string | null, genre: string | null): Promise<LibraryTrack> {
     return safeInvoke<LibraryTrack>('library_update_track_meta', { id, title, genre });
+  },
+  /** ALC-232 : édition complète des tags (title/artist/genre/bpm/camelotKey + réécriture fichier). */
+  updateLibraryTrackTags(id: number, fields: LibraryTrackTagPayload): Promise<LibraryTrack> {
+    return safeInvoke<LibraryTrack>('library_update_track_meta', {
+      id,
+      title: fields.title ?? null,
+      artist: fields.artist ?? null,
+      genre: fields.genre ?? null,
+      bpm: fields.bpm ?? null,
+      camelotKey: fields.camelotKey ?? null,
+      writeToFile: fields.writeToFile ?? false,
+    });
+  },
+  /** ALC-242 : rétro-alimentation automatique depuis `stems_meta.json` (ignorée si tags verrouillés). */
+  applyStemsTelemetry(
+    filePath: string,
+    bpm: number | null,
+    camelotKey: string | null
+  ): Promise<LibraryTrack | null> {
+    return safeInvoke<LibraryTrack | null>('library_apply_stems_telemetry', {
+      filePath,
+      bpm,
+      camelotKey,
+    });
   },
 };
