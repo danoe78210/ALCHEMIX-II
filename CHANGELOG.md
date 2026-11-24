@@ -5,6 +5,31 @@ Toutes les modifications notables d'**AlcheMix II** sont documentées dans ce fi
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et respecte
 [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.7.1] — 2026-11-24
+
+### ⚙️ Correctifs & assainissement de la release 0.7.0
+- **Migration / pré-peuplement de la base SQLite des règles** (`mashup_rules`) côté backend
+  (`library.rs`) : les règles métier Chef d'Orchestre sont injectées et mises à jour de façon
+  idempotente au démarrage, alignées sur `.clinerules/04-07`.
+- **Moteur IA 100 % hors-ligne consolidé** : `llama-cpp-2` + adaptateur **LoRA** embarqué derrière la
+  feature `chef-llm` (build léger déterministe en son absence) — génération de partitions mashup
+  locale, sans service externe.
+- **Installateur NSIS multilingue** (FR/EN/ES/DE/IT) : correction d'éligibilité `FileSeek` dans
+  `installer.nsh` (ordre `handle offset mode newpos`), téléchargement du modèle IA rendu **atomique**
+  (`.part → .gguf`, taille > 100 Mo vérifiée avant renommage) avec option **« IA Chef d'Orchestre
+  (~1,9 Go) »** décochée par défaut.
+
+### 🔏 Signature Authenticode (v0.7.1)
+- Les deux livrables sont **signés** (`CN=AlcheMix II`, `/fd SHA256`, horodatage RFC 3161 DigiCert)
+  et **vérifiés** (`signtool verify /pa /v` → `Number of errors: 0`).
+- Rappel : certificat local de développement → « Informations complémentaires → Exécuter quand même »
+  hors poste de build ; signature officielle CA Microsoft (Azure Trusted Signing / SignPath.io)
+  disponible via `.github/workflows/release.yml`.
+
+### 📦 Artefacts v0.7.1
+- `AlcheMix-II-v0.7.1-windows-x64.exe` (autonome portable, ~33 Mo, signé & vérifié).
+- `AlcheMix-II-v0.7.1-windows-x64-setup.exe` (installateur NSIS multilingue, signé & vérifié).
+
 ## [0.7.0] — 2026-11-24
 
 ### ✨ Fonctionnalités majeures

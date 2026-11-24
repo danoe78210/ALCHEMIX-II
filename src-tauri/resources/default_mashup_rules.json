@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ost-vocal",
+    "revision": 1,
+    "name": "Profil OST × Vocal",
+    "specialty": "ost-vocal",
+    "conditions_json": "{\"vocalActivityRatioAUpper\":0.12,\"vocalActivityRatioBLower\":0.25,\"hintsOst\":true}",
+    "dsp_params_json": "{\"duckTarget\":\"A.other\",\"duckFreqHz\":1800,\"duckGainDb\":-4.5,\"duckQ\":1.0,\"hpfHz\":140}",
+    "prompt_directive": "OST × vocal : porte le stem vocals de B par-dessus l'instrumental de A (drums+bass+other) ; Dynamic Orchestral Ducking -4.5 dB @1 800 Hz sur le stem other de l'OST (attaque 15 ms, relâchement 90 ms) ; entre le vocal sur une frontière complète de 8 mesures calée sur le downbeat drums.wav ; fait coïncider le refrain avec le climax orchestral ; JAMAIS de re-seek pendant le chant (phrasé continu, fondu 40-60 ms aux frontières 8/16 mesures) ; ménage des respirations 'THÈME OST SOLO' de 8 mesures sur les ponts orchestraux."
+  },
+  {
+    "id": "ost-crossover",
+    "revision": 1,
+    "name": "Crossover OST × OST (Rythmique / Thème)",
+    "specialty": "ost-crossover",
+    "conditions_json": "{\"vocalActivityRatioA\":0.0,\"vocalActivityRatioB\":0.0,\"hintsOst\":true}",
+    "dsp_params_json": "{\"midNotchHz\":1500,\"midNotchGainDb\":-3.0,\"keyLock\":true}",
+    "prompt_directive": "Crossover OST × OST (double instrumental) : deux platines quasi-instrumentales ; désigne la Platine Rythmique par la plus forte énergie percussive (drumsRms) = drums+bass+other actifs, l'autre en Platine Thème = other seul (cordes/cuivres) ; creux médium -3 dB @1 500 Hz sur le other rythmique ; les deux platines restent à 1.0x (Key Lock) ; beatmatch effectifBpmA === effectifBpmB ancré sur le premier downbeat de drums.wav ; dramaturgie en paliers de 8 mesures."
+  },
+  {
+    "id": "ost-medley",
+    "revision": 1,
+    "name": "Medley & Alternance Thématique OST ↔ OST",
+    "specialty": "ost-medley",
+    "conditions_json": "{\"vocalActivityRatioA\":0.0,\"vocalActivityRatioB\":0.0,\"hintsOst\":true,\"medley\":true}",
+    "dsp_params_json": "{\"bandSplit\":{\"graveHz\":950,\"aiguHz\":1050},\"blocksBars\":8}",
+    "prompt_directive": "Medley OST ↔ OST : les deux thèmes se répondent plutôt que se superposer ; socle rythmique unique drums+bass sur une Platine Socle ; alterne other A / other B par blocs complets de 8 mesures (fondu croisé 1 temps sur le downbeat) ; breakdown pivot de 8 mesures sans batterie en milieu de parcours ; au climax final ouvre other A ET other B simultanément avec LPF 950 Hz (grave) vs HPF 1 050 Hz (aigu) ; intro minimaliste 4-8 mesures sans batterie."
+  },
+  {
+    "id": "pop-rock",
+    "revision": 1,
+    "name": "Pop vs Rock / Rock vs Pop (Guitar Pocket)",
+    "specialty": "pop-rock",
+    "conditions_json": "{\"genreMatch\":[\"Pop\",\"Rock\"]}",
+    "dsp_params_json": "{\"guitarPocketHz\":{\"rock\":2200,\"pop\":1250},\"gainDb\":-4.0}",
+    "prompt_directive": "Pop × Rock / Rock × Pop : la platine à la plus forte énergie vocale porte la voix (acapella), l'autre l'instrumental ; Guitar Pocket EQ -4 dB @2 200 Hz sur le other si l'instrumental est Rock, -3.5 dB @1 250 Hz s'il est Pop ; beatmatch continu Key Lock (Δ_C ∈ {0,±1} ou relatif majeur/mineur accepté) ; phrasé par blocs de 8 mesures, respiration sur le solo instrumental aux frontières 8/16."
+  }
+]

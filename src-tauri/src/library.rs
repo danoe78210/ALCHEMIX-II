@@ -123,6 +123,10 @@ pub struct MashupRule {
     pub conditions_json: String,
     pub dsp_params_json: String,
     pub enabled: bool,
+    /// ALC-271 : révision de la règle (source `default_mashup_rules.json`).
+    pub revision: i64,
+    /// ALC-271 : vrai si l'utilisateur a personnalisé/écrasé la règle (jamais ré-écrasée en migration).
+    pub is_user_customized: bool,
     pub updated_at: String,
 }
 
@@ -234,6 +238,8 @@ const SCHEMA_MASHUP_RULES: &str = "CREATE TABLE IF NOT EXISTS mashup_rules (
     conditions_json  TEXT NOT NULL,
     dsp_params_json  TEXT NOT NULL,
     enabled          INTEGER NOT NULL DEFAULT 1,
+    revision         INTEGER NOT NULL DEFAULT 1,
+    is_user_customized INTEGER NOT NULL DEFAULT 0,
     updated_at       TEXT NOT NULL
 )";
 
@@ -252,38 +258,30 @@ const SCHEMA_ARRANGEMENT_SCORES: &str = "CREATE TABLE IF NOT EXISTS arrangement_
     created_at  TEXT NOT NULL
 )";
 
-/// Règles métier pré-peuplées au premier démarrage (dérivées de `.clinerules/04` à `07`).
-/// `(id, name, specialty, conditions_json, dsp_params_json)`.
-const DEFAULT_MASHUP_RULES: [(&str, &str, &str, &str, &str); 4] = [
-    (
-        "ost-vocal",
-        "Profil OST × Vocal",
-        "ost-vocal",
-        r#"{"vocalActivityRatioAUpper":0.12,"vocalActivityRatioBLower":0.25,"hintsOst":true}"#,
-        r#"{"duckTarget":"A.other","duckFreqHz":1800,"duckGainDb":-4.5,"duckQ":1.0,"hpfHz":140}"#,
-    ),
-    (
-        "ost-crossover",
-        "Crossover OST × OST (Rythmique / Thème)",
-        "ost-crossover",
-        r#"{"vocalActivityRatioA":0.0,"vocalActivityRatioB":0.0,"hintsOst":true}"#,
-        r#"{"midNotchHz":1500,"midNotchGainDb":-3.0,"keyLock":true}"#,
-    ),
-    (
-        "ost-medley",
-        "Medley & Alternance Thématique OST ↔ OST",
-        "ost-medley",
-        r#"{"vocalActivityRatioA":0.0,"vocalActivityRatioB":0.0,"hintsOst":true,"medley":true}"#,
-        r#"{"bandSplit":{"graveHz":950,"aiguHz":1050},"blocksBars":8}"#,
-    ),
-    (
-        "pop-rock",
-        "Pop vs Rock / Rock vs Pop (Guitar Pocket)",
-        "pop-rock",
-        r#"{"genreMatch":["Pop","Rock"]}"#,
-        r#"{"guitarPocketHz":{"rock":2200,"pop":1250},"gainDb":-4.0}"#,
-    ),
-];
+/// Règles métier & partitions d'amorçage embarquées (ALC-271) : sources canoniques des règles
+/// (avec `revision` & `prompt_directive`) et des 6 partitions de référence `MashupArrangementScore`.
+const DEFAULT_RULES_RESOURCE: &str = include_str!("../resources/default_mashup_rules.json");
+const BOOTSTRAP_SCORES_RESOURCE: &str = include_str!("../resources/bootstrap_scores.json");
+
+/// Une règle du fichier `default_mashup_rules.json` (source canonique de la migration versionnée).
+#[derive(Debug, serde::Deserialize)]
+struct ResourceRule {
+    id: String,
+    revision: i64,
+    name: String,
+    specialty: String,
+    conditions_json: String,
+    dsp_params_json: String,
+    #[allow(dead_code)]
+    prompt_directive: String,
+}
+
+/// Une partition d'amorçage du fichier `bootstrap_scores.json`.
+#[derive(Debug, serde::Deserialize)]
+struct ResourceBootstrap {
+    specialty: String,
+    score: serde_json::Value,
+}
 
 /// Colonnes de `tracks` lues dans le même ordre par `list_tracks` et l'`upsert`.
 const TRACK_COLUMNS: &str =
@@ -409,14 +407,46 @@ pub fn apply_chef_ai_schema(conn: &Connection) -> Result<(), Error> {
         .map_err(|e| Error::Library(format!("Création du schéma IA Chef d'Orchestre : {e}")))?;
     // Migrations idempotentes (colonnes ajoutées par les évolutions futures, ignorées si présentes).
     let _ = conn.execute_batch("ALTER TABLE arrangement_scores ADD COLUMN is_template INTEGER NOT NULL DEFAULT 0");
-    // Pré-peuplement des règles métier au premier démarrage (INSERT OR IGNORE, jamais écrasées).
+    let _ = conn.execute_batch("ALTER TABLE mashup_rules ADD COLUMN revision INTEGER NOT NULL DEFAULT 1");
+    let _ = conn.execute_batch("ALTER TABLE mashup_rules ADD COLUMN is_user_customized INTEGER NOT NULL DEFAULT 0");
+    // Migration versionnée des règles canoniques (ALC-271) : insère les manquantes et monte la
+    // `revision` si le JSON embarqué est plus récent, UNIQUEMENT pour les règles non personnalisées.
+    migrate_rules_resource(&conn)?;
+    Ok(())
+}
+
+/// Migration versionnée des règles depuis `resources/default_mashup_rules.json` (embarqué via
+/// `include_str!`). Chaque règle a une `revision` entière : à l'insertion d'une règle absente ou à la
+/// montée de révision (JSON > SQLite) d'une règle canonique (`is_user_customized = 0`), on ré-écrase
+/// son contenu. Une règle personnalisée (`is_user_customized = 1`) n'est jamais ré-écrasée.
+fn migrate_rules_resource(conn: &Connection) -> Result<(), Error> {
+    let rules: Vec<ResourceRule> = serde_json::from_str(DEFAULT_RULES_RESOURCE)
+        .map_err(|e| Error::Library(format!("Règles embarquées illisibles : {e}")))?;
     let now = now_iso();
-    for (id, name, specialty, conditions, dsp) in DEFAULT_MASHUP_RULES {
-        let _ = conn.execute(
-            "INSERT OR IGNORE INTO mashup_rules (id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6)",
-            params![id, name, specialty, conditions, dsp, now],
-        );
+    for r in &rules {
+        conn.execute(
+            "INSERT INTO mashup_rules (id, name, specialty, conditions_json, dsp_params_json, enabled, revision, is_user_customized, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, 0, ?7)
+             ON CONFLICT(id) DO UPDATE SET
+                 name = excluded.name,
+                 specialty = excluded.specialty,
+                 conditions_json = excluded.conditions_json,
+                 dsp_params_json = excluded.dsp_params_json,
+                 revision = excluded.revision,
+                 updated_at = excluded.updated_at
+             WHERE mashup_rules.is_user_customized = 0
+               AND mashup_rules.revision < excluded.revision",
+            params![
+                r.id,
+                r.name,
+                r.specialty,
+                r.conditions_json,
+                r.dsp_params_json,
+                r.revision,
+                now
+            ],
+        )
+        .map_err(conn_err)?;
     }
     Ok(())
 }
@@ -973,7 +1003,9 @@ fn rule_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<MashupRule> {
         conditions_json: row.get(3)?,
         dsp_params_json: row.get(4)?,
         enabled: row.get::<_, i64>(5)? != 0,
-        updated_at: row.get(6)?,
+        revision: row.get::<_, i64>(6)?,
+        is_user_customized: row.get::<_, i64>(7)? != 0,
+        updated_at: row.get(8)?,
     })
 }
 
@@ -1002,9 +1034,12 @@ fn gen_id(prefix: &str) -> String {
     format!("{prefix}-{ms}")
 }
 
+const RULES_COLUMNS: &str =
+    "id, name, specialty, conditions_json, dsp_params_json, enabled, revision, is_user_customized, updated_at";
+
 fn list_rules_conn(conn: &Connection) -> Result<Vec<MashupRule>, Error> {
     let mut stmt = conn
-        .prepare("SELECT id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at FROM mashup_rules ORDER BY specialty, name")
+        .prepare(&format!("SELECT {RULES_COLUMNS} FROM mashup_rules ORDER BY specialty, name"))
         .map_err(conn_err)?;
     let rows = stmt.query_map([], rule_from_row).map_err(conn_err)?;
     rows.collect::<Result<Vec<_>, _>>().map_err(conn_err)
@@ -1012,7 +1047,9 @@ fn list_rules_conn(conn: &Connection) -> Result<Vec<MashupRule>, Error> {
 
 pub(crate) fn list_active_rules_conn(conn: &Connection, specialty: &str) -> Result<Vec<MashupRule>, Error> {
     let mut stmt = conn
-        .prepare("SELECT id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at FROM mashup_rules WHERE enabled = 1 AND specialty = ?1")
+        .prepare(&format!(
+            "SELECT {RULES_COLUMNS} FROM mashup_rules WHERE enabled = 1 AND specialty = ?1"
+        ))
         .map_err(conn_err)?;
     let rows = stmt.query_map(params![specialty], rule_from_row).map_err(conn_err)?;
     rows.collect::<Result<Vec<_>, _>>().map_err(conn_err)
@@ -1025,15 +1062,22 @@ fn upsert_rule_conn(conn: &Connection, input: &MashupRuleInput) -> Result<Mashup
         input.id.trim().to_string()
     };
     let now = now_iso();
+    // Une édition utilisateur garde sa révision courante et force `is_user_customized = 1`
+    // (la migration versionnée ne ré-écrasera plus jamais cette règle).
+    let current_revision: i64 = conn
+        .query_row("SELECT revision FROM mashup_rules WHERE id = ?1", params![id], |r| r.get(0))
+        .unwrap_or(1);
     conn.execute(
-        "INSERT INTO mashup_rules (id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        "INSERT INTO mashup_rules (id, name, specialty, conditions_json, dsp_params_json, enabled, revision, is_user_customized, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 1, ?8)
          ON CONFLICT(id) DO UPDATE SET
              name = excluded.name,
              specialty = excluded.specialty,
              conditions_json = excluded.conditions_json,
              dsp_params_json = excluded.dsp_params_json,
              enabled = excluded.enabled,
+             revision = excluded.revision,
+             is_user_customized = 1,
              updated_at = excluded.updated_at",
         params![
             id,
@@ -1042,12 +1086,13 @@ fn upsert_rule_conn(conn: &Connection, input: &MashupRuleInput) -> Result<Mashup
             input.conditions_json,
             input.dsp_params_json,
             if input.enabled { 1 } else { 0 },
+            current_revision,
             now
         ],
     )
     .map_err(conn_err)?;
     conn.query_row(
-        "SELECT id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at FROM mashup_rules WHERE id = ?1",
+        &format!("SELECT {RULES_COLUMNS} FROM mashup_rules WHERE id = ?1"),
         params![id],
         rule_from_row,
     )
@@ -1150,6 +1195,42 @@ pub(crate) fn find_similar_score_conn(
 
 /// Exporte les partitions notées `rating >= 4` au format `.jsonl` d'entraînement LoRA
 /// (structure `{ "messages": [system, user, assistant] }`). Retourne le nombre de lignes écrites.
+/// Ajoute une ligne `.jsonl` d'entraînement (instruction-tuning `{ messages: [system, user,
+/// assistant] }`) à la sortie. Règles actives par spécialité résumées dans le `user`.
+fn push_training_message(
+    out: &mut String,
+    rules: &[MashupRule],
+    specialty: &str,
+    master_bpm: f64,
+    camelot_a: Option<&str>,
+    camelot_b: Option<&str>,
+    score_json: &str,
+) {
+    let rule_summary: Vec<String> = rules
+        .iter()
+        .filter(|r| r.specialty == specialty)
+        .map(|r| format!("{} ({}): {}", r.name, r.id, r.conditions_json))
+        .collect();
+    let system = "Tu es le Chef d'Orchestre d'AlcheMix II. À partir de la télémétrie des deux platines A/B et des règles métier actives, génère une partition d'arrangement JSON valide au format MashupArrangementScore (version 1.0). Réponds uniquement avec le JSON de la partition (sans balises Markdown).";
+    let user = format!(
+        "Spécialité mashup : {}. Tempo maître (BPM) : {:.1}. Clés Camelot : A={}, B={}. Règles actives : {}. Génère la partition d'arrangement JSON.",
+        specialty,
+        master_bpm,
+        camelot_a.unwrap_or("—"),
+        camelot_b.unwrap_or("—"),
+        if rule_summary.is_empty() { "aucune".to_string() } else { rule_summary.join(" | ") }
+    );
+    let message = serde_json::json!({
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+            {"role": "assistant", "content": score_json}
+        ]
+    });
+    out.push_str(&message.to_string());
+    out.push('\n');
+}
+
 fn export_training_jsonl_conn(conn: &Connection, dest: &Path) -> Result<usize, Error> {
     let rows: Vec<ArrangementScore> = list_scores_conn(conn, None, None)?
         .into_iter()
@@ -1157,33 +1238,32 @@ fn export_training_jsonl_conn(conn: &Connection, dest: &Path) -> Result<usize, E
         .collect();
     let rules = list_rules_conn(conn)?;
     let mut out = String::new();
+    let mut count = 0usize;
+
+    // (1) Partitions utilisateur notées rating >= 4.
     for s in &rows {
-        let rule_summary: Vec<String> = rules
-            .iter()
-            .filter(|r| r.specialty == s.specialty)
-            .map(|r| format!("{} ({}): {}", r.name, r.id, r.conditions_json))
-            .collect();
-        let system = "Tu es le Chef d'Orchestre d'AlcheMix II. À partir de la télémétrie des deux platines A/B et des règles métier actives, génère une partition d'arrangement JSON valide au format MashupArrangementScore (version 1.0). Réponds uniquement avec le JSON de la partition (sans balises Markdown).";
-        let user = format!(
-            "Spécialité mashup : {}. Tempo maître (BPM) : {:.1}. Clés Camelot : A={}, B={}. Règles actives : {}. Génère la partition d'arrangement JSON.",
-            s.specialty,
-            s.master_bpm,
-            s.camelot_a.as_deref().unwrap_or("—"),
-            s.camelot_b.as_deref().unwrap_or("—"),
-            if rule_summary.is_empty() { "aucune".to_string() } else { rule_summary.join(" | ") }
+        push_training_message(
+            &mut out, &rules, &s.specialty, s.master_bpm,
+            s.camelot_a.as_deref(), s.camelot_b.as_deref(), &s.score_json,
         );
-        let message = serde_json::json!({
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-                {"role": "assistant", "content": s.score_json}
-            ]
-        });
-        out.push_str(&message.to_string());
-        out.push('\n');
+        count += 1;
     }
+
+    // (2) Partitions d'amorçage embarquées (`resources/bootstrap_scores.json`, ALC-271).
+    let boot: Vec<ResourceBootstrap> = serde_json::from_str(BOOTSTRAP_SCORES_RESOURCE)
+        .map_err(|e| Error::Library(format!("Partitions d'amorçage illisibles : {e}")))?;
+    for b in &boot {
+        let master_bpm = b
+            .score
+            .get("masterBpm")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(120.0);
+        push_training_message(&mut out, &rules, &b.specialty, master_bpm, None, None, &b.score.to_string());
+        count += 1;
+    }
+
     fs::write(dest, out).map_err(Error::Io)?;
-    Ok(rows.len())
+    Ok(count)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1431,10 +1511,11 @@ mod tests {
         // Seule la partition rating >= 4 est exportée (JSONL instruction-tuning).
         let dest = std::env::temp_dir().join(format!("alchemix_jsonl_{}.jsonl", std::process::id()));
         let n = export_training_jsonl_conn(&conn, &dest).unwrap();
-        assert_eq!(n, 1, "une seule ligne (rating 5) exportée");
+        // 1 partition utilisateur (rating 5) + 6 partitions d'amorçage (bootstrap_scores.json).
+        assert_eq!(n, 7, "1 ligne utilisateur + 6 lignes d'amorçage");
         let text = std::fs::read_to_string(&dest).unwrap();
-        assert_eq!(text.lines().count(), 1);
-        let line: serde_json::Value = serde_json::from_str(text.trim()).unwrap();
+        assert_eq!(text.lines().count(), 7);
+        let line: serde_json::Value = serde_json::from_str(text.lines().next().unwrap().trim()).unwrap();
         assert_eq!(line["messages"][0]["role"].as_str().unwrap(), "system");
         assert_eq!(line["messages"][1]["role"].as_str().unwrap(), "user");
         assert_eq!(line["messages"][2]["role"].as_str().unwrap(), "assistant");
@@ -1445,6 +1526,69 @@ mod tests {
         let sim = find_similar_score_conn(&conn, "ost-vocal", 120.0, 121.0, 2).unwrap();
         assert_eq!(sim.len(), 1);
         assert_eq!(sim[0].id, "scr-a");
+    }
+
+    #[test]
+    fn rules_version_migration_and_custom_preservation() {
+        let conn = open_memory_db();
+        // 4 règles canoniques à revision 1 (pré-peuplées par apply_chef_ai_schema).
+        let base = list_rules_conn(&conn).unwrap();
+        assert_eq!(base.len(), 4);
+        assert!(base.iter().all(|r| r.revision >= 1 && !r.is_user_customized));
+
+        // (1) Règle personnalisée : jamais ré-écrasée par la migration, même en révision périmée.
+        upsert_rule_conn(
+            &conn,
+            &MashupRuleInput {
+                id: "ost-vocal".into(),
+                name: "Règle personnalisée DJ".into(),
+                specialty: "ost-vocal".into(),
+                conditions_json: "{\"custom\":true}".into(),
+                dsp_params_json: "{}".into(),
+                enabled: true,
+            },
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE mashup_rules SET revision = 0 WHERE id = 'ost-vocal'",
+            [],
+        )
+        .unwrap();
+        migrate_rules_resource(&conn).unwrap();
+        let r = list_active_rules_conn(&conn, "ost-vocal")
+            .unwrap()
+            .into_iter()
+            .find(|x| x.id == "ost-vocal")
+            .unwrap();
+        assert!(r.is_user_customized, "l'édition utilisateur force is_user_customized = 1");
+        assert_eq!(r.name, "Règle personnalisée DJ", "contenu personnalisé préservé");
+        assert_eq!(r.revision, 0, "révision non remontée car is_user_customized = 1");
+
+        // (2) Montée de révision : règle canonique en retard (revision 0) → remise à 1 par la ressource.
+        conn.execute(
+            "UPDATE mashup_rules SET revision = 0, is_user_customized = 0 WHERE id = 'pop-rock'",
+            [],
+        )
+        .unwrap();
+        migrate_rules_resource(&conn).unwrap();
+        let p = list_active_rules_conn(&conn, "pop-rock")
+            .unwrap()
+            .into_iter()
+            .find(|x| x.id == "pop-rock")
+            .unwrap();
+        assert_eq!(p.revision, 1, "montée de révision appliquée (0 → 1)");
+        assert!(!p.is_user_customized);
+
+        // (3) Export `.jsonl` d'amorçage : sans partition utilisateur, 6 lignes Bootstrap.
+        let dest = std::env::temp_dir().join(format!("alchemix_boot_{}.jsonl", std::process::id()));
+        let n = export_training_jsonl_conn(&conn, &dest).unwrap();
+        assert_eq!(n, 6, "6 partitions d'amorçage embarquées");
+        let text = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(text.lines().count(), 6);
+        let last: serde_json::Value = serde_json::from_str(text.lines().last().unwrap().trim()).unwrap();
+        assert_eq!(last["messages"][2]["role"].as_str().unwrap(), "assistant");
+        assert!(last["messages"][2]["content"].as_str().unwrap().contains("timeline"));
+        let _ = std::fs::remove_file(&dest);
     }
 }
 

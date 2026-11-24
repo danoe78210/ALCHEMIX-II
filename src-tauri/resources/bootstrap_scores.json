@@ -1,0 +1,119 @@
+[
+  {
+    "specialty": "ost-vocal",
+    "score": {
+      "version": "1.0",
+      "title": "Bootstrap — OST × Vocal (thème lyrique solo)",
+      "masterBpm": 88,
+      "crossfader": 0.5,
+      "deckA": { "role": "ost-instrumental", "startBar": 1 },
+      "deckB": { "role": "vocal", "entryBar": 9, "sourceStartBar": 1 },
+      "eq": { "duckTarget": "A.other", "duckFreqHz": 1800, "duckGainDb": -4.5, "duckQ": 1.0, "hpfHz": { "A": 140 } },
+      "timeline": [
+        { "bar": 1, "deckA": ["drums", "bass", "other"], "deckB": [], "crossfader": 0.6, "label": "Intro 8 mes" },
+        { "bar": 9, "deckA": ["drums", "bass"], "deckB": ["vocals"], "crossfader": 0.5, "label": "Couplet vocal" },
+        { "bar": 25, "deckA": ["drums", "bass", "other"], "deckB": ["vocals", "bass"], "crossfader": 0.7, "label": "Refrain climax" },
+        { "bar": 33, "deckA": ["bass", "other"], "deckB": [], "crossfader": 0.7, "label": "Thème OST solo" },
+        { "bar": 49, "deckA": ["drums", "bass", "other"], "deckB": ["vocals"], "crossfader": 0.5, "label": "Final" },
+        { "bar": 65, "deckA": ["bass"], "deckB": ["vocals"], "crossfader": 0.0, "label": "Outro nu" }
+      ]
+    }
+  },
+  {
+    "specialty": "ost-vocal",
+    "score": {
+      "version": "1.0",
+      "title": "Bootstrap — OST × Vocal (relais rythmique hybride au refrain)",
+      "masterBpm": 104,
+      "crossfader": 0.5,
+      "deckA": { "role": "ost-instrumental", "startBar": 1 },
+      "deckB": { "role": "vocal", "entryBar": 9, "sourceStartBar": 1 },
+      "eq": { "duckTarget": "A.other", "duckFreqHz": 1800, "duckGainDb": -4.5, "hpfHz": { "A": 140 } },
+      "timeline": [
+        { "bar": 1, "deckA": ["other"], "deckB": ["vocals"], "crossfader": 0.5, "label": "Voix apesanteur" },
+        { "bar": 9, "deckA": ["bass", "other"], "deckB": ["vocals"], "crossfader": 0.55, "label": "Couplet" },
+        { "bar": 25, "deckA": ["drums", "bass", "other"], "deckB": ["vocals", "bass"], "crossfader": 0.7, "label": "Relais groove refrain" },
+        { "bar": 49, "deckA": ["bass", "other"], "deckB": ["vocals"], "crossfader": 0.5, "label": "Pont" },
+        { "bar": 65, "deckA": ["bass"], "deckB": ["vocals"], "crossfader": 0.0, "label": "Outro nu" }
+      ]
+    }
+  },
+  {
+    "specialty": "ost-crossover",
+    "score": {
+      "version": "1.0",
+      "title": "Bootstrap — OST × OST superposition continue",
+      "masterBpm": 120,
+      "crossfader": 0.5,
+      "deckA": { "role": "rhythm", "startBar": 1 },
+      "deckB": { "role": "theme", "startBar": 1, "entryBar": 1 },
+      "eq": { "duckTarget": "none", "hpfHz": { "A": 140 } },
+      "timeline": [
+        { "bar": 1, "deckA": ["drums", "bass", "other"], "deckB": [], "crossfader": 0.7, "label": "Rythmique seul" },
+        { "bar": 9, "deckA": ["drums", "bass", "other"], "deckB": ["other"], "crossfader": 0.5, "label": "Thème entre" },
+        { "bar": 25, "deckA": ["drums", "bass", "other"], "deckB": ["other"], "crossfader": 0.7, "label": "Climax" },
+        { "bar": 49, "deckA": ["drums", "bass"], "deckB": ["other"], "crossfader": 0.5, "label": "Bridge" },
+        { "bar": 65, "deckA": ["bass"], "deckB": ["other"], "crossfader": 0.0, "label": "Outro" }
+      ]
+    }
+  },
+  {
+    "specialty": "ost-crossover",
+    "score": {
+      "version": "1.0",
+      "title": "Bootstrap — OST × OST îlot vocal + breakdown partagé",
+      "masterBpm": 132,
+      "crossfader": 0.5,
+      "deckA": { "role": "rhythm", "startBar": 1 },
+      "deckB": { "role": "theme", "startBar": 1, "entryBar": 1 },
+      "eq": { "duckTarget": "none", "hpfHz": { "A": 140 } },
+      "timeline": [
+        { "bar": 1, "deckA": ["drums", "bass", "other"], "deckB": [], "crossfader": 0.7, "label": "Intro 8 mes" },
+        { "bar": 9, "deckA": ["drums", "bass", "other"], "deckB": ["other"], "crossfader": 0.5, "label": "Îlot vocal local" },
+        { "bar": 33, "deckA": ["other"], "deckB": ["other"], "crossfader": 0.5, "label": "Breakdown partagé" },
+        { "bar": 49, "deckA": ["drums", "bass", "other"], "deckB": ["other"], "crossfader": 0.65, "label": "Climax" },
+        { "bar": 65, "deckA": ["bass"], "deckB": ["other"], "crossfader": 0.0, "label": "Outro" }
+      ]
+    }
+  },
+  {
+    "specialty": "ost-medley",
+    "score": {
+      "version": "1.0",
+      "title": "Bootstrap — Medley OST alternance 8 mesures",
+      "masterBpm": 96,
+      "crossfader": 0.5,
+      "deckA": { "role": "instrumental", "startBar": 1 },
+      "deckB": { "role": "theme", "entryBar": 9, "sourceStartBar": 1 },
+      "eq": { "duckTarget": "none", "hpfHz": { "A": 140 } },
+      "timeline": [
+        { "bar": 1, "deckA": ["other"], "deckB": [], "crossfader": 0.6, "label": "Intro sans batterie" },
+        { "bar": 9, "deckA": ["drums", "bass"], "deckB": ["other"], "crossfader": 0.5, "label": "Thème B" },
+        { "bar": 17, "deckA": ["drums", "bass", "other"], "deckB": [], "crossfader": 0.55, "label": "Thème A" },
+        { "bar": 33, "deckA": ["other"], "deckB": ["other"], "crossfader": 0.5, "label": "Breakdown pivot" },
+        { "bar": 49, "deckA": ["drums", "bass", "other"], "deckB": ["other"], "crossfader": 0.7, "label": "Climax" },
+        { "bar": 65, "deckA": ["other"], "deckB": [], "crossfader": 0.0, "label": "Outro" }
+      ]
+    }
+  },
+  {
+    "specialty": "pop-rock",
+    "score": {
+      "version": "1.0",
+      "title": "Bootstrap — Pop × Rock (Guitar Pocket)",
+      "masterBpm": 110,
+      "crossfader": 0.5,
+      "deckA": { "role": "instrumental", "startBar": 1 },
+      "deckB": { "role": "vocal", "entryBar": 9, "sourceStartBar": 1 },
+      "eq": { "duckTarget": "none", "hpfHz": { "A": 20 } },
+      "timeline": [
+        { "bar": 1, "deckA": ["drums", "bass", "other"], "deckB": [], "crossfader": 0.6, "label": "Intro riffs" },
+        { "bar": 9, "deckA": ["drums", "bass", "other"], "deckB": ["vocals"], "crossfader": 0.55, "label": "Voix Pop" },
+        { "bar": 25, "deckA": ["drums", "bass", "other"], "deckB": ["vocals", "bass"], "crossfader": 0.7, "label": "Refrain" },
+        { "bar": 41, "deckA": ["other"], "deckB": [], "crossfader": 0.7, "label": "Solo respiration" },
+        { "bar": 49, "deckA": ["drums", "bass", "other"], "deckB": ["vocals"], "crossfader": 0.55, "label": "Final" },
+        { "bar": 65, "deckA": ["bass"], "deckB": ["vocals"], "crossfader": 0.0, "label": "Outro" }
+      ]
+    }
+  }
+]

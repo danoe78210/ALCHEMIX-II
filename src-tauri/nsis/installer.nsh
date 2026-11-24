@@ -15,6 +15,7 @@
 !include "LogicLib.nsh"
 
 !define AI_MODEL_NAME "qwen2.5-coder-3b-instruct-q4_k_m.gguf"
+!define AI_MODEL_MIN_BYTES "104857600"
 !define AI_MODEL_URL "https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/qwen2.5-coder-3b-instruct-q4_k_m.gguf"
 
 ; ── Traductions (LangString) de la section optionnelle ────────────────────────────────────────
@@ -59,11 +60,22 @@ Section /o "$(ALC_AI_TITLE)" SEC_CHEF_AI
   Call GetChefAiBase
   CreateDirectory "$1"
   CreateDirectory "$1\models"
-  ; NSISdl native : télécharge avec barre de progression, fichier rendu visible seulement complet.
-  NSISdl::download "${AI_MODEL_URL}" "$1\models\${AI_MODEL_NAME}.part"
-  Pop $3
-  ${If} $3 = "success"
-    Rename "$1\models\${AI_MODEL_NAME}.part" "$1\models\${AI_MODEL_NAME}"
+  ; Téléchargement HTTPS robuste (TLS 1.2/1.3) via curl.exe dans PowerShell (ExecWait natif NSIS),
+  ; rendu atomique : seul un téléchargement complet et > 100 Mo est renommé .part → .gguf.
+  DetailPrint "$(ALC_AI_DESC)"
+  ExecWait "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $\"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; curl.exe -fL --retry 3 -o '$1\models\${AI_MODEL_NAME}.part' '${AI_MODEL_URL}'$\"" $3
+  ; Taille du .part (> 100 Mo) via FileOpen/FileSeek END (aucune macro externe requise).
+  FileOpen $4 "$1\models\${AI_MODEL_NAME}.part" r
+  FileSeek $4 0 END $5
+  FileClose $4
+  ${If} $3 = 0
+    ${If} $5 > ${AI_MODEL_MIN_BYTES}
+      Rename "$1\models\${AI_MODEL_NAME}.part" "$1\models\${AI_MODEL_NAME}"
+    ${Else}
+      Delete "$1\models\${AI_MODEL_NAME}.part"
+    ${EndIf}
+  ${Else}
+    DetailPrint "Échec du téléchargement du modèle IA (code $3)."
   ${EndIf}
   Call ChefAi_WriteInstalled
 SectionEnd

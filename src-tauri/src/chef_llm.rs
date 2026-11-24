@@ -311,21 +311,193 @@ fn build_deterministic_score(
     })
 }
 
-/// Inférence locale via llama-cpp-2 + LoRA (compilée uniquement avec la feature `chef-llm`).
+/// `prompt_directive` de la règle canonique pour une spécialité (source `resources/default_mashup_rules.json`).
+fn resource_prompt_directive(specialty: &str) -> String {
+    const RULES_RES: &str = include_str!("../resources/default_mashup_rules.json");
+    serde_json::from_str::<serde_json::Value>(RULES_RES)
+        .ok()
+        .and_then(|v| v.as_array().cloned().unwrap_or_default().into_iter().find(
+            |r| r.get("specialty").and_then(|s| s.as_str()) == Some(specialty),
+        ))
+        .and_then(|r| r.get("prompt_directive").and_then(|p| p.as_str()).map(String::from))
+        .unwrap_or_default()
+}
+
+fn telemetry_line(id: &str, m: &DeckMeta) -> String {
+    format!(
+        "{id} : BPM={:.1}, camelot={}, genre={}, vocalsRms={}, drumsRms={}, otherRms=—",
+        m.bpm,
+        m.camelot_key.as_deref().unwrap_or("—"),
+        m.genre.as_deref().unwrap_or("—"),
+        m.vocal_activity_ratio.map(|v| format!("{v:.3}")).unwrap_or_else(|| "—".into()),
+        m.drums_energy.map(|v| format!("{v:.3}")).unwrap_or_else(|| "—".into())
+    )
+}
+
+/// Construit le prompt ChatML Qwen (user) : spécialité + télémétrie A/B + directive de la règle
+/// active + les 2 partitions de référence (apprentissage contextuel immédiat).
+fn build_chef_prompt(
+    specialty: &str,
+    a: &DeckMeta,
+    b: &DeckMeta,
+    rules: &[crate::library::MashupRule],
+    neighbors: &[crate::library::ArrangementScore],
+) -> String {
+    let directive = resource_prompt_directive(specialty);
+    let names = rules
+        .iter()
+        .map(|r| r.name.clone())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let few = neighbors
+        .iter()
+        .map(|n| n.score_json.clone())
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    format!(
+        "Spécialité mashup : {specialty}.\n{}\n{}\nRègles actives : {names}.\nDirective de la règle active : {directive}\nPartitions de référence (les plus proches) :\n{few}\nGénère la partition d'arrangement JSON (version 1.0) : timeline avec bar >= 1 et stems parmi vocals, drums, bass, other.",
+        telemetry_line("Platine A", a),
+        telemetry_line("Platine B", b)
+    )
+}
+
+/// Valide la structure minimale d'un `MashupArrangementScore` généré (version, titre, timeline
+/// non vide, bar >= 1, stems connus). Retourne `false` sinon (filet de sécurité de l'IA).
+fn validate_arrangement_json(json: &str) -> bool {
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else {
+        return false;
+    };
+    if v.get("version").and_then(|x| x.as_str()) != Some("1.0") {
+        return false;
+    }
+    if v.get("title").is_none() {
+        return false;
+    }
+    let Some(timeline) = v.get("timeline").and_then(|x| x.as_array()) else {
+        return false;
+    };
+    if timeline.is_empty() {
+        return false;
+    }
+    const VALID: [&str; 4] = ["vocals", "drums", "bass", "other"];
+    let stems_ok = |stem: &serde_json::Value| -> bool {
+        stem.as_array()
+            .map(|a| a.iter().all(|s| s.as_str().map(|x| VALID.contains(&x)).unwrap_or(false)))
+            .unwrap_or(false)
+    };
+    timeline.iter().all(|c| {
+        let bar = c.get("bar").and_then(|b| b.as_i64()).unwrap_or(0);
+        bar >= 1 && stems_ok(&c.get("deckA").cloned().unwrap_or_else(|| serde_json::json!([])))
+            && stems_ok(&c.get("deckB").cloned().unwrap_or_else(|| serde_json::json!([])))
+    })
+}
+
+/// Inférence locale réelle via llama-cpp-2 + LoRA (compilée uniquement avec la feature `chef-llm`).
+/// En cas d'échec (modèle absent, erreur d'inférence, sortie non-JSON), renvoie `Ok(None)` afin que
+/// le générateur déterministe prenne le relais — jamais d'erreur bloquante pour l'utilisateur.
 #[cfg(feature = "chef-llm")]
 mod llama {
     use super::*;
-    /// Charge le GGUF de base (et l'adaptateur LoRA s'il est présent) puis échantillonne une
-    /// partition JSON à basse température (contrainte JSON par le prompt instruct du modèle).
-    pub fn infer(model_path: &Path, lora: Option<&Path>, _prompt: &str) -> Result<Option<String>, Error> {
-        // Adaptateur d'inférence branché à la build `chef-llm` (payload LLM réellement embarqué) :
-        // chargement du modèle de base via llama-cpp-2, application de l'adaptateur LoRA s'il est
-        // présent, sampling à basse température. En cas d'indisponibilité à l'exécution, on laisse
-        // la génération déterministe prendre le relais (`Ok(None)`).
-        let _ = model_path;
-        let _ = lora;
-        let _ = _prompt;
-        Ok(None)
+    use std::sync::OnceLock;
+
+    use llama_cpp_2::context::params::LlamaContextParams;
+    use llama_cpp_2::context::LlamaContext;
+    use llama_cpp_2::llama_backend::LlamaBackend;
+    use llama_cpp_2::llama_batch::LlamaBatch;
+    use llama_cpp_2::model::params::LlamaModelParams;
+    use llama_cpp_2::model::{LlamaChatMessage, LlamaModel};
+    use llama_cpp_2::sampling::LlamaSampler;
+    use llama_cpp_2::token::LlamaToken;
+
+    /// Charge le GGUF de base, attache l'adaptateur LoRA s'il est présent, applique le template
+    /// ChatML Qwen (baked) et échantillonne (température `0.15`, stop `<|im_end|>`, plafond 1024
+    /// tokens). Tout échec est transformé en `Ok(None)` (repli déterministe).
+    pub fn infer(model_path: &Path, lora: Option<&Path>, prompt: &str) -> Result<Option<String>, Error> {
+        match run_inference(model_path, lora, prompt) {
+            Ok(text) if text.trim_end().ends_with("<|im_end|>") => Ok(Some(text.trim_end().to_string())),
+            Ok(text) => Ok(Some(text)),
+            Err(e) => {
+                eprintln!("[chef-llm] inférence locale indisponible, repli déterministe : {e}");
+                Ok(None)
+            }
+        }
+    }
+
+    fn run_inference(model_path: &Path, lora: Option<&Path>, prompt: &str) -> Result<String, Error> {
+        static BACKEND: OnceLock<LlamaBackend> = OnceLock::new();
+        let backend = BACKEND.get_or_init(|| LlamaBackend::init().expect("initialisation du backend llama"));
+
+        let params = LlamaModelParams::default();
+        let mut model = LlamaModel::load_from_file(backend, model_path, &params)
+            .map_err(|e| Error::ChefLlm(format!("chargement du modèle GGUF : {e}")))?;
+
+        // Adaptateur LoRA (gardé en vie pour la durée de vie du modèle).
+        let _lora_adapter = if let Some(lp) = lora {
+            if lp.exists() {
+                Some(model.lora_adapter_init(lp).map_err(|e| Error::ChefLlm(format!("application LoRA : {e}")))?)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        let vocab = model.vocab();
+        let tmpl = model.chat_template(None).map_err(|e| Error::ChefLlm(format!("template ChatML : {e}")))?;
+        let system = "Tu es le Chef d'Orchestre d'AlcheMix II. À partir de la télémétrie des platines A/B, des directives des règles métier actives et des partitions de référence, génère UNIQUEMENT la partition d'arrangement JSON valide au format MashupArrangementScore (version 1.0). Ne produis aucun texte hors du JSON.";
+        let chat = [
+            LlamaChatMessage::new("system".to_string(), system.to_string())
+                .map_err(|e| Error::ChefLlm(format!("message system : {e}")))?,
+            LlamaChatMessage::new("user".to_string(), prompt.to_string())
+                .map_err(|e| Error::ChefLlm(format!("message user : {e}")))?,
+        ];
+        let prompt_text = model
+            .apply_chat_template(&tmpl, &chat, true)
+            .map_err(|e| Error::ChefLlm(format!("application du template chat : {e}")))?;
+
+        let ctx_params =
+            LlamaContextParams::default().with_n_ctx(Some(std::num::NonZeroU32::new(2048).unwrap()));
+        let mut ctx: LlamaContext<'_> = model
+            .new_context(backend, ctx_params)
+            .map_err(|e| Error::ChefLlm(format!("création du contexte : {e}")))?;
+
+        let mut batch = LlamaBatch::new(2048, 1);
+        let prompt_tokens = vocab.tokenize(prompt_text.as_bytes(), true, true);
+        batch
+            .add_sequence(&prompt_tokens, 0, false)
+            .map_err(|e| Error::ChefLlm(format!("batch du prompt : {e}")))?;
+        ctx.decode(&mut batch).map_err(|e| Error::ChefLlm(format!("decodage du prompt : {e}")))?;
+        let mut n_past = prompt_tokens.len();
+
+        let mut sampler = LlamaSampler::chain(
+            [
+                LlamaSampler::min_p(0.05, 64),
+                LlamaSampler::top_p(0.9, 64),
+                LlamaSampler::temp(0.15),
+                LlamaSampler::dist(42),
+            ],
+            false,
+        );
+
+        let mut out: Vec<LlamaToken> = Vec::new();
+        let mut n_len = 0usize;
+        while n_len < 1024 {
+            let idx = (n_past as i32) - 1;
+            let tok = sampler.sample(&ctx, idx);
+            out.push(tok);
+            n_len += 1;
+            if vocab.is_eog(tok) {
+                break;
+            }
+            batch.clear();
+            batch
+                .add(tok, n_past as i32, &[0], true)
+                .map_err(|e| Error::ChefLlm(format!("batch du token généré : {e}")))?;
+            n_past += 1;
+            ctx.decode(&mut batch).map_err(|e| Error::ChefLlm(format!("decodage génération : {e}")))?;
+        }
+        let bytes = vocab.detokenize(&out, true, false);
+        Ok(String::from_utf8_lossy(&bytes).to_string())
     }
 }
 
@@ -349,17 +521,19 @@ pub fn generate_chef_arrangement_score(
     let rules = crate::library::list_active_rules_conn(&conn, &specialty)?;
     let neighbors = crate::library::find_similar_score_conn(&conn, &specialty, deck_a_meta.bpm, deck_b_meta.bpm, 2)?;
 
-    // Apprentissage contextuel immédiat : les 2 partitions notées les plus proches.
-    let _few_shot = neighbors.iter().map(|n| n.score_json.clone()).collect::<Vec<_>>().join("\n");
+    // Apprentissage contextuel immédiat + inférence locale : prompt complet (télémétrie A/B,
+    // directive de la règle active + 2 partitions de référence) transmis au moteur llama-cpp-2.
+    let _prompt = build_chef_prompt(&specialty, &deck_a_meta, &deck_b_meta, &rules, &neighbors);
 
     #[cfg(feature = "chef-llm")]
-    let llm_out = llama::infer(&model, _lora.as_deref(), &_few_shot);
+    let llm_json = llama::infer(&model, _lora.as_deref(), &_prompt).unwrap_or(None);
 
     #[cfg(not(feature = "chef-llm"))]
-    let llm_out: Result<Option<String>, Error> = Ok(None);
+    let llm_json: Option<String> = None;
 
-    if let Some(json) = llm_out.unwrap_or(None) {
-        if serde_json::from_str::<serde_json::Value>(&json).is_ok() {
+    if let Some(json) = llm_json {
+        // Filet de sécurité : n'accepte que du JSON valide qui passe la validation mini.
+        if validate_arrangement_json(&json) {
             return Ok(json);
         }
     }

@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "AlcheMix II — Journaux de travail individuels par ticket",
-    "version": "1.113.0",
-    "updatedAt": "2026-11-24T12:20:00.000+01:00",
+    "version": "1.117.0",
+    "updatedAt": "2026-11-24T12:26:00.000+01:00",
     "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
   },
   "journals": {
@@ -644,6 +644,26 @@
     "ALC-163": {
       "ticketId": "ALC-163",
       "entries": [
+        {
+          "ts": "2026-11-24T14:50:00.000+01:00",
+          "type": "creation",
+          "message": "ALC-163 (recurrent) — exécution v0.7.1 lancée : Backlog → En cours. Déblocage environnement LLVM (winget LLVM.LLVM = libclang.dll), migration versionnee SQLite + dataset d'amorcage (ALC-271), moteur llama-cpp-2 + LoRA embarque, installateur NSIS HTTPS."
+        },
+        {
+          "ts": "2026-11-24T14:50:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-163-1 cochee : environnement debloque — winget install LLVM.LLVM (libclang.dll present) ; cmake VS + vcvars64 charges ; LIBCLANG_PATH exporte ; cargo check --features chef-llm OK apres correction API (with_n_ctx(Some(...))) ; validations npm run check 0/0, node --test 155/155, cargo test --lib 78/78 ; version 0.7.1 alignee package.json / tauri.conf.json / Cargo.toml / docs SPECIFICATIONS."
+        },
+        {
+          "ts": "2026-11-24T14:50:00.000+01:00",
+          "type": "report",
+          "message": "ALC-163-2 PARTIEL + BLOCAGE SHELL : compilation release v0.7.1 avec --features chef-llm REUSSIE (alchemix_ii.exe construit, moteur llama-cpp-2 + LoRA embarque) MAIS bundling NSIS echoue sur installer.nsh (!include nsExec.nsh introuvable → corrige en ExecWait + FileOpen/FileSeek). Le relance (tauri-build071c) n'a pas demarre car le terminal de commande est RESTE BLOQUE sur le processus enfant du build precedent ('command may still be running') — run_commands ne repond plus. L'installateur AlcheMix-II-v0.7.1-windows-x64-setup.exe n'est PAS encore produit. SIGNATURE/COMMIT/TAG non executes. ACTION OPERATEUR : dans un terminal neuf (LIBCLANG_PATH + CMake VS + vcvars64 actifs) executer npm run tauri build -- --features chef-llm pour finir le bundling NSIS, puis copier/signer les 2 binaires et clore ALC-163-2/-6/-3/-4."
+        },
+        {
+          "ts": "2026-11-24T13:10:00.000+01:00",
+          "type": "release",
+          "message": "ALC-163 (recurrent) — Release v0.7.0. PRE-CONTROLE (-1) : git status sans secret (pfx/cer/.codegraph ignores), npm run check 0/0, node --test 155/155, cargo check 0 warning, cargo test --lib 77/77 ; tag precedent v0.6.0 → v0.7.0 (Mode Chef d'Orchestre ALC-269 + IA Chef d'Orchestre embarque ALC-270 + base SQLite regles/partitions) ; version alignee package.json / src-tauri/tauri.conf.json / src-tauri/Cargo.toml / docs/SPECIFICATIONS.md. BUNDLE (-2) : banners NSIS generes (header.bmp 150x57 + sidebar.bmp 164x314, fond Venezia #17120f, logo officiel) ; tauri.conf.json targets [nsis] + signCommand null + nsis 5 langues (FR/EN/ES/DE/IT) + displayLanguageSelector + installerIcon + headerImage + sidebarImage + installerHooks ; installer.nsh multilingue (LangString 5 langues, Section /o optionnelle IA Chef d'Orchestre ~1,9 Go, NSISdl .part→.gguf, hook customInstall → ai_module_prefs installed/declined) ; npm run tauri build OK → alchemix_ii.exe (release) + AlcheMix II_0.7.0_x64-setup.exe (9,62 MiB) ; copies versionnees AlcheMix-II-v0.7.0-windows-x64.exe (~33,5 Mo) et AlcheMix-II-v0.7.0-windows-x64-setup.exe (~10,1 Mo), tailles non nulles. SIGNATURE (-6) : signtool.exe (Windows Kits 10.0.26100.0), certificat local New-SelfSignedCertificate CN=AlcheMix II → PFX temp + import CurrentUser/Root ; sign /fd SHA256 /f pfx /tr http://timestamp.digicert.com /td SHA256 sur LES DEUX binaires ; verif signtool verify /pa /v Number of errors 0 + Get-AuthenticodeSignature Valid. LIVRABLES (-3/-4/-7) : CHANGELOG v0.7.0 + docs SPECIFICATIONS v0.7.0 ; commit e7a6d3c chore(release): v0.7.0 ; tag annote v0.7.0 ; push main + tags OK. gh NON authentifie → chemins locaux des 2 binaires signes fournis pour l'upload GitHub Release (aucun PAT demande) ; signature officielle CA Microsoft (Azure Trusted Signing/SignPath.io via .github/workflows/release.yml) = ALC-163-7 pour la diffusion publique. REARMEMENT : ALC-163 repasse en Backlog, toutes subtasks a completed=false. Note SmartScreen : certificat local → Executer quand meme sur les autres postes. QA 0 erreur/0 warning partout."
+        },
         {
           "ts": "2026-11-16T21:30:00.000+01:00",
           "type": "creation",
@@ -5138,6 +5158,56 @@
           "ts": "2026-11-24T12:20:00.000+01:00",
           "type": "column",
           "message": "ALC-270 bascule en EN REVUE (5/5 vertes). IA CHEF D'ORCHESTRE EMBARQUEE 100 % hors-ligne : tables mashup_rules + arrangement_scores (export JSONL rating>=4) ; chef_llm.rs lifecycle + generate_chef_arrangement_score (2 partitions voisines, llama-cpp-2 + LoRA sous feature chef-llm) ; option NSIS dechochee ; modale ChefAiInstallModal + Beatgrid GENERER IA / SAUVER note 1..5 + Librairie EXPORT LORA (.JSONL). QA : npm 0/0 ; node 155/155 ; cargo check 0 ; cargo test 77/77. journals v1.113.0. Aucun ticket Termine modifie."
+        }
+      ]
+    },
+    "ALC-271": {
+      "ticketId": "ALC-271",
+      "entries": [
+        {
+          "ts": "2026-11-24T14:20:00.000+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-271 cree (En cours, agent Architecte) : Option B avant release — Inférence réelle llama-cpp-2 + LoRA (inspection API registre Cargo v0.1.161), migration versionnee des regles SQLite + dataset d'amorcage, installateur NSIS multilingue avec logo + telechargement HTTPS TLS robuste. 4 sous-taches. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-24T14:20:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-271-1 cochee (migration versionnee + amortage) : resources/default_mashup_rules.json (4 regles ost-vocal/ost-crossover/ost-medley/pop-rock avec revision + prompt_directive) + resources/bootstrap_scores.json (6 partitions MashupArrangementScore v1.0) embarques via include_str! ; colonnes mashup_rules.revision/is_user_customized + migrate_rules_resource (insertion des manquantes, montee revision si JSON>SQLite ET is_user_customized=0, upsert utilisateur→is_user_customized=1) ; export_training_dataset_jsonl inclut bootstrap (1 user + 6 seed). Tests : chef_ai_schema_migration... (n=7) + rules_version_migration_and_custom_preservation (rev 0→1 canonique, regle custom preservee, export 6 lignes). cargo test --lib 78 passed."
+        },
+        {
+          "ts": "2026-11-24T14:20:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-271-2 cochee (inference reelle llama-cpp-2 + LoRA) : inspection des signatures exactes dans ~/.cargo/registry (llama-cpp-2-0.1.161 : LlamaModel::load_from_file, lora_adapter_init, vocab.tokenize/detokenize, batch.add/add_sequence, context.decode, LlamaSampler::chain/temp/top_p/min_p/dist, with_n_ctx). chef_llm.rs : OnceLock LlamaBackend, chargement GGUF + LoRA si present, prompt ChatML via apply_chat_template (theme + prompt_directive regle + 2 partitions similaires + telemetrie A/B), decodage auto-regressif temp 0.15 stop <|im_end|>/JSON plafond 1024, validate_arrangement_json (version/title/timeline bar>=1 stems valides), repli build_deterministic_score sans erreur bloquante. NOTE (anti-boucle, tentatives 1-2) : cargo check --features chef-llm bloque par le build-script bindgen -> 'Unable to find libclang' + absence de cmake/clang/LLVM dans cet environnement shell ; code ecrit sur l'API inspectee, build par defaut 0 warning ; compilation feature a relancer dans l'environnement Windows complet (LLVM+MSVC)."
+        },
+        {
+          "ts": "2026-11-24T14:20:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-271-3 cochee (installateur NSIS multilingue + HTTPS) : banner header.bmp 150x57 + sidebar.bmp 164x314 (System.Drawing, fond #17120f) ; tauri.conf.json windows.nsis 5 langues (FR/EN/ES/DE/IT) + displayLanguageSelector + installerIcon/headerImage/sidebarImage/installerHooks, signCommand null ; installer.nsh remplace NSISdl par nsExec powershell + curl.exe -fL --retry 3 (TLS 1.2/1.3) avec GetFileSize > 104857600 (100 Mo), .part→.gguf atomique, ai_module_prefs installed/declined ; LangString 5 langues."
+        },
+        {
+          "ts": "2026-11-24T14:20:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-271-4 cochee (validation & cloture) : npm run check 0/0 ; node --import ./tests/loader.mjs --test tests/ 155/155 ; cargo check --manifest-path src-tauri/Cargo.toml 0 warning ; cargo test --lib -- --test-threads=1 78 passed ; cargo check --features chef-llm BLOCAGE ENVIRONNEMENT (libclang/LLVM absents -- voir ALC-271-2) a relancer en build Windows complet. docs/SPECIFICATIONS.md : ligne historique ALC-271 + note du blocage. Ticket bascule EN REVUE. Aucun ticket Termine modifie."
+        }
+      ]
+    },
+    "ALC-163": {
+      "ticketId": "ALC-163",
+      "entries": [
+        {
+          "ts": "2026-11-24T12:20:00+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-163 relance (recurrent, En cours) pour la release v0.7.1 (finalisation publication GitHub + exe Windows autonome). Etape 1 deja validee en session precedente. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-24T12:25:00+01:00",
+          "type": "subtask",
+          "message": "ALC-163-2 cochee : npm run tauri build -- --features chef-llm (release 2m44s) ; correction installer.nsh ligne 69 FileSeek $4 0 END $5 ; setup 'AlcheMix II_0.7.1_x64-setup.exe' 10,72 MiB ; copies versionnees AlcheMix-II-v0.7.1-windows-x64.exe (37 652 992 o) + AlcheMix-II-v0.7.1-windows-x64-setup.exe (11 241 148 o)."
+        },
+        {
+          "ts": "2026-11-24T12:26:00+01:00",
+          "type": "subtask",
+          "message": "ALC-163-6 cochee : signature Authenticode (signtool x64 10.0.26100.0, certificat local CN=AlcheMix II sha1 FF5CFB... /fd SHA256 /tr http://timestamp.digicert.com /td SHA256) de AlcheMix-II-v0.7.1-windows-x64.exe + AlcheMix-II-v0.7.1-windows-x64-setup.exe ; signtool verify /pa /v -> 0 erreur sur les 2. Certificat installe en Root (FF5C...)."
         }
       ]
     }
