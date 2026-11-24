@@ -5,6 +5,37 @@ Toutes les modifications notables d'**AlcheMix II** sont documentées dans ce fi
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et respecte
 [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.7.0] — 2026-11-24
+
+### ✨ Fonctionnalités majeures
+- **Mode Chef d'Orchestre (ALC-269)** : interpréteur & exécuteur de partitions d'arrangement JSON
+  (`MashupArrangementScore`) — parseur/validateur pur, exécution temps-réel 60 fps (tempo maître
+  octave-normalisé `effectiveBpmA === effectiveBpmB`, stems par mesure en fondu 40–60 ms,
+  `syncStemMediaState`), visualisation Beatgrid (`COLLER PARTITION`, répères dorés `M{bar} • {label}`,
+  cartouche EXÉCUTER / ARRÊTER / SAUVER avec note 1..5).
+- **IA Chef d'Orchestre embarquée, 100 % hors-ligne (ALC-270)** : base SQLite `mashup_rules` +
+  `arrangement_scores` (apprentissage continu, recherche de 2 partitions « les plus proches », export
+  `.jsonl` d'entraînement LoRA `rating >= 4`) ; moteur local (`llama-cpp-2` + adaptateur LoRA
+  optionnel derrière la feature `chef-llm`, génération déterministe en build léger) ; **option
+  d'installation utilisateur (~1,9 Go)** — modale `ChefAiInstallModal` au premier lancement
+  (si `ai_module_prefs.json` absent) **et** case à cocher de l'installateur NSIS multilingue.
+
+### 🪟 Installation Windows
+- **Deux formats livrés** :
+  - Exécutable **autonome portable** : `AlcheMix-II-v0.7.0-windows-x64.exe` (double-clic, ~33 Mo).
+  - **Installateur multilingue NSIS** : `AlcheMix-II-v0.7.0-windows-x64-setup.exe` (FR/EN/ES/DE/IT,
+    sélecteur de langue, logo officiel AlcheMix II intégré, **case optionnelle « IA Chef d'Orchestre
+    (~1,9 Go) » décochée par défaut**).
+- **Note SmartScreen** : signature Authenticode locale (`CN=AlcheMix II`, `/fd SHA256`,
+  horodatage RFC 3161 DigiCert, vérifié `signtool verify /pa /v`) → « Informations complémentaires →
+  Exécuter quand même » sur les postes autres que celui de build ; la signature officielle par une CA
+  Microsoft (Azure Trusted Signing / SignPath.io) reste disponible via `.github/workflows/release.yml`.
+
+### 📦 Artefacts v0.7.0
+- `AlcheMix-II-v0.7.0-windows-x64.exe` (signé Authenticode, vérifié — `Number of errors: 0`).
+- `AlcheMix-II-v0.7.0-windows-x64-setup.exe` (signé Authenticode, vérifié).
+- Jeu d'entraînement LoRA exportable depuis la Librairie (`dataset EXPORT LORA (.JSONL)`).
+
 ## [0.6.0] — 2026-11-23
 
 ### ✨ Fonctionnalités majeures

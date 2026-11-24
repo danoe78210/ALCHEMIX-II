@@ -1,5 +1,8 @@
 <script lang="ts">
   import { mixerStore, formatTime, type DeckId } from '$lib/stores/mixer.svelte';
+  // ALC-270 : IA Chef d'Orchestre (génération locale + sauvegarde des partitions en base).
+  import { chefLlmIpc, libraryIpc } from '$lib/ipc/client';
+  import { openChefAiModal } from '$lib/stores/chefAi.svelte';
   import {
   vocalPhraseEnvelope,
   composeSelectedStemsEnvelope,
@@ -42,6 +45,120 @@ import VzKey from './VzKey.svelte'; // ALC-230 : primitive mécanique du pupitre
     alignedFlash = true;
     const n = ++_flashB;
     window.setTimeout(() => { if (n === _flashB) alignedFlash = false; }, 1600);
+  }
+
+  // ALC-269 : Mode Chef d'Orchestre — collage & exécution de partitions JSON.
+  let arrPasteOpen = $state(false);
+  let arrPasteText = $state('');
+  async function collerPartition() {
+    try {
+      const txt = await navigator.clipboard.readText();
+      if (txt && txt.trim()) {
+        mixerStore.importArrangementScoreText(txt);
+        return;
+      }
+      arrPasteOpen = true;
+    } catch {
+      arrPasteOpen = true; // repli champ texte si WebView2 refuse le presse-papiers
+    }
+  }
+  function submitPartition() {
+    if (!arrPasteText.trim()) return;
+    mixerStore.importArrangementScoreText(arrPasteText);
+    arrPasteText = '';
+    arrPasteOpen = false;
+  }
+  // ── ALC-270 : IA Chef d'Orchestre — génération & sauvegarde des partitions ──────────────────
+  let saveRating = $state(5);
+  const ostGenre = (g: string) => /ost|cinéma|cinema|soundtrack|score/i.test(g || '');
+  const popGenre = (g: string) => /pop/i.test(g || '');
+  const rockGenre = (g: string) => /rock/i.test(g || '');
+  function currentSpecialty(): string {
+    const a = mixerStore.getDeck('A');
+    const b = mixerStore.getDeck('B');
+    const aLow = (a.stemsMeta?.vocalActivityRatio ?? 0.5) < 0.12;
+    const bLow = (b.stemsMeta?.vocalActivityRatio ?? 0.5) < 0.12;
+    const ostR = ostGenre(a.genre) || ostGenre(b.genre);
+    if (aLow && bLow && ostR) return ostGenre(a.genre) && ostGenre(b.genre) ? 'ost-medley' : 'ost-crossover';
+    if (aLow !== bLow && ostR) return 'ost-vocal';
+    if ((popGenre(a.genre) && rockGenre(b.genre)) || (popGenre(b.genre) && rockGenre(a.genre))) return 'pop-rock';
+    return 'ost-vocal';
+  }
+  async function genererChef() {
+    const a = mixerStore.getDeck('A');
+    const b = mixerStore.getDeck('B');
+    if (!a.filePath || !b.filePath) return;
+    let status;
+    try {
+      status = await chefLlmIpc.getChefLlmStatus();
+    } catch {
+      openChefAiModal();
+      return;
+    }
+    if (!status.modelInstalled) {
+      openChefAiModal();
+      return;
+    }
+    try {
+      const json = await chefLlmIpc.generateChefArrangementScore(
+        {
+          bpm: mixerStore.effectiveBpmA || 120,
+          camelotKey: a.camelotKey,
+          genre: a.genre,
+          vocalActivityRatio: a.stemsMeta?.vocalActivityRatio ?? null,
+        },
+        {
+          bpm: mixerStore.effectiveBpmB || 120,
+          camelotKey: b.camelotKey,
+          genre: b.genre,
+          vocalActivityRatio: b.stemsMeta?.vocalActivityRatio ?? null,
+        }
+      );
+      mixerStore.importArrangementScoreText(json);
+    } catch (err) {
+      mixerStore.arrangementError = err instanceof Error ? err.message : 'Génération IA échouée';
+    }
+  }
+  async function sauverPartition() {
+    const score = mixerStore.activeArrangementScore;
+    if (!score) return;
+    const a = mixerStore.getDeck('A');
+    const b = mixerStore.getDeck('B');
+    try {
+      await libraryIpc.saveArrangementScore({
+        title: score.title,
+        trackAId: a.filePath ?? null,
+        trackBId: b.filePath ?? null,
+        specialty: currentSpecialty(),
+        masterBpm: (score.masterBpm ?? mixerStore.effectiveBpmA) || 120,
+        camelotA: a.camelotKey,
+        camelotB: b.camelotKey,
+        scoreJson: JSON.stringify(score),
+        rating: saveRating,
+      });
+      mixerStore.arrangementError = null;
+    } catch (err) {
+      mixerStore.arrangementError = err instanceof Error ? err.message : 'Échec de la sauvegarde';
+    }
+  }
+
+  // Répères « Chef d'Orchestre » — trait doré/ambré à la mesure cue.bar sur la waveform.
+  function arrCueSlots(id: DeckId): { key: string; x: number; bar: number; label: string | null }[] {
+    const score = mixerStore.activeArrangementScore;
+    if (!score) return [];
+    const bs = id === 'A' ? beatSecA : beatSecB;
+    const barDur = 4 * bs;
+    const downbeat = deckOf(id)?.firstDownbeatSeconds ?? 0;
+    const ph = id === 'A' ? playheadA : playheadB;
+    const stride = id === 'A' ? strideA : strideB;
+    return score.timeline
+      .map((c, i) => ({
+        key: `cdo-${i}`,
+        x: WAVE_W / 2 + (downbeat + (c.bar - 1) * barDur - ph) * stride,
+        bar: c.bar,
+        label: c.label ?? null,
+      }))
+      .filter((s) => s.x > -4 && s.x < WAVE_W + 4);
   }
 
   const deckOf = (id: DeckId) => mixerStore.getDeck(id);
@@ -618,6 +735,10 @@ import VzKey from './VzKey.svelte'; // ALC-230 : primitive mécanique du pupitre
         <span class="absolute top-7 -translate-x-1/2 z-10 font-mono text-[11px] font-semibold leading-none text-[#ecd9ad]" style="left:{mm.x / WAVE_W * 100}%;">{mm.m}</span>
       {/if}
     {/each}
+    {#each arrCueSlots('A') as cd (cd.key)}
+      <div class="absolute inset-y-0 w-[2px] z-20 pointer-events-none" style="left:{cd.x}px;background:linear-gradient(to bottom,#e0a860,#8c6d3f);"></div>
+      <div class="absolute top-0 -translate-x-1/2 z-20 pointer-events-none" style="left:{cd.x}px;"><span class="vz-arr-marker">M{cd.bar}{cd.label ? ` • ${cd.label}` : ''}</span></div>
+    {/each}
     {#each envelopeBars('A') as bar (bar.key)}
       <div class="absolute w-[2px] z-20 pointer-events-none" style="left:{bar.x}px;bottom:28px;height:{bar.h}px;background:linear-gradient(to bottom,#34d399 0%,rgba(16,185,129,0.12) 100%);border-top:1px solid rgba(52,211,153,0.85);"></div>
     {/each}
@@ -723,6 +844,10 @@ import VzKey from './VzKey.svelte'; // ALC-230 : primitive mécanique du pupitre
       {#if mm.showLabel}
         <span class="absolute top-7 -translate-x-1/2 z-10 font-mono text-[11px] font-semibold leading-none text-[#ecd9ad]" style="left:{mm.x / WAVE_W * 100}%;">{mm.m}</span>
       {/if}
+    {/each}
+    {#each arrCueSlots('B') as cd (cd.key)}
+      <div class="absolute inset-y-0 w-[2px] z-20 pointer-events-none" style="left:{cd.x}px;background:linear-gradient(to bottom,#e0a860,#8c6d3f);"></div>
+      <div class="absolute top-0 -translate-x-1/2 z-20 pointer-events-none" style="left:{cd.x}px;"><span class="vz-arr-marker">M{cd.bar}{cd.label ? ` • ${cd.label}` : ''}</span></div>
     {/each}
     {#each envelopeBars('B') as bar (bar.key)}
       <div class="absolute w-[2px] z-20 pointer-events-none" style="left:{bar.x}px;bottom:28px;height:{bar.h}px;background:linear-gradient(to bottom,#38bdf8 0%,rgba(56,189,248,0.12) 100%);border-top:1px solid rgba(56,189,248,0.85);"></div>
@@ -881,9 +1006,43 @@ import VzKey from './VzKey.svelte'; // ALC-230 : primitive mécanique du pupitre
     <div class="flex flex-col gap-1.5 min-w-0">
       <div class="vz-group-head">
         <span class="vz-group-caption">03 · Mashup 1‑Clic</span>
+        <button type="button" class="venezia-key h-7 px-2 gap-1 text-[9px] font-bold uppercase tracking-wider text-[#e0a860] whitespace-nowrap" title="Coller une partition d'arrangement JSON (Mode Chef d'Orchestre)" aria-label="Coller une partition d'arrangement JSON" onclick={() => void collerPartition()}><span class="material-symbols-outlined text-[12px]" aria-hidden="true">content_paste</span>Coller Partition</button>
+        <button type="button" class="venezia-key h-7 px-2 gap-1 text-[9px] font-bold uppercase tracking-wider text-[#e0a860] whitespace-nowrap" title="Générer une partition d'arrangement via l'IA Chef d'Orchestre (ou installer le module si absent)" aria-label="Générer une partition via l'IA Chef d'Orchestre" onclick={() => void genererChef()}><span class="material-symbols-outlined text-[12px]" aria-hidden="true">auto_awesome</span>Générer IA</button>
         <span class="vz-rule flex-1"></span>
         {#if needAB}<span id={reqAbMashup} class="vz-required">Requiert A + B</span>{/if}
       </div>
+      {#if arrPasteOpen}
+        <div class="flex items-center gap-1.5 min-w-0">
+          <input bind:value={arrPasteText} placeholder="Collez le JSON de la partition…" class="min-w-0 flex-1 h-8 rounded border border-[#edbf7a]/40 bg-[#120d0a] px-2 font-mono text-[9px] text-[#edcf9a] placeholder:text-outline/50" onkeydown={(e) => { if (e.key === 'Enter') submitPartition(); }} />
+          <button type="button" class="venezia-key h-8 px-2 text-[9px] font-bold uppercase tracking-wider text-[#e0a860] whitespace-nowrap" onclick={submitPartition}><span class="material-symbols-outlined text-[12px]" aria-hidden="true">check</span>OK</button>
+          <button type="button" class="venezia-key h-8 w-8 text-[11px] text-outline" aria-label="Annuler le collage" onclick={() => { arrPasteOpen = false; arrPasteText = ''; }}>✕</button>
+        </div>
+      {/if}
+      {#if mixerStore.arrangementError}
+        <div class="flex items-center justify-between gap-2 px-2 py-1 rounded border border-red-500/40 bg-red-500/10">
+          <span class="font-mono text-[8px] font-bold uppercase tracking-widest text-[#ffb4ab] whitespace-nowrap truncate">⚠ {mixerStore.arrangementError}</span>
+          <button type="button" class="px-1 text-[10px] text-[#ffb4ab]" aria-label="Fermer l'erreur" onclick={() => { mixerStore.arrangementError = null; }}>✕</button>
+        </div>
+      {/if}
+      {#if mixerStore.activeArrangementScore}
+        <div class="flex items-center gap-2 px-2 py-1 rounded border border-[#edbf7a]/30 bg-[#edbf7a]/10 min-w-0">
+          <span class="material-symbols-outlined vz-rail-icon text-[#e0a860]" aria-hidden="true">music_note</span>
+          <span class="font-mono text-[9px] font-bold uppercase tracking-widest text-[#e0a860] whitespace-nowrap truncate">{mixerStore.activeArrangementScore.title}</span>
+          <span class="vz-rule flex-1"></span>
+          <span class="font-mono text-[9px] font-bold tabular-nums text-[#edcf9a] whitespace-nowrap">{mixerStore.arrangementCurrentCueLabel ?? '—'}</span>
+          <button type="button" class="venezia-key h-7 px-2 gap-1 text-[9px] font-bold uppercase tracking-wider text-[#edbf7a] whitespace-nowrap" title="Exécuter la partition (démarrage simultané A + B)" onclick={() => void mixerStore.launchArrangementScore()}><span class="material-symbols-outlined text-[12px]" aria-hidden="true">play_arrow</span>Exécuter</button>
+          <div class="flex items-center gap-0.5" title="Noter la partition (1..5 étoiles)">
+            {#each [1, 2, 3, 4, 5] as n (n)}
+              <button type="button" class="vz-key w-4 h-5 {n <= saveRating ? 'text-[#edbf7a]' : 'text-outline/40'}" aria-label="{n} étoile(s)" onclick={() => (saveRating = n)}><span class="material-symbols-outlined text-[12px]" aria-hidden="true">{n <= saveRating ? 'star' : 'star_border'}</span></button>
+            {/each}
+          </div>
+          <button type="button" class="venezia-key h-7 px-2 gap-1 text-[9px] font-bold uppercase tracking-wider text-[#e0a860] whitespace-nowrap" title="Sauvegarder la partition dans la base d'apprentissage (arrangement_scores)" onclick={() => void sauverPartition()}><span class="material-symbols-outlined text-[12px]" aria-hidden="true">bookmark_add</span>Sauver</button>
+          {#if mixerStore.arrangementScorePlaying}
+            <button type="button" class="venezia-key h-7 px-2 gap-1 text-[9px] font-bold uppercase tracking-wider text-[#ffb4ab] whitespace-nowrap" title="Arrêter l'automatisation (sans couper l'audio)" onclick={() => mixerStore.stopArrangementScore()}><span class="material-symbols-outlined text-[12px]" aria-hidden="true">stop</span>Arrêter</button>
+          {/if}
+          <button type="button" class="venezia-key h-7 w-7 text-[11px] text-outline" aria-label="Effacer la partition chargée" title="Effacer la partition chargée" onclick={() => mixerStore.clearArrangementScore()}><span class="material-symbols-outlined text-[12px]" aria-hidden="true">close</span></button>
+        </div>
+      {/if}
       <div class="grid grid-cols-[2fr_1fr] gap-2 min-w-0 items-stretch">
         <div class="flex items-stretch gap-2 min-w-0">
           <div class="flex-1 min-w-0">
@@ -1132,6 +1291,23 @@ import VzKey from './VzKey.svelte'; // ALC-230 : primitive mécanique du pupitre
   .vz-ost-marker.vz-ost-entry {
     background: linear-gradient(180deg, #f0d9a8 0%, #c8a05c 100%);
     border-color: #9c7a45;
+  }
+  /* ALC-269 : cartouche dorée compacte « M{bar} • {label} » des repères Chef d'Orchestre */
+  .vz-arr-marker {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 5px;
+    font-family: var(--font-label-sm, ui-monospace, monospace);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #120d0a;
+    background: linear-gradient(180deg, #f0d9a8 0%, #c8a05c 100%);
+    border: 1px solid #9c7a45;
+    border-radius: 3px;
+    box-shadow: 0 0 6px rgba(224, 168, 96, 0.55), inset 0 1px 0 rgba(255, 240, 200, 0.65);
   }
   /* ALC-238-2 : cartouche doré compact des strophes vocal recalées sur la grille OST 1.0x */
   .vz-stanza-chip {

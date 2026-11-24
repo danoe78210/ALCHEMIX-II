@@ -6,7 +6,7 @@
 // centrale lisent les mêmes champs (`stemGains`, `stemMutes`) → la cohérence est garantie par
 // construction (un seul objet de vérité par deck).
 
-export type StemMixPreset = 'all' | 'acapella' | 'instrumental';
+export type StemMixPreset = 'all' | 'acapella' | 'instrumental' | 'theme';
 
 /** Volumes utilisateur par défaut des 4 stems (100 % partout). */
 export const STEM_DEFAULT_GAINS: Record<string, number> = {
@@ -78,8 +78,11 @@ export function applyStemPreset(
     for (const k of stems) next[k] = false;
   } else if (preset === 'acapella') {
     for (const k of stems) next[k] = k !== 'vocals';
+  } else if (preset === 'theme') {
+    // Crossover OST × OST — Platine Thème : seul `other` (cordes/cuivres/thème), drums+bass+vocals coupés.
+    for (const k of stems) next[k] = k !== 'other';
   } else {
-    // instrumental
+    // instrumental (Platine Rythmique d'un crossover : drums + bass + other actifs, vocals muté)
     for (const k of stems) next[k] = k === 'vocals';
   }
   return next;
@@ -211,6 +214,15 @@ export function resolveCrossDeckMashup(
   return vocalDeck === 'A'
     ? { A: 'acapella', B: 'instrumental' }
     : { A: 'instrumental', B: 'acapella' };
+}
+
+/**
+ * Crossover OST × OST : routage complémentaire des 4 stems.
+ *  - Platine Rythmique (`rhythm`) : preset `instrumental` → drums + bass + other actifs (vocals muté) ;
+ *  - Platine Thème (`theme`) : preset `theme` → seul `other` (cordes / cuivres), drums + bass + vocals coupés.
+ */
+export function resolveCrossoverStems(rhythm: 'A' | 'B'): Record<'A' | 'B', StemMixPreset> {
+  return rhythm === 'A' ? { A: 'instrumental', B: 'theme' } : { A: 'theme', B: 'instrumental' };
 }
 
 /**
@@ -590,6 +602,205 @@ export function genreHintsOstCinema(genre: string | null | undefined): boolean {
 
 /** ALC-231-5 : alias API homogène — le genre d'une piste évoque-t-il une bande originale / un film ? */
 export const isOstGenre: typeof genreHintsOstCinema = genreHintsOstCinema;
+
+/**
+ * Règle métier Pop vs Rock / Rock vs Pop — détection de genre « mot-clé utile » (insensible à la casse).
+ * NB : `rock` doit rester déclencheur (`hard rock`, `alt rock`) — pas de tokenisation stricte ici.
+ */
+const isPopGenreHint = (genre: string | null | undefined): boolean => {
+  const g = (genre || '').toLowerCase();
+  return g.includes('pop');
+};
+const isRockGenreHint = (genre: string | null | undefined): boolean => {
+  const g = (genre || '').toLowerCase();
+  return g.includes('rock');
+};
+
+/** Spécialité de mashup décidée par le routeur unifié des trois règles métier OST/Vocal · OST/OST · Pop/Rock. */
+export type MashupSpecialty = 'ost-crossover' | 'ost-vocal' | 'pop-rock' | 'standard';
+
+export interface MashupSpecialtyResult {
+  /** Spécialité décidée. */
+  specialty: MashupSpecialty;
+  /** Fréquence (Hz) du creux médium à appliquer sur le stem `other` de l'instrumental (0 = aucun). */
+  midNotchHz: number;
+}
+
+/**
+ * Routeur unifié des trois spécialités de mashup (règles métier `.clinerules/04 • 05 • 06`) :
+ *  - les DEUX platines quasi-instrumentales + au moins une B.O. → `ost-crossover` (creux `1 500 Hz`) ;
+ *  - une voix dominante + au moins une B.O.                     → `ost-vocal` (creux `1 800 Hz`) ;
+ *  - une piste Pop + une piste Rock (les 2 sens A/B)            → `pop-rock` — creux **Guitar Pocket** :
+ *    `2 200 Hz` si l'instrumental est Rock, `1 250 Hz` s'il est Pop ;
+ *  - sinon                                                       → `standard` (aucun creux).
+ */
+export function resolveMashupSpecialty(
+  a: MashupStemsMeta | null,
+  b: MashupStemsMeta | null
+): MashupSpecialtyResult {
+  if (!a || !b) return { specialty: 'standard', midNotchHz: 0 };
+  const aV = Math.max(0, Math.min(1, a.vocalActivityRatio));
+  const bV = Math.max(0, Math.min(1, b.vocalActivityRatio));
+  const aOst = genreHintsOstCinema(a.genre);
+  const bOst = genreHintsOstCinema(b.genre);
+  // ① OST × OST : aucune voix dominante + au moins une bande originale.
+  if (aV < VOCAL_QUASI_NULL && bV < VOCAL_QUASI_NULL && (aOst || bOst)) {
+    return { specialty: 'ost-crossover', midNotchHz: 1500 };
+  }
+  // ② OST × Vocal : une voix dominante + au moins une bande originale.
+  const oneVocal =
+    (aV >= VOCAL_SIGNIFICANT && bV < VOCAL_QUASI_NULL) ||
+    (bV >= VOCAL_SIGNIFICANT && aV < VOCAL_QUASI_NULL);
+  if (oneVocal && (aOst || bOst)) {
+    return { specialty: 'ost-vocal', midNotchHz: 1800 };
+  }
+  // ③ Pop × Rock : une piste Pop, une piste Rock (les deux sens A/B).
+  const aPop = isPopGenreHint(a.genre);
+  const aRock = isRockGenreHint(a.genre);
+  const bPop = isPopGenreHint(b.genre);
+  const bRock = isRockGenreHint(b.genre);
+  if ((aPop && bRock) || (aRock && bPop)) {
+    // Platine instrumentale = la moins vocale ; son genre détermine la fréquence (Rock → 2 200, Pop → 1 250).
+    const inst = bV < aV ? b : a;
+    return { specialty: 'pop-rock', midNotchHz: isRockGenreHint(inst.genre) ? 2200 : 1250 };
+  }
+  return { specialty: 'standard', midNotchHz: 0 };
+}
+
+/**
+ * Règle métier Medley & Alternance Thématique OST ↔ OST (`.clinerules/07-regle-medley-transitions-ost.md`).
+ * Input des deux platines instrumentales — grille quantifiée en blocs de 8 mesures sur le downbeat
+ * percussif (`drums.wav`, ALC-253) :
+ *   - Intro (0–8 mes) : drums muté, `other` d'amorce ouvert ;
+ *   - Exposition Question-Réponse : `other A` ↔ `other B` basculés à chaque frontière de 8 mesures,
+ *     `drums + bass` verrouillés sur la Platine Socle ;
+ *   - Breakdown Pivot (8 mes à mi-parcours) : `drums` muté sur la Socle ;
+ *   - Climax Contrapuntique (tiers final) : `other A` + `other B` ouverts avec LPF 950 Hz (grave) /
+ *     HPF 1050 Hz (aigu).
+ */
+export interface OstMedleyDeckInput {
+  bpm: number;
+  /** Downbeat percussif (kick) de `drums.wav` — ancre la grille. */
+  firstDownbeatSeconds?: number;
+  /** Énergie percussive RMS (désigne la Platine Socle). */
+  drumsRms?: number;
+}
+
+export type MedleyDeckTarget = { vocals: number; drums: number; bass: number; other: number };
+
+export interface OstMedleyPhase {
+  index: number;
+  label: 'intro' | 'exposure' | 'breakdown' | 'climax';
+  startSeconds: number;
+  endSeconds: number;
+  /** Gains cibles (0 | 1) par stem pour chaque platine. */
+  A: MedleyDeckTarget;
+  B: MedleyDeckTarget;
+  /** Platine « Socle » qui porte la pulsation drums + bass. */
+  socle: 'A' | 'B';
+  /** Séparation spectrale complémentaire au climax (LPF grave / HPF aigu) — sinon absente. */
+  bandSplit?: { lowHz: number; highHz: number; grave: 'A' | 'B'; aigu: 'A' | 'B' };
+}
+
+export interface OstMedleyPlan {
+  bpm: number;
+  measureSeconds: number;
+  bar8: number;
+  phases: OstMedleyPhase[];
+  socle: 'A' | 'B';
+}
+
+const MEDLEY_BAND_LOW = 950;
+const MEDLEY_BAND_HIGH = 1050;
+
+export function computeOstMedleyPlan(
+  deckA: OstMedleyDeckInput,
+  deckB: OstMedleyDeckInput,
+  durationSeconds = 192,
+  gridOffsetMs = 0
+): OstMedleyPlan {
+  const bpm = (deckA.bpm > 0 ? deckA.bpm : deckB.bpm) || 120;
+  const beat = 60 / bpm;
+  const measureSeconds = 4 * beat; // 1 mesure = 4 temps
+  const bar8 = 8 * measureSeconds; // bloc de 8 mesures
+  const dur = Math.max(bar8 * 3, Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : 192);
+  const fdbA = Number.isFinite(deckA.firstDownbeatSeconds) && deckA.firstDownbeatSeconds! >= 0 ? deckA.firstDownbeatSeconds! : 0;
+  const fdbB = Number.isFinite(deckB.firstDownbeatSeconds) && deckB.firstDownbeatSeconds! >= 0 ? deckB.firstDownbeatSeconds! : 0;
+  const offset = (gridOffsetMs || 0) / 1000;
+  const anchor = Math.max(0, offset, fdbA, fdbB); // downbeat réel de drums.wav
+  const socle: 'A' | 'B' = (deckB.drumsRms ?? -1) > (deckA.drumsRms ?? -1) ? 'B' : 'A';
+  const totalBlocks = Math.max(3, Math.floor(dur / bar8));
+  const midBlock = Math.floor(totalBlocks / 2); // breakdown pivot à mi-parcours
+  const climaxStartBlock = Math.max(midBlock + 2, Math.floor((totalBlocks * 2) / 3));
+  const zero: MedleyDeckTarget = { vocals: 0, drums: 0, bass: 0, other: 0 };
+  const make = (
+    i: number,
+    label: OstMedleyPhase['label'],
+    A: MedleyDeckTarget,
+    B: MedleyDeckTarget,
+    bandSplit?: OstMedleyPhase['bandSplit']
+  ): OstMedleyPhase => ({
+    index: i,
+    label,
+    startSeconds: anchor + i * bar8,
+    endSeconds: Math.min(dur, anchor + (i + 1) * bar8),
+    A,
+    B,
+    socle,
+    bandSplit,
+  });
+
+  const phases: OstMedleyPhase[] = [];
+  for (let i = 0; i < totalBlocks; i++) {
+    const A: MedleyDeckTarget = { ...zero };
+    const B: MedleyDeckTarget = { ...zero };
+    // ① Intro minimaliste sans batterie (other d'amorce = Socle).
+    if (i === 0) {
+      if (socle === 'A') A.other = 1;
+      else B.other = 1;
+      phases.push(make(i, 'intro', A, B));
+      continue;
+    }
+    // ② Breakdown pivot : 8 mesures sans drums/bass (changement de thème).
+    if (i === midBlock) {
+      if (i % 2 === 0) A.other = 1;
+      else B.other = 1;
+      phases.push(make(i, 'breakdown', A, B));
+      continue;
+    }
+    // ③ Climax contrapuntique : les deux thèmes ouverts + séparation grave/aigu (LPF 950 / HPF 1050).
+    if (i >= climaxStartBlock) {
+      A.other = 1;
+      B.other = 1;
+      if (socle === 'A') {
+        A.drums = 1;
+        A.bass = 1;
+      } else {
+        B.drums = 1;
+        B.bass = 1;
+      }
+      const grave: 'A' | 'B' = socle; // le socle rythmique porte le thème grave
+      const aigu: 'A' | 'B' = socle === 'A' ? 'B' : 'A';
+      phases.push(make(i, 'climax', A, B, { lowHz: MEDLEY_BAND_LOW, highHz: MEDLEY_BAND_HIGH, grave, aigu }));
+      continue;
+    }
+    // ④ Exposition Question-Réponse : alterner other A / other B par blocs de 8 mesures sur le Socle.
+    const turn: 'A' | 'B' = (i - 1) % 2 === 0 ? 'A' : 'B';
+    if (socle === 'A') {
+      A.drums = 1;
+      A.bass = 1;
+      if (turn === 'A') A.other = 1;
+      else B.other = 1;
+    } else {
+      B.drums = 1;
+      B.bass = 1;
+      if (turn === 'B') B.other = 1;
+      else A.other = 1;
+    }
+    phases.push(make(i, 'exposure', A, B));
+  }
+  return { bpm, measureSeconds, bar8, phases, socle };
+}
 
 /**
  * ALC-235 : plan de tempo du mashup « Profil OST / Cinéma » — PROTECTION DU TIMBRE VOCAL.
@@ -1020,6 +1231,12 @@ export interface ContinuousOstMashupPlan {
    * downbeat (4 mesures) du couplet/refrain suivant au lieu de rester muet pendant le pont. */
   vocalBridgeSkips: { triggerOstSeconds: number; jumpToVocalSeconds: number }[];
   breathingWindows: ContinuousBreathingWindow[];
+  /** Clause 7 — refrains/climax (blocs complets 8/16 mesures) où `drums+bass` de la platine vocale
+   * s'ouvrent avec passe-haut 140 Hz sur l'OST — présent uniquement si le relais hybride est activé
+   * (ost.drumsRms bas + voc.drumsRms élevé). */
+  hybridGrooveWindows?: { startSeconds: number; endSeconds: number }[];
+  /** Clause 10 — début de l'outro symphonique nue (4/8 dernières mesures, alignées sur la grille OST). */
+  bareOutroStartSeconds?: number;
 }
 
 function detectContinuousBreathingWindows(args: {
@@ -1151,6 +1368,9 @@ export function computeContinuousOstMashupPlan(args: {
   vocalStartHintSeconds?: number;
   ostDurationSeconds?: number;
   vocalDurationSeconds?: number;
+  /** Clause 7 — énergie percussive RMS des platines (déclencheur du relais rythmique hybride). */
+  ostDrumsRms?: number;
+  vocalDrumsRms?: number;
   ostVocals?: Float32Array;
   ostOther?: Float32Array;
   ostDrums?: Float32Array;
@@ -1160,6 +1380,13 @@ export function computeContinuousOstMashupPlan(args: {
   vocalFirstDownbeatSeconds?: number;
   chorusEndSeconds?: number;
 }): ContinuousOstMashupPlan {
+  // Règle métier OST+Vocal (.clinerules/04-regle-mashup-ost-vocal.md) — invariants verrouillés ici :
+  //  1) Beatmatch continu : octave [0.75..1.35] (1:1 / 2:1 / 1:2), ostPlaybackRate = 1, zéro re-seek
+  //     en cours de phrase (ALC-246) — la dérive est absorbée par les breathingWindows + gain seul.
+  //  2) Temps 1 réel : grilles ANCRÉES sur fdbA/fdbB (kick drums.wav), intro orchestrale ≤ 8 mesures.
+  //  3) THÈME OST SOLO (lyrique `ostStems.vocals` ∪ cuivres `ostStems.other`) & vocalBridgeSkips :
+  //     fenêtres macro ≥ 8 mesures (frontière 8/16) quantifiées aux downbeats, fondu 40–60 ms,
+  //     vocalBridgeSkips STRICTEMENT croissants (jamais de retour en arrière / répétition de phrase).
   const ostBpm = args.ostBpm > 0 ? args.ostBpm : 120;
   const vocBpm = args.vocalBpm > 0 ? args.vocalBpm : ostBpm;
   // Beatmatch continu : l'OST reste à son tempo naturel, le vocal est plié à l'octave la plus proche
@@ -1188,6 +1415,36 @@ export function computeContinuousOstMashupPlan(args: {
   const vsHint = Number.isFinite(args.vocalStartHintSeconds) ? args.vocalStartHintSeconds! : 0;
   const qVoc = Math.max(0, Math.round(((vsHint - fdbB) * vocalPlaybackRate) / bar4));
   const vocalStartSeconds = fdbB + (qVoc * bar4) / vocalPlaybackRate;
+  // Clause 7 — Relais rythmique hybride : OST basse énergie percussive + platine vocale avec groove marqué.
+  const measureSec = 4 * beat;
+  const ba8 = 8 * measureSec; // bloc de 8 mesures
+  const ostLowDrums = Number.isFinite(args.ostDrumsRms) && (args.ostDrumsRms ?? 0) < 0.25;
+  const vocGroove = Number.isFinite(args.vocalDrumsRms) && (args.vocalDrumsRms ?? 0) >= 0.4;
+  let hybridGrooveWindows: { startSeconds: number; endSeconds: number }[] | undefined;
+  if (ostLowDrums && vocGroove) {
+    const oDurHy =
+      Number.isFinite(args.ostDurationSeconds) && (args.ostDurationSeconds || 0) > 0 ? args.ostDurationSeconds! : null;
+    // Refrains/climax : du 1er bloc de 8 mesures suivant l'entrée vocale jusqu'à la fin (ou 2 blocs par défaut).
+    const hyStart0 = fdbA + Math.ceil((vocalStartSeconds + ba8 - fdbA - 1e-6) / ba8) * ba8;
+    const nHy = oDurHy != null ? Math.max(1, Math.floor((oDurHy - hyStart0) / ba8)) : 2;
+    hybridGrooveWindows = [];
+    for (let k = 0; k < nHy; k++) {
+      const s = hyStart0 + k * ba8;
+      const e = Math.min(oDurHy ?? Number.MAX_SAFE_INTEGER, s + ba8);
+      if (e > s) hybridGrooveWindows.push({ startSeconds: s, endSeconds: e });
+    }
+  }
+  // Clause 10 — Outro symphonique nue : 8 dernières mesures (4 si l'OST est courte), alignées sur la grille.
+  let bareOutroStartSeconds: number | undefined;
+  if (Number.isFinite(args.ostDurationSeconds) && (args.ostDurationSeconds || 0) > 0) {
+    const oDurOut = args.ostDurationSeconds!;
+    const outroBars = oDurOut - fdbA <= 16 * measureSec ? 4 : 8;
+    const rawOut = oDurOut - outroBars * measureSec;
+    const kOut = Math.max(0, Math.floor((rawOut - fdbA) / bar4 + 1e-9));
+    bareOutroStartSeconds = fdbA + kOut * bar4;
+    if (bareOutroStartSeconds < vocalStartSeconds + bar4) bareOutroStartSeconds = vocalStartSeconds + bar4;
+    if (bareOutroStartSeconds >= oDurOut - 1e-6) bareOutroStartSeconds = Math.max(vocalStartSeconds, oDurOut - 8 * measureSec);
+  }
   const breathingWindows = detectContinuousBreathingWindows({
     ostBpm,
     gridOffsetMs: args.gridOffsetMs || 0,
@@ -1238,6 +1495,8 @@ export function computeContinuousOstMashupPlan(args: {
     vocalStartSeconds,
     vocalBridgeSkips: safeSkips,
     breathingWindows,
+    hybridGrooveWindows,
+    bareOutroStartSeconds,
   };
 }
 
@@ -1255,13 +1514,17 @@ export interface MashupStemsMeta {
   camelotKey?: string | null;
   /** BPM recalibré drums (facultatif, informatif). */
   bpm?: number | null;
+  /** Énergie percussive RMS du stem `drums` (0..1) — désigne la Platine Rythmique d'un crossover. */
+  drumsRms?: number;
 }
 
 /** ALC-242 : recette Mashup recommandée + profil. */
 export interface MashupRecipeRecommendation {
-  mode: 'instA_vocB' | 'vocA_instB';
+  mode: 'instA_vocB' | 'vocA_instB' | 'crossover';
   profile: 'standard' | 'ost-cinema';
   reason: string;
+  /** Crossover OST × OST : désignation Platine Rythmique (drums+bass+other) / Platine Thème (other seul). */
+  crossover?: { rhythm: 'A' | 'B'; theme: 'A' | 'B' };
 }
 
 const VOCAL_SIGNIFICANT = 0.25;
@@ -1284,6 +1547,28 @@ export function recommendMashupRecipe(
   const aV = Math.max(0, Math.min(1, a.vocalActivityRatio));
   const bV = Math.max(0, Math.min(1, b.vocalActivityRatio));
   const pct = (v: number) => `${Math.round(v * 100)} %`;
+  // Règle métier Crossover OST × OST : aucune voix dominante SUR LES DEUX platines ET au moins une
+  // bande originale → routage complémentaire des stems (Platine Rythmique = drums+bass+other,
+  // Platine Thème = other seul) + creux EQ −3 dB @ 1.5 kHz sur le other de la Platine Rythmique.
+  if (
+    aV < VOCAL_QUASI_NULL &&
+    bV < VOCAL_QUASI_NULL &&
+    (genreHintsOstCinema(a.genre) || genreHintsOstCinema(b.genre))
+  ) {
+    const aDr = Number.isFinite(a.drumsRms) ? a.drumsRms! : -1;
+    const bDr = Number.isFinite(b.drumsRms) ? b.drumsRms! : -1;
+    const rhythm: 'A' | 'B' = bDr > aDr ? 'B' : 'A';
+    const theme: 'A' | 'B' = rhythm === 'A' ? 'B' : 'A';
+    return {
+      mode: 'crossover',
+      profile: 'ost-cinema',
+      crossover: { rhythm, theme },
+      reason:
+        `CROSSOVER OST × OST — aucune voix dominante (A ${pct(aV)} · B ${pct(bV)}) + bande originale : ` +
+        `Platine ${rhythm} = Rythmique (drums + bass + other), Platine ${theme} = Thème (other seul) ; ` +
+        `creux EQ -3 dB @ 1.5 kHz (Q=1.0) sur le other de la Platine ${rhythm}.`,
+    };
+  }
   let mode: 'instA_vocB' | 'vocA_instB';
   let reason: string;
   if (aV >= VOCAL_SIGNIFICANT && bV < VOCAL_QUASI_NULL) {
@@ -1459,5 +1744,292 @@ export function computeOstVocalMashupPlan(
     vocalChorusSeconds: clampSec(vocalChorusSeconds, vDur),
     ostEntrySeconds: clampSec(ostEntrySeconds, dur),
     dialogueRisk,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ALC-269 : « Mode Chef d'Orchestre » — partitions d'arrangement JSON
+// (`MashupArrangementScore`). Logique PURE (testable sous `node --test`) :
+// schéma de partition, validation & moteur de résolution à la mesure courante.
+// ─────────────────────────────────────────────────────────────────────────────
+export type ArrangementStemName = 'vocals' | 'drums' | 'bass' | 'other';
+
+export interface ArrangementTimelineCue {
+  bar: number;
+  deckA: ArrangementStemName[];
+  deckB: ArrangementStemName[];
+  crossfader?: number;
+  filterA?: { type: 'lpf' | 'hpf'; freqHz: number };
+  filterB?: { type: 'lpf' | 'hpf'; freqHz: number };
+  label?: string;
+}
+
+export interface MashupArrangementScore {
+  version: '1.0';
+  title: string;
+  masterBpm?: number;
+  crossfader?: number;
+  deckA?: {
+    role?: 'ost-instrumental' | 'instrumental' | 'vocal' | 'rhythm' | 'theme';
+    startBar?: number;
+  };
+  deckB?: {
+    role?: 'ost-instrumental' | 'instrumental' | 'vocal' | 'rhythm' | 'theme';
+    startBar?: number;
+    entryBar?: number;
+    sourceStartBar?: number;
+  };
+  eq?: {
+    duckTarget?: 'A.other' | 'B.other' | 'none';
+    duckFreqHz?: number;
+    duckGainDb?: number;
+    duckQ?: number;
+    hpfHz?: { A?: number; B?: number };
+  };
+  timeline: ArrangementTimelineCue[];
+}
+
+export type ArrangementParseResult =
+  | { ok: true; score: MashupArrangementScore }
+  | { ok: false; error: string };
+
+const VALID_STEMS: ArrangementStemName[] = ['vocals', 'drums', 'bass', 'other'];
+const VALID_VERSIONS = ['1.0'] as const;
+const MAX_BAR = 1_000_000;
+
+/** Retire d'éventuelles balises Markdown ```json / ``` entourant le JSON collé. */
+function stripMarkdownFences(text: string): string {
+  let t = (text || '').trim();
+  const fence = /^```json\s*([\s\S]*?)```\s*$/i.exec(t);
+  if (fence) return fence[1].trim();
+  const fenceAny = /^```\s*([\s\S]*?)```\s*$/.exec(t);
+  if (fenceAny) return fenceAny[1].trim();
+  return t;
+}
+
+function isStemName(v: unknown): v is ArrangementStemName {
+  return typeof v === 'string' && (VALID_STEMS as string[]).includes(v);
+}
+
+/** Valide la liste de stems d'un repère ; retourne un message d'erreur ou null. */
+function validateStemList(v: unknown, field: string): string | null {
+  if (!Array.isArray(v)) return `« ${field} » doit être un tableau de stems`;
+  for (const s of v) {
+    if (!isStemName(s)) return `« ${field} » contient un stem inconnu : ${JSON.stringify(s)}`;
+  }
+  return null;
+}
+
+function clampNum(v: unknown, fallback: number, min: number, max: number): number {
+  const n = typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+function hpfObj(v: unknown): Record<string, unknown> {
+  if (typeof v !== 'object' || v === null) return {};
+  const o = v as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  if (typeof o.A === 'number') out.A = clampNum(o.A, 20, 20, 20000);
+  if (typeof o.B === 'number') out.B = clampNum(o.B, 20, 20, 20000);
+  return out;
+}
+
+/**
+ * Parse & valide une partition d'arrangement JSON. Accepte un objet JSON direct,
+ * avec ou sans balises Markdown ```json / ``` au collage. Valide la structure
+ * (`version: '1.0'`, timeline >= 1 repère, bar >= 1, stems connus), trie la
+ * timeline par mesure croissante et retourne `{ ok:true, score }` ou
+ * `{ ok:false, error }` avec un message explicite.
+ */
+export function parseAndValidateArrangementScore(rawText: string): ArrangementParseResult {
+  const cleaned = stripMarkdownFences(rawText);
+  if (!cleaned) return { ok: false, error: 'Partition vide : collez un objet JSON' };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (err) {
+    return {
+      ok: false,
+      error: `JSON invalide : ${err instanceof Error ? err.message : 'erreur de syntaxe'}`,
+    };
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return { ok: false, error: 'La partition doit être un objet JSON' };
+  }
+  const raw = parsed as Record<string, unknown>;
+
+  const version = raw.version;
+  if (typeof version !== 'string' || (VALID_VERSIONS as readonly string[]).indexOf(version) === -1) {
+    return {
+      ok: false,
+      error: `Version non reconnue : ${JSON.stringify(version)} (attendu '1.0')`,
+    };
+  }
+  const title =
+    typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : 'Partition sans titre';
+
+  if (!Array.isArray(raw.timeline)) {
+    return { ok: false, error: 'La partition doit contenir un champ « timeline » (tableau)' };
+  }
+  if (raw.timeline.length < 1) {
+    return { ok: false, error: 'La timeline doit contenir au moins 1 repère' };
+  }
+
+  const timeline: ArrangementTimelineCue[] = [];
+  for (let i = 0; i < raw.timeline.length; i++) {
+    const cue = raw.timeline[i] as Record<string, unknown>;
+    if (typeof cue !== 'object' || cue === null) {
+      return { ok: false, error: `Repère ${i + 1} : doit être un objet` };
+    }
+    const bar = cue.bar;
+    if (typeof bar !== 'number' || !Number.isFinite(bar) || bar < 1) {
+      return {
+        ok: false,
+        error: `Repère ${i + 1} : « bar » doit être une mesure >= 1 (obtenu ${JSON.stringify(bar)})`,
+      };
+    }
+    const barInt = Math.max(1, Math.floor(Math.min(bar, MAX_BAR)));
+    const errA = validateStemList(cue.deckA, `repère ${i + 1}.deckA`);
+    if (errA) return { ok: false, error: errA };
+    const errB = validateStemList(cue.deckB, `repère ${i + 1}.deckB`);
+    if (errB) return { ok: false, error: errB };
+
+    const out: ArrangementTimelineCue = {
+      bar: barInt,
+      deckA: (cue.deckA as unknown[]).filter(isStemName) as ArrangementStemName[],
+      deckB: (cue.deckB as unknown[]).filter(isStemName) as ArrangementStemName[],
+    };
+    if (cue.crossfader !== undefined) out.crossfader = clampNum(cue.crossfader, 0.5, 0, 1);
+    const filterFor = (f: unknown): { type: 'lpf' | 'hpf'; freqHz: number } | undefined => {
+      if (typeof f !== 'object' || f === null) return undefined;
+      const fr = f as Record<string, unknown>;
+      const type = fr.type;
+      if (type !== 'lpf' && type !== 'hpf') return undefined;
+      return { type, freqHz: clampNum(fr.freqHz, 1000, 20, 20000) };
+    };
+    const fA = filterFor(cue.filterA);
+    if (fA) out.filterA = fA;
+    const fB = filterFor(cue.filterB);
+    if (fB) out.filterB = fB;
+    if (typeof cue.label === 'string' && cue.label.trim()) out.label = cue.label.trim();
+
+    timeline.push(out);
+  }
+  timeline.sort((a, b) => a.bar - b.bar);
+
+  const VALID_ROLES = ['ost-instrumental', 'instrumental', 'vocal', 'rhythm', 'theme'];
+  const parseRole = (v: unknown): NonNullable<MashupArrangementScore['deckA']>['role'] | undefined => {
+    if (typeof v !== 'string' || VALID_ROLES.indexOf(v) === -1) return undefined;
+    return v as NonNullable<MashupArrangementScore['deckA']>['role'];
+  };
+  const dA = raw.deckA as Record<string, unknown> | undefined;
+  const deckA =
+    dA && typeof dA === 'object'
+      ? {
+          ...(parseRole(dA.role) ? { role: parseRole(dA.role) } : {}),
+          ...(typeof dA.startBar === 'number' && Number.isFinite(dA.startBar)
+            ? { startBar: Math.max(1, Math.floor(dA.startBar)) }
+            : {}),
+        }
+      : undefined;
+  const dB = raw.deckB as Record<string, unknown> | undefined;
+  const deckB =
+    dB && typeof dB === 'object'
+      ? {
+          ...(parseRole(dB.role) ? { role: parseRole(dB.role) } : {}),
+          ...(typeof dB.startBar === 'number' && Number.isFinite(dB.startBar)
+            ? { startBar: Math.max(1, Math.floor(dB.startBar)) }
+            : {}),
+          ...(typeof dB.entryBar === 'number' && Number.isFinite(dB.entryBar)
+            ? { entryBar: Math.max(1, Math.floor(dB.entryBar)) }
+            : {}),
+          ...(typeof dB.sourceStartBar === 'number' && Number.isFinite(dB.sourceStartBar)
+            ? { sourceStartBar: Math.max(1, Math.floor(dB.sourceStartBar)) }
+            : {}),
+        }
+      : undefined;
+
+  const eqRaw = raw.eq as Record<string, unknown> | undefined;
+  const eq =
+    eqRaw && typeof eqRaw === 'object'
+      ? {
+          ...(typeof eqRaw.duckTarget === 'string' &&
+          ['A.other', 'B.other', 'none'].includes(eqRaw.duckTarget)
+            ? { duckTarget: eqRaw.duckTarget as 'A.other' | 'B.other' | 'none' }
+            : {}),
+          ...(typeof eqRaw.duckFreqHz === 'number'
+            ? { duckFreqHz: clampNum(eqRaw.duckFreqHz, 1800, 20, 20000) }
+            : {}),
+          ...(typeof eqRaw.duckGainDb === 'number'
+            ? { duckGainDb: clampNum(eqRaw.duckGainDb, -4.5, -6.5, 0) }
+            : {}),
+          ...(typeof eqRaw.duckQ === 'number'
+            ? { duckQ: clampNum(eqRaw.duckQ, 1, 0.1, 12) }
+            : {}),
+          ...(eqRaw.hpfHz !== undefined ? hpfObj(eqRaw.hpfHz) : {}),
+        }
+      : undefined;
+
+  const crossfader =
+    typeof raw.crossfader === 'number' ? clampNum(raw.crossfader, 0.5, 0, 1) : undefined;
+  const masterBpm =
+    typeof raw.masterBpm === 'number' && Number.isFinite(raw.masterBpm) && raw.masterBpm > 0
+      ? raw.masterBpm
+      : undefined;
+
+  const score: MashupArrangementScore = { version: '1.0', title, timeline };
+  if (masterBpm !== undefined) score.masterBpm = masterBpm;
+  if (crossfader !== undefined) score.crossfader = crossfader;
+  if (deckA !== undefined) score.deckA = deckA;
+  if (deckB !== undefined) score.deckB = deckB;
+  if (eq !== undefined) score.eq = eq;
+
+  return { ok: true, score };
+}
+
+export interface ArrangementResolvedState {
+  cue: ArrangementTimelineCue | null;
+  stemsA: ArrangementStemName[];
+  stemsB: ArrangementStemName[];
+  crossfader: number;
+  nextCueIndex: number;
+  nextCue: ArrangementTimelineCue | null;
+}
+
+/**
+ * Résout l'état de la partition à une mesure donnée (1-indexée sur la grille
+ * maître). Le repère actif est le dernier repère dont `bar <= currentBar` ;
+ * retourne les stems actifs sur A/B, le crossfader cible et l'indice du
+ * prochain repère à venir (`-1` si plus rien de prévu).
+ */
+export function resolveArrangementStateAtBar(
+  score: MashupArrangementScore,
+  currentBar: number
+): ArrangementResolvedState {
+  const bars = score.timeline.map((c) => c.bar);
+  const bar = Math.max(1, Math.floor(Number.isFinite(currentBar) ? currentBar : 1));
+
+  let activeIdx = 0;
+  for (let i = 0; i < bars.length; i++) {
+    if (bars[i] <= bar) activeIdx = i;
+  }
+  const cue = score.timeline[activeIdx] ?? null;
+
+  let nextIdx = -1;
+  for (let i = 0; i < bars.length; i++) {
+    if (bars[i] > bar) {
+      nextIdx = i;
+      break;
+    }
+  }
+
+  return {
+    cue,
+    stemsA: cue ? cue.deckA : [],
+    stemsB: cue ? cue.deckB : [],
+    crossfader: cue && cue.crossfader !== undefined ? cue.crossfader : score.crossfader ?? 0.5,
+    nextCueIndex: nextIdx,
+    nextCue: nextIdx >= 0 ? score.timeline[nextIdx] : null,
   };
 }

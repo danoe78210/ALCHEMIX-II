@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "AlcheMix II — Journaux de travail individuels par ticket",
-    "version": "1.110.0",
-    "updatedAt": "2026-11-21T05:10:00.000Z",
+    "version": "1.113.0",
+    "updatedAt": "2026-11-24T12:20:00.000+01:00",
     "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
   },
   "journals": {
@@ -3861,7 +3861,7 @@
         }
       ]
     },
-"ALC-230": {
+    "ALC-230": {
       "ticketId": "ALC-230",
       "entries": [
         {
@@ -3903,7 +3903,7 @@
           "ts": "2026-11-22T11:48:00.000+01:00",
           "type": "column",
           "message": "ALC-230 bascule en EN REVUE (6/6 sous-taches vertes : 1 investigation, 2 tokens, 3 VzKey, 4 hot cues/loops/rails/transport, 5 layout 12 colonnes, 6 hero loading+QA+docs). Validation : npm run check 0 erreur / 0 warning ; node --import ./tests/loader.mjs --test tests/ -> 111 passed / 0 failed. Refonte purement presentation/markup (VzKey + app.css + BeatgridView.<style> + rails) : AUCUN changement de logique audio, noms d'actions store, IPC ou Rust. h-screen overflow-hidden, whitespace-nowrap, tabular-nums, rubans waveform >=110px preserves. Mesures : hero 44px (38 compact), secondary 40px, ghost/sm 32px (28 compact) ; contrastes hero #1a1209 sur laiton (~11:1), secondaires #edbf7a sur #2b231d (~7:1), ghost #b8a68a sur #16110e (~6.3:1), disabled #7a6a55 sur #14100d (~3.6:1), captions #a89880 (~5.5:1). Aucun ticket Termine modifie ni override de statut local retrogradé."
-}
+        }
       ]
     },
     "ALC-231": {
@@ -4431,7 +4431,7 @@
         }
       ]
     },
-"ALC-248": {
+    "ALC-248": {
       "ticketId": "ALC-248",
       "entries": [
         {
@@ -4693,7 +4693,7 @@
           "ts": "2026-11-23T08:44:00.000+01:00",
           "type": "creation",
           "message": "Ticket ALC-255 cree (En cours, agent Maître Horloger) : polissage Interface Principale, Tiroirs Stems IA & Rack ID3 — 7 sous-taches -1..-7 (P0 : étape0/tokens, WP12/13, VzTip, tiroir Stems ≤150px ; P1 : ID3/Roue, jauges/palette/alignement, validation). Point d'arrêt obligatoire après -4. Aucun ticket Termine modifie."
-},
+        },
         {
           "ts": "2026-11-23T08:46:00.000+01:00",
           "type": "subtask",
@@ -4720,7 +4720,7 @@
           "message": "ALC-255-5 cochee (WP16 WP16+WP17, P1) : WP16 — src-tauri/src/audio.rs : helper true_bitrate_kbps(path) (lofty prelude, tagged.properties().audio_bitrate(), kbps, repli None si absent/nul) + bitrate_kbps passe en Option<u32> (plus AUCUN calcul PCM qui donnait 1411 sur MP3) ; commands/mod.rs TrackData.bitrate_kbps: Option<u32> ; client.ts bitrateKbps: number|null ; mixer.svelte.ts : formats avec perte (MP3/AAC/M4A/OGG/OPUS/VORBIS) → profondeur de bits masquée (sampleRate '44.1 kHz' seule) et débit réel ou '—' si null ; DeckA/DeckB rack ID3 : pochette 88x88 (radius 4px, cadre laiton 1px #8c6d3f/60, ombre interne), badge OPUS décoratif SUPPRIME (Step0 l'a confirme statique), valeurs neutres #f3dfbd (units --vz-text-mid), legendes ≥10px, grille grid-cols-[88px_1fr_auto]. WP17 — MixerCenter.svelte : arc pointillé doré 4B->8B SUPPRIME (decoratif Step0) ; plaque ebene d'intervalle au point median de l'arc A->B (harmonyMidPoint $derived + rect ebene + text interval.hub 10px laiton) ; le groupe harmonic-energy-bridge porte aria-label 'Pont harmonique A vers B' et les points mobiles un <title> 'Direction de modulation A → B'. Validations : npm run check 0/0, cargo check 0/0, cargo test --lib 69/69. meta v1.50.0."
         }
       ]
-},
+    },
     "ALC-256": {
       "ticketId": "ALC-256",
       "entries": [
@@ -4733,13 +4733,12 @@
           "ts": "2026-11-23T10:30:00.000+01:00",
           "type": "subtask",
           "message": "ALC-256-1 cochee (Etape 0 + WP21 bloc Stems). REPONSES ENQUETE : (1) pastille CALIBRE STEMS = deck.stemsCalibrated (ALC-242, set vrai quand télémétrie HTDemucs recue apres extraction, mixer.svelte.ts:1156) — rendue en bloc mt-1 dans RhythmKeyTelemetry.svelte :128 (badge ambre ~25px) → ajoute une ligne de hauteur couvrant la cause du désalignement (traite en WP23). (2) PAS de ré-extraction : extractStems(id) (mixer.svelte.ts:1101) relance via extract_stems_onnx mais le bouton étai disabled quand ready → STEMS PRÊTS était purement informatif (pas d'action de re-extraction exposée) ; désormais la ligne statut 16px est la seule présentation prête (aucune fausse promesse de re-extract). (3) 4e point vert carrousel = témoin stems du rivet 04 • STEMS IA dans HorologicalBarrelNav.svelte:216 (overlay bg-#10b981 quand stemsOn/busy) → indique stems prêts, pas un module de plus (traite WP25). (4) Oracle peek : le $effect MixerCenter.svelte:198-206 existe ET la logique est correcte (isEcartHarmonique/bridgeCount>0 → oraclePeek=true si fer moi false) — l'écart vient du fait que le bandeau 'ÉCART HARMONIQUE IMPORTANT' actualise verdict.cls=#ffb4ab, or le peek est déjà implémenté ; verifier le redim du bouton en WP22. (5) Libellé INST : docs/SPECIFICATIONS.md et glossary n'imposent PAS INST ; StemsMixerView utilise déjà 'INST.' et les spec ALC-242 'other'. Le passage à VOIX·BATT·BASSE·AUTRE + ACAPELLA/SANS VOIX est libre (aucun test ne dépend du libellé). (6) halo focus blanc Deck B : .hd-plate (HorologicalDrawer) sans :focus-visible custom → le navigateur dessine l'anneau natif blanc/bleu sur focus clavier (traite WP24). WP21 : DeckA/DeckB — grille grid-cols-4 gap-1.5 w-full, touches 32px w-full, icône+libellé internes centrés leading-none, LED intégrée, états active (aria-pressed fondu canal + LED)/inactive/mutée .vz-stem-key-muted/disabled (color #b8a68a ≥3:1 + dashed), ligne statut .vz-stem-status 16px quand ready (remplace la fausse barre 35px 'bouton'), presets grid-cols-2 ACAPELLA(mic)/SANS VOIX(mic_off) avec aria-pressed, renommage INST→AUTRE, cadre unique .vz-stems-panel bordure var(--acc). npm run check 0 erreur / 0 warning. meta v1.52.0."
-},
+        },
         {
           "ts": "2026-11-23T10:40:00.000+01:00",
           "type": "subtask",
           "message": "ALC-256-2 cochee (WP22 Oracle peek + bouton) : la bascule auto en peek etait DEJA implementee et correcte (MixerCenter.svelte $effect 198-206 : isEcartHarmonique = verdict.cls inclut #ffb4ab [eleve 3 quintes] OU bridgeCount>0 → oraclePeek=true si drawer ferme, sinon false ; tiroir Oracle recu peek={oraclePeek} et la cuve peek est rendue en .hd-cuve-peek) — aucune regression detectee, la verif visuelle du vide central ~275px est preservee. Redimensionnement du bouton ghost 'VOIR LES PONTS (n)' dans le bandeau d'etat : hauteur 28px (h-[28px]), texte 11px, couleur laiton #edbf7a (contraste ~12:1 sur fond sombre, ≥4.5:1), bordure laiton #8c6d3f, hover bg #edbf7a/10 + border #edbf7a, active translateY 1px — vrai aspect interactif ghost (fini l'air de bouton desactive ambre #3a3027/#b8a68a). npm run check 0 erreur / 0 warning. meta v1.53.0."
-        }
-,
+        },
         {
           "ts": "2026-11-23T10:50:00.000+01:00",
           "type": "subtask",
@@ -4751,8 +4750,7 @@
           "message": "ALC-256-4 cochee (WP24 anatomie facades tiroirs, HorologicalDrawer.svelte) : hauteur .hd-plate 30px -> 35px (confort 34-36px) pour les facades Stems/Metadonnees/Oracle ; ajout d'une poignee centrale gravee .hd-grip (rail 26x3px en pointilles laiton #b98a42 repeating-linear-gradient, opacity .5) ; chevron reecrit en element CSS rotatif .hd-latch (10x10px, bordure droite+basse var(--acc), rotate(45deg) → -135deg a l'ouverture via .hd-plate[aria-expanded='true'] .hd-latch, transition 220ms, opacity .85) a la place du texte ▾/▴ ; :focus-visible sur .hd-plate = outline 2px laiton var(--vz-brass-text #edbf7a) offset 2px — remplace l'anneau de focus blanc/bleu natif du navigateur (constat Step0 Q6) par la charte Venezia. markup : span.hd-grip insere avant .hd-latch. npm run check 0 erreur / 0 warning. meta v1.55.0."
         }
       ]
-    }
-,
+    },
     "ALC-257": {
       "ticketId": "ALC-257",
       "entries": [
@@ -4940,6 +4938,206 @@
           "ts": "2026-11-23T17:30:00.000+01:00",
           "type": "review",
           "message": "ALC-263 passe en EN REVUE (3/3 sous-taches vertes). Validation : npm run check 0 erreur / 0 warning ; node --import ./tests/loader.mjs --test tests/ 141/141. docs/SPECIFICATIONS.md mise a jour. meta v1.67.0. Aucun ticket Termine modifie."
+        }
+      ]
+    },
+    "ALC-264": {
+      "ticketId": "ALC-264",
+      "entries": [
+        {
+          "ts": "2026-11-23T18:50:00.000+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-264 cree (agent Maitre Horloger) : regle metier Mashup OST + Vocal (.clinerules/04-regle-mashup-ost-vocal.md) et protection des themes lyriques/cuivres sur frontieres 8/16 mesures. 3 sous-taches -1..-3. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-23T18:52:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-264-1 cochee (regle + reference) : creation de .clinerules/04-regle-mashup-ost-vocal.md formalisant les 6 invariants (Camelot dC in {0,+-1} / relatif, beatmatch Key Lock sans re-seek, temps 1 drums.wav + intro 4-8 mes + climax, dialogue question-reponse THEME OST SOLO 8/16 mes fondu 40-60 ms, ducking 1800 Hz borne [-3,0] dB, auto-profil ost-cinema par genre) + creation de docs/agents/dj-mashup-architect.md avec tableau de reference."
+        },
+        {
+          "ts": "2026-11-23T18:54:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-264-2 cochee (audit + renforcement) : verifie computeContinuousOstMashupPlan (stemMix.ts) — beatmatch continu (octave [0.75..1.35], ostPlaybackRate=1, zero re-seek ALC-246), grilles ancrees sur downbeats drums.wav, fenetres macro THEME OST SOLO >= 8 mesures (break + vocal lyric + nappe other), vocalBridgeSkips quantifies au downbeat et strictement croissants ; ajout d un bloc d invariants documentaire dans la fonction. npm run check 0/0."
+        },
+        {
+          "ts": "2026-11-23T19:00:00.000+01:00",
+          "type": "review",
+          "message": "ALC-264 passe en EN REVUE (3/3 vertes). Ajout du test tests/stemsMix.test.ts (pic lyrique soprano + nappe cuivres -> THEME OST SOLO >= 8 mesures, ostRate=1). Validation : npm run check 0/0 ; node --test 142/142 ; cargo check 0 ; cargo test --lib 74/74. docs/SPECIFICATIONS.md + .clinerules/04 + docs/agents ajoutes. meta v1.73.0. Aucun ticket Termine modifie."
+        }
+      ]
+    },
+    "ALC-265": {
+      "ticketId": "ALC-265",
+      "entries": [
+        {
+          "ts": "2026-11-23T19:50:00.000+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-265 cree (agent Maitre Horloger) : regle metier Crossover OST x OST — recette crossover, routage complementaire des stems (Platine Rythmique/Theme) + creux EQ -3 dB @ 1500 Hz + telemetrie drumsRms. 3 sous-taches -1..-3. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-23T19:52:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-265-1 cochee (regle + reference) : creation de .clinerules/04-regle-crossover-ost-ost.md (5 invariants : interdiction VOIX SEULE, repartition complementaire Rythmique/Theme, sculpture spectrale -3 dB @ 1500 Hz, beatmatch Key Lock + Camelot, dramaturgie 8/16 mes) + section dediee dans docs/agents/dj-mashup-architect.md."
+        },
+        {
+          "ts": "2026-11-23T19:56:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-265-2 cochee (implementation complete) : stemMix.ts — mode \"crossover\" dans recommendMashupRecipe (les 2 platines quasi-instrumentales + une B.O. ; designation Rythmique/Theme par drumsRms), preset stem \"theme\" dans applyStemPreset, type StemMixPreset + MashupRecipeRecommendation.Mode etendus, resolveCrossoverStems, champ MashupStemsMeta.drumsRms ; mixer.svelte.ts — toStemsMeta.drumsRms, runFullAutoMashup gère mode crossover (pitch A/B 1.0x Key Lock, applyCrossoverMashup, skip vocal sync), method applyCrossoverMashup ; player.ts — filtre peaking transparent pre-cable sur la chaine des stems non-vocaux + setStemMidNotch (gain borne [-6,0] dB, Q=1.0)."
+        },
+        {
+          "ts": "2026-11-23T20:00:00.000+01:00",
+          "type": "review",
+          "message": "ALC-265 passe en EN REVUE (3/3 vertes). Tests ajoutes (4) : recette crossover + routage complementaire + jamais de VOIX SEULE + non-regression vocale. Validation : npm run check 0/0 ; node --test 146/146 ; cargo check 0 ; cargo test --lib 74/74. docs/SPECIFICATIONS.md + .clinerules/04-regle-crossover-ost-ost.md + docs/agents ajoutes. meta v1.74.0. Aucun ticket Termine modifie."
+        }
+      ]
+    },
+    "ALC-266": {
+      "ticketId": "ALC-266",
+      "entries": [
+        {
+          "ts": "2026-11-23T20:50:00.000+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-266 cree (agent Maitre Horloger) : troisieme pilier Pop vs Rock / Rock vs Pop (.clinerules/06) + routeur unifie des trois specialites (OST x Vocal / OST x OST / Pop x Rock). 3 sous-taches -1..-3. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-23T20:52:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-266-1 cochee (regle + reference) : creation de .clinerules/06-regle-mashup-pop-rock.md (5 invariants dont Guitar Pocket EQ -4 dB @ 2200 Hz inst Rock / -3.5 dB @ 1250 Hz inst Pop) ; docs/agents/dj-mashup-architect.md etendu : trois regles specialisees (04-regle-mashup-ost-vocal, 04-regle-crossover-ost-ost, 06-regle-mashup-pop-rock) + tableau de priorite du routeur."
+        },
+        {
+          "ts": "2026-11-23T20:56:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-266-2 cochee (routeur + EQ) : stemMix.ts — resolveMashupSpecialty(deckA,deckB) -> ost-crossover | ost-vocal | pop-rock | standard + midNotchHz (1500 / 1800 / 2200 si inst Rock / 1250 si inst Pop) ; mixer.svelte.ts — runFullAutoMashup applique le creux Pop x Rock via player.setStemMidNotch (sans alterer ost-cinema ni crossover). npm run check 0/0."
+        },
+        {
+          "ts": "2026-11-23T21:00:00.000+01:00",
+          "type": "review",
+          "message": "ALC-266 passe en EN REVUE (3/3 vertes). Tests ajoutes (3) : Pop+Rock sens A/B (2200 vs 1250 Hz) + non-regression ost-vocal/ost-crossover/standard. Validation : npm run check 0/0 ; node --test 149/149 ; cargo check 0 ; cargo test --lib 74/74. docs/SPECIFICATIONS.md + .clinerules/06 + docs/agents ajoutes. meta v1.75.0. Aucun ticket Termine modifie."
+        }
+      ]
+    },
+    "ALC-267": {
+      "ticketId": "ALC-267",
+      "entries": [
+        {
+          "ts": "2026-11-23T21:50:00.000+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-267 cree (agent Maitre Horloger) : regle metier Medley & Alternance Thematique OST <-> OST (question-reponse 8 mes, breakdown pivot, contrepoint grave/aigu au climax). 3 sous-taches -1..-3. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-23T21:52:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-267-1 cochee (regle + reference) : creation de .clinerules/07-regle-medley-transitions-ost.md (5 invariants : socle rythmique unique, alternance other A/B par blocs 8 mes, breakdown pivot sans batterie, climax LPF 950 / HPF 1050, intro minimaliste) ; docs/agents/dj-mashup-architect.md — distinction superposition continue (crossover) vs alternance thematique (medley)."
+        },
+        {
+          "ts": "2026-11-23T21:56:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-267-2 cochee (planificateur + pilotage) : stemMix.ts computeOstMedleyPlan (timeline par blocs 8 mes ancre sur downbeat drums.wav : intro / exposition Q-R alternee / breakdown pivot / climax contrapuntique) ; player.ts maxi stemEq {hp,lp,pk} sur tous les stems + setStemBandFilter (LPF grave / HPF aigu) ; mixer.svelte.ts applyOstMedleyPlan + startOstMedley (Key Lock 1.0x, crossfader 50, gains stems par phase, band split au climax). npm run check 0/0."
+        },
+        {
+          "ts": "2026-11-23T22:00:00.000+01:00",
+          "type": "review",
+          "message": "ALC-267 passe en EN REVUE (3/3 vertes). Test unitaire computeOstMedleyPlan (1) : alternance exclusive other A/B par blocs 8 mes sans drums+bass simultanes, (2) breakdown pivot 8 mes sans drums, (3) climax other A/B ouverts + LPF 950 / HPF 1050, grille quantifiee sur downbeat 0.42 s. Validation : npm run check 0/0 ; node --test 150/150 ; cargo check 0 ; cargo test --lib 74/74. docs/SPECIFICATIONS.md + .clinerules/07 + docs/agents ajoutes. meta v1.76.0. Aucun ticket Termine modifie."
+        }
+      ]
+    },
+    "ALC-268": {
+      "ticketId": "ALC-268",
+      "entries": [
+        {
+          "ts": "2026-11-23T22:50:00.000+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-268 cree (agent Maitre Horloger) : Profil OST x Vocal avance — relais rythmique hybride au refrain, protection des drops orchestraux, outro OST nue (4 mashups de reference). 3 sous-taches -1..-3. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-23T22:52:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-268-1 cochee (regle) : .clinerules/04-regle-mashup-ost-vocal.md etendu — clauses 7 (hybridGrooveWindows : voix apesanteur + drums/bass vocal au refrain + HPF 140 Hz OST), 8 (THEME OST SOLO sur pont symphonique/drop pur, other > 85 % pic), 9 (ducking -4.5 dB @1800 Hz, attaque 15 ms / relachement 90 ms), 10 (outro symphonique nue bareOutroStartSeconds) + fiche zoom dans docs/agents/dj-mashup-architect.md."
+        },
+        {
+          "ts": "2026-11-23T22:56:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-268-2 cochee (implementation) : stemMix.ts computeContinuousOstMashupPlan — nouvelle args ostDrumsRms/vocalDrumsRms + expose hybridGrooveWindows (blocs 8 mes a partir du 1er bloc suivant l entree vocale, uniquement si ost.drumsRms < 0.25 et voc.drumsRms >= 0.4) et bareOutroStartSeconds (8 dernieres mesures, 4 si OST courte, alignees au downbeat) ; player.ts updateDynamicOrchestralDucking setTargetAtTime relachement 0.09 / attaque 0.015 ; mixer.svelte.ts passe les drumsRms (toStemsMeta) a la planification. npm run check 0/0."
+        },
+        {
+          "ts": "2026-11-23T23:00:00.000+01:00",
+          "type": "review",
+          "message": "ALC-268 passe en EN REVUE (3/3 vertes). 2 tests : hybridGrooveWindows alignes sur blocs 8 mes (OST legere + vocal groove ; absent si OST percussive) + bareOutroStartSeconds 4-8 dernieres mesures alignees grille. Validation : npm run check 0/0 ; node --test 152/152 ; cargo check 0 ; cargo test --lib 74/74. docs/SPECIFICATIONS.md + regle + doc agent. meta v1.77.0. Aucun ticket Termine modifie."
+        }
+      ]
+    },
+    "ALC-269": {
+      "ticketId": "ALC-269",
+      "entries": [
+        {
+          "ts": "2026-11-24T10:30:00.000+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-269 cree (En cours, agent Maître Horloger) : MODE CHEF D'ORCHESTRE — interpreteur et executeur de partitions d'arrangement JSON (MashupArrangementScore) : parseur/schema dans stemMix.ts, execution temps-reel 60 fps dans mixer.svelte.ts + player.ts (tempo maitre octave normalisee, stems par mesure en fondu 40-60 ms), visualisation sur le Beatgrid (repères dorés aux mesures de la timeline), tests unitaires + cloture. 4 sous-taches -1..-4. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-24T10:32:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-269-1 cochee (schema + validation + resolution, stemMix.ts) : types ArrangementTimelineCue { bar, deckA[], deckB[], crossfader?, filterA/B?, label? } + MashupArrangementScore { version '1.0', title, masterBpm?, crossfader?, deckA?, deckB? (role/startBar/entryBar/sourceStartBar), eq? (duckTarget/duckFreqHz/duckGainDb/duckQ/hpfHz), timeline } ; parseAndValidateArrangementScore(rawText) — retire les balises ```json / ``` au collage, valide version '1.0', timeline >= 1 repère, bar >= 1, stems connus (vocals/drums/bass/other), trie la timeline par bar croissant, retourne { ok:true, score } | { ok:false, error } (+ repères par défaut) ; resolveArrangementStateAtBar(score, currentBar) — repère actif (dernier bar <= currentBar), stemsA/stemsB, crossfader cible (cue ?? score ?? 0.5), nextCueIndex/nextCue. npm run check 0 erreur / 0 warning."
+        },
+        {
+          "ts": "2026-11-24T10:38:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-269-2 cochee (execution temps-reel 60 fps, mixer.svelte.ts + player.ts) : etat reactif activeArrangementScore / arrangementScorePlaying / arrangementCurrentCueLabel / arrangementError + _arrMasterBpm/_arrDownbeatA/_arrDuck/_arrAppliedKey ; actions — importArrangementScoreText (parse+valide, renseigne sans lancer) ; launchArrangementScore (1 stems prets Promise.all, 2 tempo maitre octave normalisee computeNormalizedTempoRatio effectiveBpmA===effectiveBpmB + setDeckPitch, 3 roles EQ/ducking setMashupRole + setStemBandFilter drums HPF, 4 positions depart quantifiees sur firstDownbeatSeconds (deckA.startBar / deckB.entryBar), 5 prepareDeckPlayback + Promise.all([pa.play(),pb.play()]) simultane, 6 etat initial stems/crossfader, 7 boucle rAF arrangementTick convertit posA en currentBar et applique les mutes en fondu setStemVolume/applyStemMutes via applyArrangementStems + crossfader + filters) ; stopArrangementScore (annule rAF sans couper l'audio) / clearArrangementScore ; setCrossfader + gardes auto-stop sur toggleStemMute/hitStem/soloStem/setStemPreset/setDeckStemVolume et routing MixerCenter.setCrossfader. player.ts : reutilise setStemBandFilter/setMashupRole/updateDynamicOrchestralDucking/setStemVolume+synchroniseSternMediaState existants (aucun code neuf requis). npm run check 0 erreur / 0 warning."
+        },
+        {
+          "ts": "2026-11-24T10:44:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-269-3 cochee (UI Beatgrid, groupe 03 MASHUP 1-CLIC) : bouton compact 'content_paste Coller Partition' (navigator.clipboard.readText → importArrangementScoreText, repli champ texte arrPasteOpen/arrPasteText si WebView2 refuse) ; cartouche horlogere doree compacte (score.title + repère actif arrangementCurrentCueLabel + boutons play_arrow EXECUTER / stop ARRETER / close, h-7 px-2 Venezia) ; bandeau d'erreur arrangementError ; sur les rubans A/B, trait vertical dore/ambre `.vz-arr-marker` 'M{bar} • {label}' positionne a la mesure cue.bar (arrCueSlots : x = WAVE_W/2 + (downbeat + (bar-1)*4*beat - playhead)*stride). Hauteur stricte h-screen overflow-hidden preservee, tabular-nums / whitespace-nowrap / icones Material Symbols uniquement. npm run check 0 erreur / 0 warning."
+        },
+        {
+          "ts": "2026-11-24T10:48:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-269-4 cochee (tests & docs) : tests/stemsMix.test.ts (+3, import parseAndValidateArrangementScore + resolveArrangementStateAtBar) — (1) parsing valide avec et sans balises Markdown (timeline d'un desordre initial [25,1,65,9] repliee en [1,9,25,65], titre/masterBpm/eq/duckTarget), (2) rejets propres (JSON invalide, timeline vide, stem inconnu 'koto', bar < 1), (3) resolveArrangementStateAtBar bascule exacte aux mesures 1/9/25/65 (stems A/B, crossfader 0.5/0.6/0.7/0, libellés, nextCueIndex). docs/SPECIFICATIONS.md : ligne historique ALC-269 + paragraphe fonctionnel 'Mode Chef d'Orchestre' (03 MASHUP 1-CLIC). QA COMPLETE : npm run check 0 erreur / 0 warning ; node --import ./tests/loader.mjs --test tests/ -> 155 passed / 0 failed ; cargo check --manifest-path src-tauri/Cargo.toml 0 warning ; cargo test --manifest-path src-tauri/Cargo.toml --lib -- --test-threads=1 -> 74 passed / 0 failed. Aucun ticket Termine modifie ni override de statut local retrogradé."
+        },
+        {
+          "ts": "2026-11-24T10:50:00.000+01:00",
+          "type": "column",
+          "message": "ALC-269 bascule en EN REVUE (4/4 sous-taches vertes). Fonctionnalite livree : MODE CHEF D'ORCHESTRE — interpreteur et executeur de partitions d'arrangement JSON (MashupArrangementScore). schema (ArrangementTimelineCue / MashupArrangementScore version '1.0' + eq/hpfHz) ; parseAndValidateArrangementScore (balises Markdown retirees, validation version/timeline/bar/stems, tri + deflection ok/error) ; resolveArrangementStateAtBar (repère actif + stems A/B + crossfader + prochain repère) ; execution temps-reel 60 fps dans mixer.svelte.ts (import/launch/stop/clear + boucle rAF + ducking + gardes DJ) ; UI Beatgrid (COLLER PARTITION + cartouche doree EXECUTER/ARRETER/close + repères dorees M{bar} • {label}). Validation : npm run check 0/0 ; node --test tests/ 155/155 ; cargo check 0 warning ; cargo test --lib -- --test-threads=1 74/74. docs/SPECIFICATIONS.md MAJ (ligne + section fonctionnelle). meta tasks v1.79.0, journals v1.112.0. Aucun ticket Termine modifie ni override de statut local retrogradé."
+        }
+      ]
+    },
+    "ALC-270": {
+      "ticketId": "ALC-270",
+      "entries": [
+        {
+          "ts": "2026-11-24T12:20:00.000+01:00",
+          "type": "creation",
+          "message": "Ticket ALC-270 cree (En cours, agent Architecte) : IA CHEF D'ORCHESTRE EMBARQUEE 100 % hors-ligne — llama-cpp-2 + LoRA, base SQLite mashup_rules/arrangement_scores + export JSONL, option d'installation utilisateur (~1,9 Go) NSIS + modale, apprentissage contextuel (2 partitions voisines). 5 sous-taches. Aucun ticket Termine modifie."
+        },
+        {
+          "ts": "2026-11-24T12:22:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-270-1 cochee (library.rs) : tables mashup_rules (pre-peuplees .clinerules/04-07) + arrangement_scores (CREATE TABLE IF NOT EXISTS + apply_chef_ai_schema) ; commandes list_mashup_rules / upsert_mashup_rule / save_arrangement_score / list_arrangement_scores / find_similar_arrangement_scores / export_training_dataset_jsonl (rating>=4) ; enreg. lib.rs. cargo check 0."
+        },
+        {
+          "ts": "2026-11-24T12:22:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-270-2 cochee (NSIS + chef_llm.rs) : installer.nsh (page optionnelle dechochee, NSISdl .part→.gguf, ai_module_prefs.json) + tauri.conf installerHooks ; chef_llm.rs get_chef_llm_status / set_chef_llm_opt_in / install_chef_llm_model (ureq streaming Channel<f32>) / uninstall_chef_llm_model. cargo check 0."
+        },
+        {
+          "ts": "2026-11-24T12:22:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-270-3 cochee (inference) : Cargo.toml ureq + llama-cpp-2 optionnel feature 'chef-llm' ; generate_chef_arrangement_score (specialite + regles actives + 2 partitions proches → build_deterministic_score JSON valide) ; adaptateur llama-cpp-2 + LoRA sous cfg chef-llm. cargo check 0."
+        },
+        {
+          "ts": "2026-11-24T12:22:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-270-4 cochee (UI) : chefAi.svelte.ts ; ChefAiInstallModal (montage +page, INSTALLER ~1,9 Go progression | CONTINUER SANS) ; Beatgrid auto_awesome GENERER IA + bookmark_add SAUVER note 1..5 ; LibraryView dataset EXPORT LORA (.JSONL) ; client.ts chefLlmIpc + libraryIpc. npm check 0."
+        },
+        {
+          "ts": "2026-11-24T12:22:00.000+01:00",
+          "type": "subtask",
+          "message": "ALC-270-5 cochee (tests & docs) : Rust — chef_ai_schema_migration_and_jsonl_export + opt_in_persistence + status_reflects_model_install ; docs/SPECIFICATIONS.md ligne ALC-270 + paragraphe fonctionnel. QA : npm check 0/0 ; node --test 155/155 ; cargo check 0 warning ; cargo test --lib 77/77."
+        },
+        {
+          "ts": "2026-11-24T12:20:00.000+01:00",
+          "type": "column",
+          "message": "ALC-270 bascule en EN REVUE (5/5 vertes). IA CHEF D'ORCHESTRE EMBARQUEE 100 % hors-ligne : tables mashup_rules + arrangement_scores (export JSONL rating>=4) ; chef_llm.rs lifecycle + generate_chef_arrangement_score (2 partitions voisines, llama-cpp-2 + LoRA sous feature chef-llm) ; option NSIS dechochee ; modale ChefAiInstallModal + Beatgrid GENERER IA / SAUVER note 1..5 + Librairie EXPORT LORA (.JSONL). QA : npm 0/0 ; node 155/155 ; cargo check 0 ; cargo test 77/77. journals v1.113.0. Aucun ticket Termine modifie."
         }
       ]
     }

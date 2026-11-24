@@ -42,6 +42,10 @@ import {
   freshStemMutes,
   unitStemGains,
   resolveCrossDeckMashup,
+  resolveCrossoverStems,
+  resolveMashupSpecialty,
+  computeOstMedleyPlan,
+  type OstMedleyPlan,
   resolveStemHit,
   isComplementaryMashup,
   resolveAutoMixTarget,
@@ -61,6 +65,11 @@ import {
   type MashupStemsMeta,
   type StemMixPreset,
   isStemsTelemetryBpmAcceptable, // ALC-251-2 : garde-fou BPM universel (octaves binaires vs ~1,25/~0,80)
+  parseAndValidateArrangementScore,
+  resolveArrangementStateAtBar,
+  type MashupArrangementScore,
+  type ArrangementStemName,
+  type ArrangementResolvedState,
 } from '$lib/audio/stemMix';
 
 export type DeckId = 'A' | 'B';
@@ -288,6 +297,18 @@ firstDownbeatSeconds: null, // ALC-253-1
   crossfaderX = $derived(this.crossfader / 100);
   gainCrossA = $derived(Math.cos((this.crossfaderX * Math.PI) / 2));
   gainCrossB = $derived(Math.sin((this.crossfaderX * Math.PI) / 2));
+
+  // ── ALC-269 : Mode Chef d'Orchestre — partition d'arrangement JSON ──────────
+  activeArrangementScore = $state<MashupArrangementScore | null>(null);
+  arrangementScorePlaying = $state(false);
+  arrangementCurrentCueLabel = $state<string | null>(null);
+  arrangementError = $state<string | null>(null);
+  /** BPM maître effectif verrouillé par `launchArrangementScore` (durée de mesure). */
+  private _arrMasterBpm = 120;
+  /** Downbeat réel de la platine maître (drums.wav) pour `currentBar`. */
+  private _arrDownbeatA = 0;
+  /** Config ducking issue de `score.eq` (appliquée à chaque trame 60 fps). */
+  private _arrDuck = { target: null as 'A.other' | 'B.other' | 'none' | null, freqHz: 1800, gainDb: -4.5 };
 
   // ── ALC-170 A/B : AUTO-MIX 8/16 mesures — moteur d'auto-transition & Bass-Swap automatique ──
   autoMixActive = $state(false);
@@ -819,6 +840,10 @@ firstDownbeatSeconds: null, // ALC-253-1
   /** ALC-246-2 : handle requestAnimationFrame du fondeur de respiration OST (THÈME OST SOLO). */
   private _breathRaf = 0;
   private _lastBreathIn = false;
+  /** ALC-269 : handle requestAnimationFrame (60 fps) de l'exécution de partition. */
+  private _arrangementRaf = 0;
+  /** ALC-269 : dernier état résolu appliqué (évite de re-muter les mêmes stems à chaque trame). */
+  private _arrAppliedKey = '';
   registerPlayer(id: DeckId, p: Player | null) { this._players[id] = p; }
   getPlayer(id: DeckId): Player | null { return this._players[id]; }
 
@@ -1196,6 +1221,14 @@ firstDownbeatSeconds: null, // ALC-253-1
       genre: d.genre || null,
       camelotKey: d.camelotKey || null,
       bpm: d.baseBpm,
+      // Crossover OST × OST : énergie percussive RMS du stem drums → désigne la Platine Rythmique.
+      drumsRms: (() => {
+        const env = this.getPlayer(id)?.getStemEnvelopes()?.drums;
+        if (!env || env.length === 0) return undefined;
+        let sum = 0;
+        for (let i = 0; i < env.length; i++) sum += env[i] * env[i];
+        return Math.sqrt(sum / env.length);
+      })(),
     };
   }
 
@@ -1524,6 +1557,8 @@ firstDownbeatSeconds: null, // ALC-253-1
       ostFirstDownbeatSeconds: instDeck.firstDownbeatSeconds ?? undefined, // ALC-253-1/2
       vocalFirstDownbeatSeconds: vocDeck.firstDownbeatSeconds ?? undefined, // ALC-253-1/2
       chorusEndSeconds: Number.isFinite(plan.vocalChorusSeconds) ? plan.vocalChorusSeconds + vWin8 : 0,
+      ostDrumsRms: this.toStemsMeta(inst)?.drumsRms, // Clause 7 : relais rythmique hybride
+      vocalDrumsRms: this.toStemsMeta(voc)?.drumsRms,
     });
     this.ostPlan = {
       ostDeckId: inst,
@@ -2049,15 +2084,17 @@ firstDownbeatSeconds: null, // ALC-253-1
    * Pilote complet en 1 clic : alignement tempo, extraction/chargement stems A+B,
    * recette mashup (mode), crossfader 50/50, launchAutoVocalSync, éventuel enregistrement WAV.
    */
-  async runFullAutoMashup(mode: 'instA_vocB' | 'vocA_instB' = 'instA_vocB', recordWav = false) {
+  async runFullAutoMashup(mode: 'instA_vocB' | 'vocA_instB' | 'crossover' = 'instA_vocB', recordWav = false) {
     if (!this.deckA.filePath || !this.deckB.filePath) return;
     // ALC-242 : choix intelligent de la recette via la télémétrie HTDemucs des deux platines
     // (sauf si l'utilisateur a verrouillé la recette dans le sélecteur Beatgrid).
+    let crossoverRhythm: 'A' | 'B' = 'A';
     if (!this.mashupRecipeManual) {
       const rec = recommendMashupRecipe(this.toStemsMeta('A'), this.toStemsMeta('B'));
       if (rec) {
         mode = rec.mode;
         this.mashupRecipeReason = rec.reason;
+        if (rec.mode === 'crossover' && rec.crossover) crossoverRhythm = rec.crossover.rhythm;
         if (rec.profile === 'ost-cinema' && !this.ostProfileManual) {
           this.mashupStyleProfile = 'ost-cinema';
         }
@@ -2071,7 +2108,12 @@ firstDownbeatSeconds: null, // ALC-253-1
       readyToSaveDuo: false,
     };
     // Étape 1/5 — alignement tempo & PROTECTION DU TIMBRE (ALC-237).
-    if (this.mashupStyleProfile === 'ost-cinema') {
+    if (mode === 'crossover') {
+      // Crossover OST × OST : les deux platines instrumentales restent à 1.0x (Key Lock, timbre/clé intacts).
+      this.setDeckPitch('A', 0);
+      this.setDeckPitch('B', 0);
+      this.deckB.elapsedSeconds = this.deckA.elapsedSeconds;
+    } else if (this.mashupStyleProfile === 'ost-cinema') {
       // ALC-237 : profil OST en 1.0x — l'OST ET le vocal restent à leur tempo naturel (aucun
       // pitch-shift, timbre/clé 100 % préservés) ; la dérive rythmique est absorbée strophe par
       // strophe par le Phrase-Synced Vocal Slicing (launchAutoVocalSyncOst → seek aux downbeats).
@@ -2112,12 +2154,22 @@ firstDownbeatSeconds: null, // ALC-253-1
       stepLabel: 'RECETTE MASHUP & SCULPTURE SPECTRALE',
       stepIndex: 3,
     };
-    if (mode === 'instA_vocB') {
+    if (mode === 'crossover') {
+      this.applyCrossoverMashup(crossoverRhythm);
+    } else if (mode === 'instA_vocB') {
       this.setStemPreset('A', 'instrumental');
       this.setStemPreset('B', 'acapella');
     } else {
       this.setStemPreset('A', 'acapella');
       this.setStemPreset('B', 'instrumental');
+    }
+    // Routeur unifié des 3 spécialités (règles métier `.clinerules/04 • 05 • 06`) : creux médium
+    // **Guitar Pocket** sur l'instrumentale Pop × Rock (2 200 Hz si Rock, 1 250 Hz si Pop) — n'altère
+    // pas les modes OST/Cinéma (`ost-vocal` garde son ducking 1 800 Hz) ni crossover (1 500 Hz).
+    const specialty = resolveMashupSpecialty(this.toStemsMeta('A'), this.toStemsMeta('B'));
+    if (specialty.specialty === 'pop-rock' && specialty.midNotchHz > 0 && mode !== 'crossover') {
+      const instDeck: DeckId = mode === 'instA_vocB' ? 'A' : 'B';
+      this.getPlayer(instDeck)?.setStemMidNotch('other', specialty.midNotchHz, -3);
     }
     this.crossfader = 50; // 50/50
     // ALC-233 : suggestion automatique du profil OST — genre de la platine porteuse du mode
@@ -2146,13 +2198,18 @@ firstDownbeatSeconds: null, // ALC-253-1
     // ALC-243-1 : try/finally — le pipeline ne doit JAMAIS rester figé sur ÉTAPE 4/5 (si
     // launchAutoVocalSync rejette une promesse ou n'aboutit pas : accro affiché + remontée erreur).
     let launchError: unknown = null;
-    try {
-      await this.launchAutoVocalSync();
-    } catch (err) {
-      launchError = err;
-      console.error('[AutoMashup] échec du lancement (étape 4/5)', err);
-    } finally {
+    if (mode === 'crossover') {
+      // Crossover OST × OST : aucune voix à caler — les deux platines sont déjà synchronisées (étapes 1→3).
       this.autoMashupPipelineState = { ...this.autoMashupPipelineState, running: false };
+    } else {
+      try {
+        await this.launchAutoVocalSync();
+      } catch (err) {
+        launchError = err;
+        console.error('[AutoMashup] échec du lancement (étape 4/5)', err);
+      } finally {
+        this.autoMashupPipelineState = { ...this.autoMashupPipelineState, running: false };
+      }
     }
     if (launchError) {
       const msg = launchError instanceof Error ? launchError.message : 'Échec du lancement automatique';
@@ -2178,6 +2235,7 @@ firstDownbeatSeconds: null, // ALC-253-1
   }
 
   toggleStemMute(id: DeckId, stem: StemName) {
+    if (this.arrangementScorePlaying) this.stopArrangementScore(); // ALC-269 : le DJ reprend la main
     const d = this.getDeck(id);
     d.stemMutes[stem] = !d.stemMutes[stem];
     this.applyStemMutes(id);
@@ -2188,6 +2246,7 @@ firstDownbeatSeconds: null, // ALC-253-1
    * Audible (etat effectif) → mute ; inactif/muet/fader à 0 % → lève le mute ET restaure volume 1.0.
    */
   hitStem(id: DeckId, stem: StemName) {
+    if (this.arrangementScorePlaying) this.stopArrangementScore(); // ALC-269
     const d = this.getDeck(id);
     const hit = resolveStemHit(d.stemMutes, d.stemGains, stem);
     d.stemMutes[stem] = hit.muted;
@@ -2218,12 +2277,14 @@ firstDownbeatSeconds: null, // ALC-253-1
   }
 
   soloStem(id: DeckId, stem: StemName) {
+    if (this.arrangementScorePlaying) this.stopArrangementScore(); // ALC-269
     const d = this.getDeck(id);
     for (const s of STEM_NAMES) d.stemMutes[s] = s !== stem;
     this.applyStemMutes(id);
   }
 
   setStemPreset(id: DeckId, preset: StemMixPreset) {
+    if (this.arrangementScorePlaying) this.stopArrangementScore(); // ALC-269
     const d = this.getDeck(id);
     d.stemMutes = applyStemPreset(d.stemMutes, preset);
     this.applyStemMutes(id);
@@ -2231,6 +2292,7 @@ firstDownbeatSeconds: null, // ALC-253-1
 
   /** ALC-187-1 : volume individuel d'un stem (0..1) — source unique `stemGains`, appliqué au Player. */
   setDeckStemVolume(id: DeckId, stem: StemName, value: number) {
+    if (this.arrangementScorePlaying) this.stopArrangementScore(); // ALC-269 : le DJ reprend la main
     const d = this.getDeck(id);
     d.stemGains[stem] = clampStemVolume(value);
     this.applyStemMutes(id);
@@ -2241,6 +2303,240 @@ firstDownbeatSeconds: null, // ALC-253-1
     const targets = resolveCrossDeckMashup(vocalDeck);
     this.setStemPreset('A', targets.A);
     this.setStemPreset('B', targets.B);
+  }
+
+  /** Crossover OST × OST : routage complémentaire des stems (Rythmique drums+bass+other / Thème other seul)
+   * + creux médium −3 dB @ 1500 Hz (Q=1.0) sur le stem `other` de la Platine Rythmique. */
+  applyCrossoverMashup(rhythm: 'A' | 'B') {
+    const targets = resolveCrossoverStems(rhythm);
+    this.setStemPreset('A', targets.A);
+    this.setStemPreset('B', targets.B);
+    this.getPlayer(rhythm)?.setStemMidNotch('other', 1500, -3);
+  }
+
+  /** Medley OST ↔ OST — applique une phase du plan thématique (gains stems + pitch A/B 1.0x + séparation grave/aigu). */
+  applyOstMedleyPlan(plan: OstMedleyPlan | null, phaseIndex = 0) {
+    if (!plan) return;
+    const phase = plan.phases[Math.max(0, Math.min(phaseIndex, plan.phases.length - 1))];
+    if (!phase) return;
+    // Beatmatch continu : Key Lock 1.0x sur les deux platines + crossfader 50/50.
+    this.setDeckPitch('A', 0);
+    this.setDeckPitch('B', 0);
+    this.crossfader = 50;
+    (Object.entries(phase.A) as [StemName, number][]).forEach(([s, g]) => this.setDeckStemVolume('A', s, g));
+    (Object.entries(phase.B) as [StemName, number][]).forEach(([s, g]) => this.setDeckStemVolume('B', s, g));
+    if (phase.bandSplit) {
+      this.getPlayer(phase.bandSplit.grave)?.setStemBandFilter('other', 'lowpass', phase.bandSplit.lowHz);
+      this.getPlayer(phase.bandSplit.aigu)?.setStemBandFilter('other', 'highpass', phase.bandSplit.highHz);
+    }
+  }
+
+  /** Medley OST ↔ OST — calcule le plan (grille 8 mesures, downbeat/200BPM des platines) et applique la phase demandée (0=intro). */
+  startOstMedley(phaseIndex = 0, durationSeconds = 192) {
+    const mA = this.toStemsMeta('A');
+    const mB = this.toStemsMeta('B');
+    const plan = computeOstMedleyPlan(
+      { bpm: this.effectiveBpmA || 120, drumsRms: mA?.drumsRms },
+      { bpm: this.effectiveBpmB || 120, drumsRms: mB?.drumsRms },
+      durationSeconds,
+      0
+    );
+    this.applyOstMedleyPlan(plan, phaseIndex);
+  }
+
+  // ── ALC-269 : Mode Chef d'Orchestre — exécution temps-réel des partitions ─────
+
+  /** Parse & valide le JSON collé puis renseigne `activeArrangementScore` SANS lancer la lecture. */
+  importArrangementScoreText(rawText: string) {
+    const r = parseAndValidateArrangementScore(rawText);
+    if (!r.ok) {
+      this.arrangementError = r.error;
+      return;
+    }
+    if (this.arrangementScorePlaying) this.stopArrangementScore();
+    this.activeArrangementScore = r.score;
+    this.arrangementError = null;
+    this.arrangementCurrentCueLabel = null;
+  }
+
+  /** Applique les stems (mutes) d'un état résolu aux deux platines + filtres du repère. */
+  private applyArrangementStems(state: ArrangementResolvedState) {
+    this.applyDeckArrangementMutes('A', state.stemsA);
+    this.applyDeckArrangementMutes('B', state.stemsB);
+    const c = state.cue;
+    if (c) {
+      if (c.filterA) {
+        this.getPlayer('A')?.setStemBandFilter('other', c.filterA.type === 'lpf' ? 'lowpass' : 'highpass', c.filterA.freqHz);
+      }
+      if (c.filterB) {
+        this.getPlayer('B')?.setStemBandFilter('other', c.filterB.type === 'lpf' ? 'lowpass' : 'highpass', c.filterB.freqHz);
+      }
+    }
+  }
+
+  private applyDeckArrangementMutes(id: DeckId, stems: ArrangementStemName[]) {
+    const d = this.getDeck(id);
+    const want: ArrangementStemName[] = ['vocals', 'drums', 'bass', 'other'];
+    for (const s of want) d.stemMutes[s] = !stems.includes(s);
+    this.applyStemMutes(id); // fondu setTargetAtTime (15 ms) + syncStemMediaState
+  }
+
+  /** Arrête l'automatisation de partition SANS couper brusquement l'audio en cours. */
+  stopArrangementScore() {
+    if (this._arrangementRaf) {
+      cancelAnimationFrame(this._arrangementRaf);
+      this._arrangementRaf = 0;
+    }
+    this.arrangementScorePlaying = false;
+    this._arrAppliedKey = '';
+  }
+
+  /** Efface la partition chargée et son état de lecture (audio non coupé). */
+  clearArrangementScore() {
+    this.stopArrangementScore();
+    this.activeArrangementScore = null;
+    this.arrangementCurrentCueLabel = null;
+    this.arrangementError = null;
+    this._arrDuck.target = null;
+  }
+
+  /** Crossfader piloté par le DJ — toute intervention manuelle arrête l'orchestration. */
+  setCrossfader(value: number) {
+    if (this.arrangementScorePlaying) this.stopArrangementScore();
+    this.crossfader = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 50));
+  }
+
+  /**
+   * Lance l'exécution d'une partition chargée : stems prêts, tempo maître en octave
+   * normalisée (effectiveBpmA === effectiveBpmB, preservesPitch), rôles EQ/ducking,
+   * positions de départ quantifiées puis démarrage SIMULTANÉ des deux platines dans
+   * le geste utilisateur (Promise.all — aucun play()/re-seek différé).
+   */
+  async launchArrangementScore() {
+    const score = this.activeArrangementScore;
+    if (!score) {
+      this.arrangementError = "Aucune partition chargée — collez d'abord une partition JSON";
+      return;
+    }
+    if (!this.deckA.filePath || !this.deckB.filePath) {
+      this.arrangementError = 'Les platines A et B doivent être chargées';
+      return;
+    }
+    this.arrangementError = null;
+    this.stopArrangementScore();
+
+    // 1) Extraction / chargement des stems A et B (Promise.all, abandon si erreur).
+    const needs = (['A', 'B'] as DeckId[]).filter((id) => this.getDeck(id).stemsStatus !== 'ready');
+    try {
+      if (needs.length) await Promise.all(needs.map((id) => this.extractDeckStems(id)));
+    } catch (err) {
+      this.arrangementError = err instanceof Error ? err.message : 'Extraction des stems échouée';
+      return;
+    }
+
+    // 2) Tempo maître (score.masterBpm ou BPM effectif de A) — octave normalisée.
+    const target = Number.isFinite(score.masterBpm) && (score.masterBpm ?? 0) > 0 ? score.masterBpm! : this.effectiveBpmA || 120;
+    this._arrMasterBpm = target;
+    for (const id of ['A', 'B'] as DeckId[]) {
+      const base = this.getDeck(id).baseBpm || target;
+      const norm = computeNormalizedTempoRatio(base, target);
+      this.setDeckPitch(id, Number(((norm.ratio - 1) * 100).toFixed(2)));
+    }
+
+    // 3) Rôles EQ / ducking + HPF (score.eq).
+    const eq = score.eq;
+    this._arrDuck.target = eq?.duckTarget ?? null;
+    this._arrDuck.freqHz = eq?.duckFreqHz ?? 1800;
+    this._arrDuck.gainDb = eq?.duckGainDb ?? -4.5;
+    this.getPlayer('A')?.setMashupRole(this._arrDuck.target === 'A.other' ? 'ost-instrumental' : 'none');
+    this.getPlayer('B')?.setMashupRole(this._arrDuck.target === 'B.other' ? 'ost-instrumental' : 'none');
+    if (eq?.hpfHz?.A) this.getPlayer('A')?.setStemBandFilter('drums', 'highpass', eq.hpfHz.A);
+    else this.getPlayer('A')?.setStemBandFilter('drums', 'lowpass', 20000);
+    if (eq?.hpfHz?.B) this.getPlayer('B')?.setStemBandFilter('drums', 'highpass', eq.hpfHz.B);
+    else this.getPlayer('B')?.setStemBandFilter('drums', 'lowpass', 20000);
+
+    // 4) Positions de départ quantifiées sur la grille réelle (drums.wav / firstDownbeat).
+    const barDur = 4 * (60 / Math.max(1, target));
+    const dA = this.getDeck('A');
+    const dB = this.getDeck('B');
+    this._arrDownbeatA = dA.firstDownbeatSeconds ?? 0;
+    const startA = Math.max(1, score.deckA?.startBar ?? 1);
+    const entryBar = Math.max(1, score.deckB?.entryBar ?? 1);
+    dA.elapsedSeconds = this._arrDownbeatA + Math.max(0, startA - 1) * barDur;
+    dB.elapsedSeconds = (dB.firstDownbeatSeconds ?? 0) + Math.max(0, entryBar - 1) * barDur;
+
+    // 5) Préparation (charge + pitch + seek) puis démarrage SIMULTANÉ dans le geste.
+    const [pa, pb] = await Promise.all([this.prepareDeckPlayback('A'), this.prepareDeckPlayback('B')]);
+
+    // 6) État initial de stems / crossfader au premier repère.
+    const initState = resolveArrangementStateAtBar(score, startA);
+    this._arrAppliedKey = '';
+    this.applyArrangementStems(initState);
+    this.crossfader =
+      initState.cue && initState.cue.crossfader !== undefined
+        ? Math.round(initState.cue.crossfader * 100)
+        : score.crossfader != null
+          ? Math.round(score.crossfader * 100)
+          : 50;
+    this.arrangementCurrentCueLabel = initState.cue?.label ?? null;
+
+    this.setTransport('A', 'playing');
+    this.setTransport('B', 'playing');
+    this.arrangementScorePlaying = true;
+    await Promise.all([pa.play(), pb.play()]);
+
+    // 7) Boucle rAF 60 fps : convertit la position maîtresse en numéro de mesure et
+    //    applique les changements de stems / crossfader / filters aux frontières.
+    cancelAnimationFrame(this._arrangementRaf);
+    this._arrangementRaf = requestAnimationFrame(() => this.arrangementTick());
+  }
+
+  private arrangementTick() {
+    if (!this.arrangementScorePlaying || !this.activeArrangementScore) {
+      this.stopArrangementScore();
+      return;
+    }
+    const score = this.activeArrangementScore;
+    const barDur = 4 * (60 / Math.max(1, this._arrMasterBpm));
+    const posA = this.getDeck('A').elapsedSeconds || 0;
+    const bar = 1 + Math.floor(Math.max(0, posA - this._arrDownbeatA) / barDur);
+    const state = resolveArrangementStateAtBar(score, bar);
+    const key = `${state.cue ? state.cue.bar : 0}|${state.stemsA.join(',')}|${state.stemsB.join(',')}|${state.crossfader}`;
+    if (key !== this._arrAppliedKey) {
+      this._arrAppliedKey = key;
+      this.applyArrangementStems(state);
+      if (state.cue && state.cue.crossfader !== undefined) {
+        this.crossfader = Math.round(state.cue.crossfader * 100);
+      }
+    }
+    this.arrangementCurrentCueLabel = state.cue?.label ?? null;
+    this._applyArrangementDuck();
+
+    // Auto-stop quand plus rien ne joue (fin de morceau / intervention transport).
+    if (this.deckA.transport !== 'playing' && this.deckB.transport !== 'playing') {
+      this.stopArrangementScore();
+      return;
+    }
+    this._arrangementRaf = requestAnimationFrame(() => this.arrangementTick());
+  }
+
+  /** Ducking orchestral dynamique du repère (score.eq.duckTarget), asservi à l'enveloppe vocale opposée. */
+  private _applyArrangementDuck() {
+    const t = this._arrDuck.target;
+    if (!t || t === 'none') return;
+    const duckDeck: DeckId = t === 'A.other' ? 'A' : 'B';
+    const opp: DeckId = duckDeck === 'A' ? 'B' : 'A';
+    const deck = this.getDeck(opp);
+    const env = this.getPlayer(opp)?.getStemEnvelopes()?.vocals;
+    let val = 0;
+    if (env && env.length && deck.durationSeconds > 0) {
+      const idx = Math.max(
+        0,
+        Math.min(env.length - 1, Math.round(((deck.elapsedSeconds || 0) / Math.max(0.001, deck.durationSeconds)) * (env.length - 1)))
+      );
+      val = env[idx] || 0;
+    }
+    this.getPlayer(duckDeck)?.updateDynamicOrchestralDucking(val, this._arrDuck.gainDb);
   }
 
   /** ALC-187-2 : RESET 8 PISTES — mixture complète sur les deux platines (délègue à resetDeckStems). */

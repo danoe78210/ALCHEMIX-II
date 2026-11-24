@@ -20,6 +20,10 @@ pub enum AppError {
     /// ALC-165 : catalogue de la LIBRAIRIE (base SQLite locale).
     #[error("Erreur bibliothèque locale : {0}")]
     Library(String),
+
+    /// ALC-270 : IA Chef d'Orchestre (module local llama / lifecycle optionnel).
+    #[error("Erreur IA Chef d'Orchestre : {0}")]
+    ChefLlm(String),
 }
 
 pub type Error = AppError;
@@ -42,6 +46,7 @@ impl Serialize for AppError {
             AppError::OnnxInference(_) => "ONNX_ERROR",
             AppError::Audio(_) => "AUDIO_ENGINE_ERROR",
             AppError::Library(_) => "LIBRARY_ERROR",
+            AppError::ChefLlm(_) => "CHEF_LLM_ERROR",
         };
         SerializedError {
             code,

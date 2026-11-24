@@ -111,6 +111,85 @@ pub struct ValidatedDuo {
     pub created_at: String,
 }
 
+// ── ALC-270 : IA Chef d'Orchestre — règles métier & partitions d'arrangement notées ──────────────
+
+/// Une règle métier mashup active (`mashup_rules`), dérivée des `.clinerules/04` à `07`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MashupRule {
+    pub id: String,
+    pub name: String,
+    pub specialty: String,
+    pub conditions_json: String,
+    pub dsp_params_json: String,
+    pub enabled: bool,
+    pub updated_at: String,
+}
+
+/// Entrée de règle mashup (upsert) — `enabled` par défaut à `true`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MashupRuleInput {
+    pub id: String,
+    pub name: String,
+    pub specialty: String,
+    pub conditions_json: String,
+    pub dsp_params_json: String,
+    #[serde(default = "default_enabled")]
+    pub enabled: bool,
+}
+
+fn default_enabled() -> bool {
+    true
+}
+
+/// Une partition d'arrangement notée (`arrangement_scores`), prête pour l'export d'entraînement.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArrangementScore {
+    pub id: String,
+    pub title: String,
+    pub track_a_id: Option<String>,
+    pub track_b_id: Option<String>,
+    pub specialty: String,
+    pub master_bpm: f64,
+    pub camelot_a: Option<String>,
+    pub camelot_b: Option<String>,
+    pub score_json: String,
+    pub rating: u8,
+    #[serde(default)]
+    pub is_template: bool,
+    pub created_at: String,
+}
+
+/// Entrée d'enregistrement d'une partition (identifiant généré si vide).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArrangementScoreInput {
+    #[serde(default)]
+    pub id: Option<String>,
+    pub title: String,
+    #[serde(default)]
+    pub track_a_id: Option<String>,
+    #[serde(default)]
+    pub track_b_id: Option<String>,
+    pub specialty: String,
+    pub master_bpm: f64,
+    #[serde(default)]
+    pub camelot_a: Option<String>,
+    #[serde(default)]
+    pub camelot_b: Option<String>,
+    pub score_json: String,
+    #[serde(default = "default_rating")]
+    pub rating: u8,
+    #[serde(default)]
+    pub is_template: bool,
+}
+
+fn default_rating() -> u8 {
+    5
+}
+
 /// État partagé du catalogue : la connexion SQLite unique de l'application.
 pub struct LibraryState(pub Mutex<Connection>);
 
@@ -145,6 +224,66 @@ const SCHEMA_DUOS: &str = "CREATE TABLE IF NOT EXISTS validated_duos (
     UNIQUE (track_a_id, track_b_id),
     CHECK (track_a_id < track_b_id)
 )";
+
+// ALC-270 : IA Chef d'Orchestre — règles métier mashup & partitions d'arrangement notées.
+// `specialty` ∈ {'ost-vocal' | 'ost-crossover' | 'ost-medley' | 'pop-rock'}.
+const SCHEMA_MASHUP_RULES: &str = "CREATE TABLE IF NOT EXISTS mashup_rules (
+    id               TEXT PRIMARY KEY,
+    name             TEXT NOT NULL,
+    specialty        TEXT NOT NULL,
+    conditions_json  TEXT NOT NULL,
+    dsp_params_json  TEXT NOT NULL,
+    enabled          INTEGER NOT NULL DEFAULT 1,
+    updated_at       TEXT NOT NULL
+)";
+
+const SCHEMA_ARRANGEMENT_SCORES: &str = "CREATE TABLE IF NOT EXISTS arrangement_scores (
+    id          TEXT PRIMARY KEY,
+    title       TEXT NOT NULL,
+    track_a_id  TEXT,
+    track_b_id  TEXT,
+    specialty   TEXT NOT NULL,
+    master_bpm  REAL NOT NULL,
+    camelot_a   TEXT,
+    camelot_b   TEXT,
+    score_json  TEXT NOT NULL,
+    rating      INTEGER NOT NULL DEFAULT 5,
+    is_template INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL
+)";
+
+/// Règles métier pré-peuplées au premier démarrage (dérivées de `.clinerules/04` à `07`).
+/// `(id, name, specialty, conditions_json, dsp_params_json)`.
+const DEFAULT_MASHUP_RULES: [(&str, &str, &str, &str, &str); 4] = [
+    (
+        "ost-vocal",
+        "Profil OST × Vocal",
+        "ost-vocal",
+        r#"{"vocalActivityRatioAUpper":0.12,"vocalActivityRatioBLower":0.25,"hintsOst":true}"#,
+        r#"{"duckTarget":"A.other","duckFreqHz":1800,"duckGainDb":-4.5,"duckQ":1.0,"hpfHz":140}"#,
+    ),
+    (
+        "ost-crossover",
+        "Crossover OST × OST (Rythmique / Thème)",
+        "ost-crossover",
+        r#"{"vocalActivityRatioA":0.0,"vocalActivityRatioB":0.0,"hintsOst":true}"#,
+        r#"{"midNotchHz":1500,"midNotchGainDb":-3.0,"keyLock":true}"#,
+    ),
+    (
+        "ost-medley",
+        "Medley & Alternance Thématique OST ↔ OST",
+        "ost-medley",
+        r#"{"vocalActivityRatioA":0.0,"vocalActivityRatioB":0.0,"hintsOst":true,"medley":true}"#,
+        r#"{"bandSplit":{"graveHz":950,"aiguHz":1050},"blocksBars":8}"#,
+    ),
+    (
+        "pop-rock",
+        "Pop vs Rock / Rock vs Pop (Guitar Pocket)",
+        "pop-rock",
+        r#"{"genreMatch":["Pop","Rock"]}"#,
+        r#"{"guitarPocketHz":{"rock":2200,"pop":1250},"gainDb":-4.0}"#,
+    ),
+];
 
 /// Colonnes de `tracks` lues dans le même ordre par `list_tracks` et l'`upsert`.
 const TRACK_COLUMNS: &str =
@@ -256,7 +395,30 @@ pub fn open_db(app: &tauri::AppHandle) -> Result<Connection, Error> {
     let _ = conn.execute_batch(
         "ALTER TABLE tracks ADD COLUMN user_edited INTEGER NOT NULL DEFAULT 0",
     );
+    // ALC-270 : tables IA Chef d'Orchestre + migrations idempotentes (jamais d'échec si déjà créées).
+    apply_chef_ai_schema(&conn)?;
     Ok(conn)
+}
+
+/// ALC-270 : crée (si absentes) les tables `mashup_rules` et `arrangement_scores`, applique les
+/// migrations idempotentes, puis pré-peuple `mashup_rules` au premier démarrage (règles dérivées
+/// de `.clinerules/04` à `07`). Partagé entre `open_db` et la base de test en mémoire.
+pub fn apply_chef_ai_schema(conn: &Connection) -> Result<(), Error> {
+    conn.execute_batch(SCHEMA_MASHUP_RULES)
+        .and_then(|_| conn.execute_batch(SCHEMA_ARRANGEMENT_SCORES))
+        .map_err(|e| Error::Library(format!("Création du schéma IA Chef d'Orchestre : {e}")))?;
+    // Migrations idempotentes (colonnes ajoutées par les évolutions futures, ignorées si présentes).
+    let _ = conn.execute_batch("ALTER TABLE arrangement_scores ADD COLUMN is_template INTEGER NOT NULL DEFAULT 0");
+    // Pré-peuplement des règles métier au premier démarrage (INSERT OR IGNORE, jamais écrasées).
+    let now = now_iso();
+    for (id, name, specialty, conditions, dsp) in DEFAULT_MASHUP_RULES {
+        let _ = conn.execute(
+            "INSERT OR IGNORE INTO mashup_rules (id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6)",
+            params![id, name, specialty, conditions, dsp, now],
+        );
+    }
+    Ok(())
 }
 
 /// Vrai si le chemin porte une des extensions audio acceptées (`LIBRARY_EXTENSIONS`).
@@ -801,6 +963,279 @@ pub fn library_reanalyze_analysis(state: State<'_, LibraryState>) -> Result<u32,
     Ok(updated)
 }
 
+// ── ALC-270 : helpers de connexion IA (réutilisés par les commandes et les tests) ───────────────
+
+fn rule_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<MashupRule> {
+    Ok(MashupRule {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        specialty: row.get(2)?,
+        conditions_json: row.get(3)?,
+        dsp_params_json: row.get(4)?,
+        enabled: row.get::<_, i64>(5)? != 0,
+        updated_at: row.get(6)?,
+    })
+}
+
+fn score_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ArrangementScore> {
+    Ok(ArrangementScore {
+        id: row.get(0)?,
+        title: row.get(1)?,
+        track_a_id: row.get(2)?,
+        track_b_id: row.get(3)?,
+        specialty: row.get(4)?,
+        master_bpm: row.get(5)?,
+        camelot_a: row.get(6)?,
+        camelot_b: row.get(7)?,
+        score_json: row.get(8)?,
+        rating: row.get::<_, i64>(9).map(|r| r.clamp(0, 10) as u8).unwrap_or(5),
+        is_template: row.get::<_, i64>(10).map(|v| v != 0).unwrap_or(false),
+        created_at: row.get(11)?,
+    })
+}
+
+fn gen_id(prefix: &str) -> String {
+    let ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    format!("{prefix}-{ms}")
+}
+
+fn list_rules_conn(conn: &Connection) -> Result<Vec<MashupRule>, Error> {
+    let mut stmt = conn
+        .prepare("SELECT id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at FROM mashup_rules ORDER BY specialty, name")
+        .map_err(conn_err)?;
+    let rows = stmt.query_map([], rule_from_row).map_err(conn_err)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(conn_err)
+}
+
+pub(crate) fn list_active_rules_conn(conn: &Connection, specialty: &str) -> Result<Vec<MashupRule>, Error> {
+    let mut stmt = conn
+        .prepare("SELECT id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at FROM mashup_rules WHERE enabled = 1 AND specialty = ?1")
+        .map_err(conn_err)?;
+    let rows = stmt.query_map(params![specialty], rule_from_row).map_err(conn_err)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(conn_err)
+}
+
+fn upsert_rule_conn(conn: &Connection, input: &MashupRuleInput) -> Result<MashupRule, Error> {
+    let id = if input.id.trim().is_empty() {
+        gen_id("rule")
+    } else {
+        input.id.trim().to_string()
+    };
+    let now = now_iso();
+    conn.execute(
+        "INSERT INTO mashup_rules (id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+         ON CONFLICT(id) DO UPDATE SET
+             name = excluded.name,
+             specialty = excluded.specialty,
+             conditions_json = excluded.conditions_json,
+             dsp_params_json = excluded.dsp_params_json,
+             enabled = excluded.enabled,
+             updated_at = excluded.updated_at",
+        params![
+            id,
+            input.name.trim(),
+            input.specialty.trim(),
+            input.conditions_json,
+            input.dsp_params_json,
+            if input.enabled { 1 } else { 0 },
+            now
+        ],
+    )
+    .map_err(conn_err)?;
+    conn.query_row(
+        "SELECT id, name, specialty, conditions_json, dsp_params_json, enabled, updated_at FROM mashup_rules WHERE id = ?1",
+        params![id],
+        rule_from_row,
+    )
+    .map_err(conn_err)
+}
+
+fn save_score_conn(conn: &Connection, input: &ArrangementScoreInput) -> Result<ArrangementScore, Error> {
+    let id = match input.id.as_deref() {
+        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        _ => gen_id("scr"),
+    };
+    let now = now_iso();
+    let rating = input.rating.clamp(0, 10);
+    conn.execute(
+        "INSERT INTO arrangement_scores (id, title, track_a_id, track_b_id, specialty, master_bpm, camelot_a, camelot_b, score_json, rating, is_template, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+         ON CONFLICT(id) DO UPDATE SET
+             title = excluded.title,
+             track_a_id = excluded.track_a_id,
+             track_b_id = excluded.track_b_id,
+             specialty = excluded.specialty,
+             master_bpm = excluded.master_bpm,
+             camelot_a = excluded.camelot_a,
+             camelot_b = excluded.camelot_b,
+             score_json = excluded.score_json,
+             rating = excluded.rating,
+             is_template = excluded.is_template,
+             created_at = excluded.created_at",
+        params![
+            id,
+            input.title.trim(),
+            input.track_a_id.clone().map(|s| s.trim().to_string()),
+            input.track_b_id.clone().map(|s| s.trim().to_string()),
+            input.specialty.trim(),
+            input.master_bpm,
+            input.camelot_a.clone().map(|s| s.trim().to_string()),
+            input.camelot_b.clone().map(|s| s.trim().to_string()),
+            input.score_json,
+            rating,
+            if input.is_template { 1 } else { 0 },
+            now
+        ],
+    )
+    .map_err(conn_err)?;
+    conn.query_row(
+        "SELECT id, title, track_a_id, track_b_id, specialty, master_bpm, camelot_a, camelot_b, score_json, rating, is_template, created_at FROM arrangement_scores WHERE id = ?1",
+        params![id],
+        score_from_row,
+    )
+    .map_err(conn_err)
+}
+
+fn list_scores_conn(conn: &Connection, a: Option<&str>, b: Option<&str>) -> Result<Vec<ArrangementScore>, Error> {
+    let mut sql = "SELECT id, title, track_a_id, track_b_id, specialty, master_bpm, camelot_a, camelot_b, score_json, rating, is_template, created_at FROM arrangement_scores WHERE 1=1".to_string();
+    let mut params: Vec<rusqlite::types::Value> = Vec::new();
+    if let Some(a) = a {
+        if !a.is_empty() {
+            sql.push_str(" AND track_a_id = ?");
+            params.push(rusqlite::types::Value::Text(a.to_string()));
+        }
+    }
+    if let Some(b) = b {
+        if !b.is_empty() {
+            sql.push_str(" AND track_b_id = ?");
+            params.push(rusqlite::types::Value::Text(b.to_string()));
+        }
+    }
+    sql.push_str(" ORDER BY created_at DESC");
+    let mut stmt = conn.prepare(&sql).map_err(conn_err)?;
+    let rows = stmt
+        .query_map(rusqlite::params_from_iter(params.iter()), score_from_row)
+        .map_err(conn_err)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(conn_err)
+}
+
+/// Partitions les plus proches d'un contexte donné (apprentissage contextuel immédiat) :
+/// spécialité (si précisée) + distance en BPM au tempo moyen A/B. Jamais vide au-delà de 0.
+pub(crate) fn find_similar_score_conn(
+    conn: &Connection,
+    specialty: &str,
+    bpm_a: f64,
+    bpm_b: f64,
+    limit: usize,
+) -> Result<Vec<ArrangementScore>, Error> {
+    let all = list_scores_conn(conn, None, None)?;
+    let mut with_dist: Vec<(f64, ArrangementScore)> = all
+        .into_iter()
+        .filter(|s| specialty.is_empty() || s.specialty == specialty)
+        .map(|s| {
+            let target = 0.5 * (bpm_a + bpm_b);
+            let bpm_dist = (s.master_bpm - target).abs();
+            let spec_pen = if s.specialty == specialty { 0.0 } else { 1200.0 };
+            (bpm_dist + spec_pen, s)
+        })
+        .collect();
+    with_dist.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap_or(std::cmp::Ordering::Equal));
+    with_dist.truncate(if limit == 0 { 2 } else { limit });
+    Ok(with_dist.into_iter().map(|(_, s)| s).collect())
+}
+
+/// Exporte les partitions notées `rating >= 4` au format `.jsonl` d'entraînement LoRA
+/// (structure `{ "messages": [system, user, assistant] }`). Retourne le nombre de lignes écrites.
+fn export_training_jsonl_conn(conn: &Connection, dest: &Path) -> Result<usize, Error> {
+    let rows: Vec<ArrangementScore> = list_scores_conn(conn, None, None)?
+        .into_iter()
+        .filter(|s| s.rating >= 4)
+        .collect();
+    let rules = list_rules_conn(conn)?;
+    let mut out = String::new();
+    for s in &rows {
+        let rule_summary: Vec<String> = rules
+            .iter()
+            .filter(|r| r.specialty == s.specialty)
+            .map(|r| format!("{} ({}): {}", r.name, r.id, r.conditions_json))
+            .collect();
+        let system = "Tu es le Chef d'Orchestre d'AlcheMix II. À partir de la télémétrie des deux platines A/B et des règles métier actives, génère une partition d'arrangement JSON valide au format MashupArrangementScore (version 1.0). Réponds uniquement avec le JSON de la partition (sans balises Markdown).";
+        let user = format!(
+            "Spécialité mashup : {}. Tempo maître (BPM) : {:.1}. Clés Camelot : A={}, B={}. Règles actives : {}. Génère la partition d'arrangement JSON.",
+            s.specialty,
+            s.master_bpm,
+            s.camelot_a.as_deref().unwrap_or("—"),
+            s.camelot_b.as_deref().unwrap_or("—"),
+            if rule_summary.is_empty() { "aucune".to_string() } else { rule_summary.join(" | ") }
+        );
+        let message = serde_json::json!({
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+                {"role": "assistant", "content": s.score_json}
+            ]
+        });
+        out.push_str(&message.to_string());
+        out.push('\n');
+    }
+    fs::write(dest, out).map_err(Error::Io)?;
+    Ok(rows.len())
+}
+
+// ---------------------------------------------------------------------------------------------
+// Commandes IPC ALC-270 exposees au frontend Svelte
+// ---------------------------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn list_mashup_rules(state: State<'_, LibraryState>) -> Result<Vec<MashupRule>, Error> {
+    let conn = state.0.lock().map_err(lock_err)?;
+    list_rules_conn(&conn)
+}
+
+#[tauri::command]
+pub fn upsert_mashup_rule(state: State<'_, LibraryState>, rule: MashupRuleInput) -> Result<MashupRule, Error> {
+    let conn = state.0.lock().map_err(lock_err)?;
+    upsert_rule_conn(&conn, &rule)
+}
+
+#[tauri::command]
+pub fn save_arrangement_score(state: State<'_, LibraryState>, score: ArrangementScoreInput) -> Result<ArrangementScore, Error> {
+    let conn = state.0.lock().map_err(lock_err)?;
+    save_score_conn(&conn, &score)
+}
+
+#[tauri::command]
+pub fn list_arrangement_scores(
+    state: State<'_, LibraryState>,
+    track_a_id: Option<String>,
+    track_b_id: Option<String>,
+) -> Result<Vec<ArrangementScore>, Error> {
+    let conn = state.0.lock().map_err(lock_err)?;
+    list_scores_conn(&conn, track_a_id.as_deref(), track_b_id.as_deref())
+}
+
+#[tauri::command]
+pub fn find_similar_arrangement_scores(
+    state: State<'_, LibraryState>,
+    specialty: String,
+    bpm_a: f64,
+    bpm_b: f64,
+    limit: u32,
+) -> Result<Vec<ArrangementScore>, Error> {
+    let conn = state.0.lock().map_err(lock_err)?;
+    find_similar_score_conn(&conn, &specialty, bpm_a, bpm_b, limit as usize)
+}
+
+#[tauri::command]
+pub fn export_training_dataset_jsonl(state: State<'_, LibraryState>, dest_path: String) -> Result<usize, Error> {
+    let conn = state.0.lock().map_err(lock_err)?;
+    export_training_jsonl_conn(&conn, Path::new(&dest_path))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -814,6 +1249,8 @@ mod tests {
         // ALC-242 : verrou de rétro-alimentation stems sur les bases de test (supplément du schéma).
         conn.execute_batch("ALTER TABLE tracks ADD COLUMN user_edited INTEGER NOT NULL DEFAULT 0")
             .unwrap();
+        // ALC-270 : tables IA Chef d'Orchestre (+ pré-peuplement mashup_rules) sur la base de test.
+        apply_chef_ai_schema(&conn).unwrap();
         conn
     }
 
@@ -951,6 +1388,63 @@ mod tests {
         assert_eq!(tags.genre.as_deref(), Some("Synthpop"));
         assert_eq!(tags.tag_bpm, Some(123.0));
         assert_eq!(tags.tag_key.as_deref(), Some("8A"));
+    }
+
+    #[test]
+    fn chef_ai_schema_migration_and_jsonl_export() {
+        let conn = open_memory_db();
+        // 4 règles métier pré-peuplées (dérivées de .clinerules/04-07).
+        let rules = list_rules_conn(&conn).unwrap();
+        assert_eq!(rules.len(), 4);
+        assert!(rules.iter().any(|r| r.specialty == "ost-vocal"));
+        assert!(rules.iter().any(|r| r.specialty == "pop-rock"));
+
+        let a = ArrangementScoreInput {
+            id: Some("scr-a".into()),
+            title: "OST × Vocal".into(),
+            track_a_id: Some("t1".into()),
+            track_b_id: Some("t2".into()),
+            specialty: "ost-vocal".into(),
+            master_bpm: 120.0,
+            camelot_a: Some("8A".into()),
+            camelot_b: Some("8B".into()),
+            score_json: r#"{"version":"1.0","title":"x","timeline":[{"bar":1,"deckA":["drums"],"deckB":["vocals"]}]}"#.into(),
+            rating: 5,
+            is_template: false,
+        };
+        save_score_conn(&conn, &a).unwrap();
+        let b = ArrangementScoreInput {
+            id: Some("scr-b".into()),
+            title: "Pop × Rock".into(),
+            track_a_id: Some("t3".into()),
+            track_b_id: Some("t4".into()),
+            specialty: "pop-rock".into(),
+            master_bpm: 96.0,
+            camelot_a: None,
+            camelot_b: None,
+            score_json: r#"{"version":"1.0","title":"y","timeline":[]}"#.into(),
+            rating: 2,
+            is_template: false,
+        };
+        save_score_conn(&conn, &b).unwrap();
+
+        // Seule la partition rating >= 4 est exportée (JSONL instruction-tuning).
+        let dest = std::env::temp_dir().join(format!("alchemix_jsonl_{}.jsonl", std::process::id()));
+        let n = export_training_jsonl_conn(&conn, &dest).unwrap();
+        assert_eq!(n, 1, "une seule ligne (rating 5) exportée");
+        let text = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(text.lines().count(), 1);
+        let line: serde_json::Value = serde_json::from_str(text.trim()).unwrap();
+        assert_eq!(line["messages"][0]["role"].as_str().unwrap(), "system");
+        assert_eq!(line["messages"][1]["role"].as_str().unwrap(), "user");
+        assert_eq!(line["messages"][2]["role"].as_str().unwrap(), "assistant");
+        assert!(line["messages"][1]["content"].as_str().unwrap().contains("ost-vocal"));
+        let _ = std::fs::remove_file(&dest);
+
+        // find_similar trie par proximité (spécialité + BPM moyen).
+        let sim = find_similar_score_conn(&conn, "ost-vocal", 120.0, 121.0, 2).unwrap();
+        assert_eq!(sim.len(), 1);
+        assert_eq!(sim[0].id, "scr-a");
     }
 }
 

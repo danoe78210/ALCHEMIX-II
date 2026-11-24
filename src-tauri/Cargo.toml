@@ -1,6 +1,6 @@
 [package]
 name = "alchemix_ii"
-version = "0.6.0"
+version = "0.7.0"
 description = "Console de mixage harmonique DJ propulsée par Tauri 2, Rust ONNX et Svelte 5."
 authors = ["DJ Danoë"]
 edition = "2021"
@@ -35,6 +35,18 @@ rusqlite = { version = "0.43", features = ["bundled"] }
 ort = { version = "2.0.0-rc.15", features = ["directml"] }
 # SHA-256 des fichiers audio → clé de cache des Stems (ALC-174)
 sha2 = "0.10"
+# ALC-270 : téléchargement HTTP streaming du modèle GGUF (installation optionnelle ~1,9 Go)
+# + inférence locale embarquée (llama-cpp-2, optionnelle derrière la feature `chef-llm`).
+ureq = "2"
+llama-cpp-2 = { version = "0.1", optional = true }
+
+[features]
+# Feature ALC-270 « chef-llm » : compile l'inférence llama-cpp-2 (modèle local + LoRA). Activée
+# seulement pour la construction de l'installateur autonome (payload LLM réellement embarqué).
+# Le build/`dev` par défaut (sans la feature) reste léger : l'IA Chef d'Orchestre fonctionne alors
+# en mode déterministe (règles SQLite + partitions voisines), sans dépendance native lourde.
+default = []
+chef-llm = ["dep:llama-cpp-2"]
 
 [profile.dev]
 # ALC-159 : le décodage Symphonia, les FFT rustfft et les boucles DSP d'analyse tournent à pleine

@@ -282,4 +282,121 @@ export const libraryIpc = {
       camelotKey,
     });
   },
+  // ALC-270 : IA Chef d'Orchestre — règles métier & partitions d'arrangement notées.
+  listMashupRules(): Promise<MashupRule[]> {
+    return safeInvoke<MashupRule[]>('list_mashup_rules', {});
+  },
+  upsertMashupRule(rule: MashupRuleInput): Promise<MashupRule> {
+    return safeInvoke<MashupRule>('upsert_mashup_rule', { rule });
+  },
+  saveArrangementScore(score: ArrangementScoreInput): Promise<ArrangementScore> {
+    return safeInvoke<ArrangementScore>('save_arrangement_score', { score });
+  },
+  listArrangementScores(trackAId?: string | null, trackBId?: string | null): Promise<ArrangementScore[]> {
+    return safeInvoke<ArrangementScore[]>('list_arrangement_scores', {
+      track_a_id: trackAId ?? null,
+      track_b_id: trackBId ?? null,
+    });
+  },
+  findSimilarArrangementScores(
+    specialty: string,
+    bpmA: number,
+    bpmB: number,
+    limit: number
+  ): Promise<ArrangementScore[]> {
+    return safeInvoke<ArrangementScore[]>('find_similar_arrangement_scores', {
+      specialty,
+      bpm_a: bpmA,
+      bpm_b: bpmB,
+      limit,
+    });
+  },
+  exportTrainingDatasetJsonl(destPath: string): Promise<number> {
+    return safeInvoke<number>('export_training_dataset_jsonl', { dest_path: destPath });
+  },
+};
+
+// ── ALC-270 : IA Chef d'Orchestre (modèle local optionnel ~1,9 Go, hors-ligne) ────────────────
+
+export interface ChefLlmStatus {
+  optInState: string;
+  modelInstalled: boolean;
+  loraInstalled: boolean;
+  modelSizeBytes: number;
+  loraFilename: string | null;
+}
+
+/** Télémétrie d'une platine transmise à `generate_chef_arrangement_score`. */
+export interface DeckMetaInput {
+  bpm: number;
+  camelotKey?: string | null;
+  genre?: string | null;
+  vocalActivityRatio?: number | null;
+  drumsEnergy?: number | null;
+}
+
+export interface MashupRule {
+  id: string;
+  name: string;
+  specialty: string;
+  conditionsJson: string;
+  dspParamsJson: string;
+  enabled: boolean;
+  updatedAt: string;
+}
+
+export interface MashupRuleInput {
+  id: string;
+  name: string;
+  specialty: string;
+  conditionsJson: string;
+  dspParamsJson: string;
+  enabled: boolean;
+}
+
+export interface ArrangementScore {
+  id: string;
+  title: string;
+  trackAId: string | null;
+  trackBId: string | null;
+  specialty: string;
+  masterBpm: number;
+  camelotA: string | null;
+  camelotB: string | null;
+  scoreJson: string;
+  rating: number;
+  isTemplate: boolean;
+  createdAt: string;
+}
+
+export interface ArrangementScoreInput {
+  id?: string | null;
+  title: string;
+  trackAId?: string | null;
+  trackBId?: string | null;
+  specialty: string;
+  masterBpm: number;
+  camelotA?: string | null;
+  camelotB?: string | null;
+  scoreJson: string;
+  rating: number;
+  isTemplate?: boolean;
+}
+
+export const chefLlmIpc = {
+  getChefLlmStatus(): Promise<ChefLlmStatus> {
+    return safeInvoke<ChefLlmStatus>('get_chef_llm_status', {});
+  },
+  setChefLlmOptIn(state: string): Promise<void> {
+    return safeInvoke<void>('set_chef_llm_opt_in', { state });
+  },
+  installChefLlmModel(onProgress: Channel<number>): Promise<void> {
+    return safeInvoke<void>('install_chef_llm_model', { onProgress });
+  },
+  uninstallChefLlmModel(): Promise<void> {
+    return safeInvoke<void>('uninstall_chef_llm_model', {});
+  },
+  generateChefArrangementScore(a: DeckMetaInput, b: DeckMetaInput): Promise<string> {
+    return safeInvoke<string>('generate_chef_arrangement_score', { deck_a_meta: a, deck_b_meta: b });
+  },
 };

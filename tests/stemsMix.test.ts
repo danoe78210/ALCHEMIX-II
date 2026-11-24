@@ -18,6 +18,9 @@ import {
   freshStemMutes,
   unitStemGains,
   resolveCrossDeckMashup,
+  resolveCrossoverStems,
+  resolveMashupSpecialty,
+  computeOstMedleyPlan,
   stemActive,
   resolveStemHit,
   composeSelectedStemsEnvelope,
@@ -46,6 +49,8 @@ import {
   recommendMashupRecipe,
   genreHintsOstCinema,
   shouldSuggestOstCinema,
+  parseAndValidateArrangementScore,
+  resolveArrangementStateAtBar,
   STEMS_RESET_MESSAGE,
   TEMPO_PHASE_MESSAGE,
 } from '$lib/audio/stemMix';
@@ -962,6 +967,233 @@ test('ALC-247-3 : plafond de 8 mesures sur les fenêtres THÈME OST SOLO (fin de
   }
 });
 
+test('ALC-264 : pic lyrique OST (soprano ostStems.vocals + nappe ostStems.other) → THÈME OST SOLO ≥ 8 mesures, ostRate 1 sans re-seek', () => {
+  const dur = 60;
+  const bpm = 120; // 1 mesure = 4 temps = 2 s → 8 mesures = 16 s
+  const beat = 60 / bpm;
+  const measure = 4 * beat; // 2 s
+  const drums = new Float32Array(dur).fill(0);
+  drums.fill(0.9, 8, 12); // premier drop (bins 8..11) ⇒ dropEntry
+  drums.fill(0.03, 16, 40); // grand break cinéma (drums quasi muets 24 s)
+  const other = new Float32Array(dur).fill(0);
+  other.fill(0.6, 16, 40); // nappe orchestrale / cuivres pendant le break
+  // Pic LYRIQUE (soprano soliste) : forte énergie vocale sur la 2e moitié du break (20..32 s).
+  const vocals = new Float32Array(dur).fill(0);
+  vocals.fill(0.55, 20, 32);
+  const plan = computeContinuousOstMashupPlan({
+    ostBpm: bpm,
+    vocalBpm: bpm,
+    gridOffsetMs: 0,
+    ostEntryHintSeconds: 12,
+    vocalStartHintSeconds: 12,
+    ostDurationSeconds: dur,
+    vocalDurationSeconds: dur,
+    ostVocals: vocals,
+    ostOther: other,
+    ostDrums: drums,
+    chorusEndSeconds: 4,
+  });
+  // Invariant 2 — beatmatch continu : OST à 1.0x (Key Lock), voix pliée à l octave [0.75..1.35], zéro re-seek.
+  assert.equal(plan.ostPlaybackRate, 1, 'OST reste à 1.0x (aucun re-seek en phrase, pas de hachage)');
+  assert.ok(plan.vocalPlaybackRate >= 0.75 && plan.vocalPlaybackRate <= 1.35, 'ratio vocal borné [0.75..1.35]');
+  assert.equal('slices' in plan, false, 'plan continu sans slices (aucun re-seek périodique)');
+  // Invariants 3/4 — temps 1 ancré (dropEntry) + pic lyrique ∪ nappe `other` → THÈME OST SOLO macro ≥ 8 mesures.
+  const solo = plan.breathingWindows.find((w) => w.label === 'THÈME OST SOLO');
+  assert.ok(solo, 'pic lyrique (soprano ostStems.vocals) + nappe cuivres (ostStems.other) → fenêtre THÈME OST SOLO');
+  const len = solo!.endSeconds - solo!.startSeconds;
+  assert.ok(len >= 8 * measure - 1e-6, `fenêtre ≥ 8 mesures (${(8 * measure).toFixed(1)} s), obtenu ${len.toFixed(1)} s`);
+  // La fenêtre couvre l apothéose lyrique/cuivrée — jamais de superposition longue du chant principal.
+  assert.ok(solo!.startSeconds <= 22 && solo!.endSeconds >= 30, 'la fenêtre recouvre l apothéose lyrique (20..30 s)');
+  // Frontière alignée sur le temps fort (downbeat) de la grille OST.
+  assert.ok(Math.abs(solo!.startSeconds / beat - Math.round(solo!.startSeconds / beat)) < 1e-6, 'début quantifié au downbeat');
+  assert.ok(Math.abs(solo!.endSeconds / beat - Math.round(solo!.endSeconds / beat)) < 1e-6, 'fin quantifiée au downbeat');
+});
+
+test('ALC-26x : CROSSOVER OST × OST — deux instrumentales + une B.O. → recette crossover (Platine Rythmique/Thème)', () => {
+  const a = { vocalActivityRatio: 0.04, midCongestionScore: 0.35, genre: 'Electronica', drumsRms: 0.5 };
+  const b = { vocalActivityRatio: 0.03, midCongestionScore: 0.5, genre: 'Soundtrack', drumsRms: 0.2 };
+  const rec = recommendMashupRecipe(a, b);
+  assert.ok(rec, 'recette recommandée');
+  assert.equal(rec!.mode, 'crossover', 'aucune voix dominante + B.O. → mode crossover');
+  assert.equal(rec!.crossover?.rhythm, 'A', 'la platine la plus percussive (drumsRms A=0.5) devient Rythmique');
+  assert.equal(rec!.crossover?.theme, 'B', 'l autre platine devient Thème (other seul)');
+  assert.equal(rec!.profile, 'ost-cinema', 'profil OST/Cinéma activé');
+});
+
+test('ALC-26x : crossover — routage complémentaire des stems (Rythmique drums+bass+other / Thème other seul)', () => {
+  // Rythmique = B
+  const targets = resolveCrossoverStems('B');
+  assert.equal(targets.A, 'theme');
+  assert.equal(targets.B, 'instrumental');
+  // Platine Thème : seul `other` audible
+  const themeMutes = applyStemPreset({ vocals: false, drums: false, bass: false, other: false }, 'theme');
+  assert.equal(themeMutes.vocals, true, 'Thème mute vocals');
+  assert.equal(themeMutes.drums, true, 'Thème mute drums');
+  assert.equal(themeMutes.bass, true, 'Thème mute bass');
+  assert.equal(themeMutes.other, false, 'Thème garde other (cordes/cuivres)');
+  // Platine Rythmique (« instrumental ») : vocals muet, drums + bass + other actifs
+  const rythMutes = applyStemPreset({ vocals: false, drums: false, bass: false, other: false }, 'instrumental');
+  assert.equal(rythMutes.vocals, true, 'Rythmique mute vocals');
+  assert.equal(rythMutes.drums, false, 'Rythmique garde drums');
+  assert.equal(rythMutes.bass, false, 'Rythmique garde bass');
+  assert.equal(rythMutes.other, false, 'Rythmique garde other');
+});
+
+test('ALC-26x : crossover — jamais de VOIX SEULE quand aucune des deux platines ne chante', () => {
+  const a = { vocalActivityRatio: 0.02, midCongestionScore: 0.3, genre: 'Score', drumsRms: 0.4 };
+  const b = { vocalActivityRatio: 0.05, midCongestionScore: 0.4, genre: 'Classical', drumsRms: 0.6 };
+  const rec = recommendMashupRecipe(a, b);
+  assert.ok(rec && rec.mode === 'crossover', 'deux quasi-instrumentales → crossover, aucune VOIX SEULE');
+});
+
+test('ALC-26x : non-régression — une voix dominante sur B → INST A + VOIX B (pas crossover)', () => {
+  const a = { vocalActivityRatio: 0.03, midCongestionScore: 0.3, genre: 'Soundtrack', drumsRms: 0.4 };
+  const b = { vocalActivityRatio: 0.6, midCongestionScore: 0.3, genre: 'Pop', drumsRms: 0.2 };
+  const rec = recommendMashupRecipe(a, b);
+  assert.equal(rec!.mode, 'instA_vocB', 'voix significative sur B → recette classique INST A + VOIX B');
+});
+
+test('ALC-26x : resolveMashupSpecialty — Pop + Rock (Voix Pop sur A + Riff Rock sur B) → pop-rock, creux 2 200 Hz', () => {
+  const a = { vocalActivityRatio: 0.6, midCongestionScore: 0.3, genre: 'Pop', drumsRms: 0.2 };
+  const b = { vocalActivityRatio: 0.05, midCongestionScore: 0.4, genre: 'Hard Rock', drumsRms: 0.8 };
+  const res = resolveMashupSpecialty(a, b);
+  assert.equal(res.specialty, 'pop-rock', 'Voix Pop + Riff Rock → spécialité Pop × Rock');
+  assert.equal(res.midNotchHz, 2200, 'instrumental Rock → guitar pocket 2 200 Hz');
+});
+
+test('ALC-26x : resolveMashupSpecialty — Rock + Pop (Voix Rock sur A + Prod Pop sur B) → pop-rock, creux 1 250 Hz', () => {
+  const a = { vocalActivityRatio: 0.6, midCongestionScore: 0.3, genre: 'Rock', drumsRms: 0.5 };
+  const b = { vocalActivityRatio: 0.04, midCongestionScore: 0.3, genre: 'Synthpop', drumsRms: 0.2 };
+  const res = resolveMashupSpecialty(a, b);
+  assert.equal(res.specialty, 'pop-rock', 'Voix Rock + Prod Pop → spécialité Pop × Rock (sens inverse)');
+  assert.equal(res.midNotchHz, 1250, 'instrumental Pop → guitar pocket 1 250 Hz');
+});
+
+test('ALC-26x : non-régression — resolveMashupSpecialty oriente OST × Vocal puis OST × OST', () => {
+  // OST × Vocal : une voix dominante + une B.O.
+  const vox = { vocalActivityRatio: 0.6, midCongestionScore: 0.3, genre: 'Pop', drumsRms: 0.2 };
+  const ost = { vocalActivityRatio: 0.04, midCongestionScore: 0.4, genre: 'Soundtrack', drumsRms: 0.5 };
+  const vocalRes = resolveMashupSpecialty(vox, ost);
+  assert.equal(vocalRes.specialty, 'ost-vocal', 'voix dominante + B.O. → OST × Vocal');
+  assert.equal(vocalRes.midNotchHz, 1800, 'creux OST × Vocal = 1 800 Hz');
+  // OST × OST : les deux quasi-instrumentales + une B.O.
+  const ost2 = { vocalActivityRatio: 0.03, midCongestionScore: 0.3, genre: 'Score', drumsRms: 0.9 };
+  const xr = resolveMashupSpecialty(ost, ost2);
+  assert.equal(xr.specialty, 'ost-crossover', 'deux quasi-instrumentales + B.O. → OST × OST');
+  assert.equal(xr.midNotchHz, 1500, 'creux OST × OST = 1 500 Hz');
+  // standard : deux voix sans B.O.
+  const std = resolveMashupSpecialty(vox, { ...vox, genre: 'Dance' });
+  assert.equal(std.specialty, 'standard', 'deux voix sans B.O. → standard');
+  assert.equal(std.midNotchHz, 0, 'pas de creux sur standard');
+});
+
+test('ALC-26x : computeOstMedleyPlan — alternance Q-R par blocs de 8 mes (socle unique), breakdown sans drums, climax contrapuntique 950/1050', () => {
+  const bpm = 120;
+  const bar8 = 8 * 4 * (60 / bpm); // 16 s
+  const plan = computeOstMedleyPlan(
+    { bpm, firstDownbeatSeconds: 0.42, drumsRms: 0.7 },
+    { bpm: 120, drumsRms: 0.3 },
+    192,
+    0
+  );
+  assert.ok(plan.phases.length >= 10, 'timeline assez longue pour intro / exposition / breakdown / climax');
+  // ① Exposition Question-Réponse : un seul `other` ouvert, drums+bass verrouillés sur la Socle UNIQUE.
+  const exposure = plan.phases.filter((p) => p.label === 'exposure');
+  assert.ok(exposure.length >= 4, 'au moins 4 blocs d exposition alternés');
+  for (const p of exposure) {
+    assert.equal(p.A.other + p.B.other, 1, 'un seul thème (other) ouvert par bloc d exposition');
+    const socle = p.socle;
+    assert.equal(socle === 'A' ? p.A.drums : p.B.drums, 1, 'drums verrouillé sur la Socle');
+    assert.equal(socle === 'A' ? p.A.bass : p.B.bass, 1, 'bass verrouillé sur la Socle');
+    assert.equal(socle === 'A' ? p.B.drums : p.A.drums, 0, 'jamais drums sur les DEUX platines');
+    assert.equal(socle === 'A' ? p.B.bass : p.A.bass, 0, 'jamais bass sur les DEUX platines');
+    assert.ok(Math.abs(p.endSeconds - p.startSeconds - bar8) < 1e-6, 'bloc complet de 8 mesures');
+  }
+  assert.notEqual(exposure[0].A.other, exposure[1].A.other, 'les thèmes alternent d un bloc 8 mes à l autre');
+  // ② Breakdown pivot : 8 mesures SANS drums (ni bass) nulle part.
+  const breakdown = plan.phases.find((p) => p.label === 'breakdown');
+  assert.ok(breakdown, 'breakdown pivot présent');
+  assert.equal(breakdown!.A.drums, 0, 'drums coupé platine A');
+  assert.equal(breakdown!.B.drums, 0, 'drums coupé platine B');
+  assert.equal(breakdown!.A.bass, 0, 'bass coupé platine A');
+  assert.equal(breakdown!.B.bass, 0, 'bass coupé platine B');
+  assert.ok(Math.abs(breakdown!.endSeconds - breakdown!.startSeconds - bar8) < 1e-6, 'breakdown = 8 mesures');
+  // ③ Climax contrapuntique : les deux `other` ouverts + band split LPF 950 / HPF 1050 (socle percussif).
+  const climaxes = plan.phases.filter((p) => p.label === 'climax');
+  assert.ok(climaxes.length >= 2, 'climax dans le tiers final');
+  for (const p of climaxes) {
+    assert.equal(p.A.other, 1, 'thème A ouvert au climax');
+    assert.equal(p.B.other, 1, 'thème B ouvert au climax');
+    assert.ok(p.bandSplit, 'bandSplit présent au climax');
+    assert.equal(p.bandSplit!.lowHz, 950, 'LPF thème grave 950 Hz');
+    assert.equal(p.bandSplit!.highHz, 1050, 'HPF thème aigu 1050 Hz');
+    assert.equal(p.socle === 'A' ? p.A.drums : p.B.drums, 1, 'socle percussif actif au climax');
+  }
+  // Grille quantifiée sur le downbeat real (drums.wav) : chaque phase = multiple de 8 mesures.
+  const anchor = plan.phases[0].startSeconds;
+  assert.ok(Math.abs(anchor - 0.42) < 1e-9, 'grille ancrée sur le downbeat 0.42 s de drums.wav');
+  for (const p of plan.phases) {
+    const k = (p.startSeconds - anchor) / bar8;
+    assert.ok(Math.abs(k - Math.round(k)) < 1e-6, 'chaque phase débute sur une frontière de 8 mesures');
+  }
+});
+
+test('ALC-26x : Profile OST x Vocal avance — hybridGrooveWindows seulement sur les blocs refrain/climax quand OST legere percussivement + vocal groove', () => {
+  const bpm = 120;
+  const measureSec = 4 * (60 / bpm);
+  const ba8 = 8 * measureSec;
+  const common = {
+    ostBpm: bpm,
+    vocalBpm: bpm,
+    gridOffsetMs: 0,
+    ostEntryHintSeconds: 60,
+    vocalStartHintSeconds: 70,
+    ostDurationSeconds: 180,
+    vocalDurationSeconds: 160,
+    ostFirstDownbeatSeconds: 0.42,
+    vocalFirstDownbeatSeconds: 0.1,
+  };
+  // Relais hybride ACTIVÉ : OST faible (0.1) + vocal groove (0.7).
+  const hy = computeContinuousOstMashupPlan({ ...common, ostDrumsRms: 0.1, vocalDrumsRms: 0.7 });
+  assert.ok(hy.hybridGrooveWindows && hy.hybridGrooveWindows.length >= 1, 'fenêtres hybridGroove présentes');
+  for (const w of hy.hybridGrooveWindows!) {
+    const k = (w.startSeconds - 0.42) / ba8;
+    assert.ok(Math.abs(k - Math.round(k)) < 1e-6, 'début de fenêtre aligné sur un bloc complet de 8 mesures');
+    assert.ok(w.startSeconds >= hy.vocalStartSeconds, 'les fenêtres hybrides arrivent après l entrée vocale');
+    assert.ok(Math.abs(w.endSeconds - w.startSeconds - ba8) < 1e-6, 'fenêtre = bloc complet de 8 mesures');
+  }
+  // Relais NON activé quand l OST est percussive.
+  const nonHy = computeContinuousOstMashupPlan({ ...common, ostDrumsRms: 0.6, vocalDrumsRms: 0.7 });
+  assert.equal(nonHy.hybridGrooveWindows, undefined, 'pas de relais hybride si l OST est percussive');
+});
+
+test('ALC-26x : Profile OST x Vocal avance — bareOutroStartSeconds laisse l OST nue sur les 4-8 dernieres mesures', () => {
+  const bpm = 120;
+  const measureSec = 4 * (60 / bpm);
+  const bar4 = 4 * measureSec;
+  const plan = computeContinuousOstMashupPlan({
+    ostBpm: bpm,
+    vocalBpm: bpm,
+    gridOffsetMs: 0,
+    ostEntryHintSeconds: 60,
+    vocalStartHintSeconds: 70,
+    ostDurationSeconds: 180,
+    vocalDurationSeconds: 160,
+    ostFirstDownbeatSeconds: 0.42,
+    vocalFirstDownbeatSeconds: 0.1,
+    ostDrumsRms: 0.1,
+    vocalDrumsRms: 0.7,
+  });
+  const bare = plan.bareOutroStartSeconds;
+  assert.ok(Number.isFinite(bare), 'outro nue planifiée');
+  const remaining = 180 - bare!;
+  assert.ok(remaining >= 4 * measureSec, `outro d au moins 4 mesures (obtenu ${remaining.toFixed(1)} s)`);
+  assert.ok(remaining <= 12 * measureSec, `outro ≤ 8 mesures + tolérance de grille (obtenu ${remaining.toFixed(1)} s)`);
+  const kgrid = (bare! - 0.42) / bar4;
+  assert.ok(Math.abs(kgrid - Math.round(kgrid)) < 1e-6, 'début de l outro aligné sur la grille (downbeat drums.wav)');
+  assert.ok(bare! >= plan.vocalStartSeconds, 'l outro arrive après l entrée vocale');
+});
+
 test('ALC-235-3 : dialogueRisk du plan OST — voix résiduelle de la B.O. détectée', () => {
   const mk = (vocVal: number, otherVal: number) =>
     computeOstVocalMashupPlan(
@@ -1072,4 +1304,117 @@ test('ALC-253-4 : grilles ancrées sur firstDownbeatSeconds (0,18 vs 0,42 s) et 
   assert.ok(Math.abs(kv - Math.round(kv)) < 1e-6, `(vocalStart − fdbB)·rate/bar4A entier (${kv})`);
   // 4) Le vocal n entre jamais avant le downbeat percussif de B.
   assert.ok(plan.vocalStartSeconds >= 0.42 - 1e-6, `vocalStart (${plan.vocalStartSeconds}) ≥ fdbB (0.42 s)`);
+});
+
+// ── ALC-269 : Mode Chef d'Orchestre — partitions d'arrangement JSON ───────────
+
+const ARR_SCORE_JSON = {
+  version: '1.0',
+  title: 'Gunbarrel OST × Pop',
+  masterBpm: 120,
+  crossfader: 0.5,
+  deckA: { role: 'rhythm', startBar: 1 },
+  deckB: { role: 'vocal', entryBar: 9, sourceStartBar: 9 },
+  eq: { duckTarget: 'A.other', duckFreqHz: 1800, duckGainDb: -4.5 },
+  timeline: [
+    { bar: 25, deckA: ['drums', 'bass', 'other'], deckB: ['vocals', 'bass'], crossfader: 0.7, label: 'Refrain' },
+    { bar: 1, deckA: ['drums', 'bass', 'other'], deckB: ['vocals'], crossfader: 0.5, label: 'Intro Gunbarrel OST' },
+    { bar: 65, deckA: ['bass'], deckB: ['vocals'], crossfader: 0, label: 'Outro nu' },
+    { bar: 9, deckA: ['drums', 'bass', 'other'], deckB: ['vocals'], crossfader: 0.6, label: 'Couplet Pop' },
+  ],
+};
+const ARR_JSON_STR = JSON.stringify(ARR_SCORE_JSON);
+
+test('ALC-269-1 : parseAndValidateArrangementScore — parsing valide avec ou sans balises Markdown', () => {
+  // Sans balise → titre, timeline triée par mesure croissante (désordre initial corrigé).
+  const r = parseAndValidateArrangementScore(ARR_JSON_STR);
+  assert.equal(r.ok, true);
+  if (!r.ok) return;
+  assert.equal(r.score.version, '1.0');
+  assert.equal(r.score.title, 'Gunbarrel OST × Pop');
+  assert.equal(r.score.masterBpm, 120);
+  assert.equal(r.score.eq?.duckTarget, 'A.other');
+  assert.deepEqual(r.score.timeline.map((c) => c.bar), [1, 9, 25, 65], 'timeline triée par mesure');
+  assert.equal(r.score.timeline[0].label, 'Intro Gunbarrel OST');
+  assert.equal(r.score.timeline[0].crossfader, 0.5);
+  assert.deepEqual(r.score.timeline[2].deckB, ['vocals', 'bass'], 'stem bass ajouté au refrain');
+
+  // Avec balises Markdown ```json … ``` → balises retirées, même résultat.
+  const fenced = `\`\`\`json\n${ARR_JSON_STR}\n\`\`\``;
+  const rf = parseAndValidateArrangementScore(fenced);
+  assert.equal(rf.ok, true);
+  if (rf.ok) assert.equal(rf.score.timeline.length, 4);
+});
+
+test('ALC-269-1 : parseAndValidateArrangementScore — rejets propres (JSON invalide, stem inconnu, timeline vide)', () => {
+  // JSON syntaxiquement invalide → { ok:false, error }.
+  const badJson = parseAndValidateArrangementScore('{ pas du json');
+  assert.equal(badJson.ok, false);
+  if (!badJson.ok) assert.match(badJson.error, /JSON invalide/i);
+
+  // Timeline vide → rejette (< 1 repère).
+  const empty = parseAndValidateArrangementScore(
+    JSON.stringify({ version: '1.0', title: 'x', timeline: [] })
+  );
+  assert.equal(empty.ok, false);
+  if (!empty.ok) assert.match(empty.error, /au moins 1 repère/i);
+
+  // Stem inconnu dans deckA → rejette.
+  const unknownStem = JSON.stringify({
+    version: '1.0',
+    title: 'x',
+    timeline: [{ bar: 1, deckA: ['vocals', 'koto'], deckB: ['drums'] }],
+  });
+  const unk = parseAndValidateArrangementScore(unknownStem);
+  assert.equal(unk.ok, false);
+  if (!unk.ok) assert.match(unk.error, /stem inconnu/i);
+
+  // bar < 1 → rejette.
+  const badBar = parseAndValidateArrangementScore(
+    JSON.stringify({ version: '1.0', title: 'x', timeline: [{ bar: 0, deckA: ['vocals'], deckB: ['drums'] }] })
+  );
+  assert.equal(badBar.ok, false);
+  if (!badBar.ok) assert.match(badBar.error, />= 1/i);
+});
+
+test('ALC-269-1 : resolveArrangementStateAtBar — bascule exacte des stems et du libellé aux mesures 1/9/25/65', () => {
+  const r = parseAndValidateArrangementScore(ARR_JSON_STR);
+  assert.equal(r.ok, true);
+  if (!r.ok) return;
+  const score = r.score;
+
+  // bar 1 → Intro Gunbarrel OST, A rythmique, B voix seule, prochain repère = bar 9.
+  const s1 = resolveArrangementStateAtBar(score, 1);
+  assert.equal(s1.cue?.bar, 1);
+  assert.equal(s1.cue?.label, 'Intro Gunbarrel OST');
+  assert.deepEqual(s1.stemsA, ['drums', 'bass', 'other']);
+  assert.deepEqual(s1.stemsB, ['vocals']);
+  assert.equal(s1.nextCueIndex, 1, 'le prochain repère (Couplet bar 9) est indexé 1');
+
+  // bar 8 (encore sous le repère 9) → le repère 1 reste actif.
+  const s8 = resolveArrangementStateAtBar(score, 8);
+  assert.equal(s8.cue?.bar, 1, 'avant bar 9, le repère actif reste le 1');
+
+  // bar 9 → Couplet Pop (même stems, crossfader 0.6), prochain = bar 25.
+  const s9 = resolveArrangementStateAtBar(score, 9);
+  assert.equal(s9.cue?.bar, 9);
+  assert.equal(s9.cue?.label, 'Couplet Pop');
+  assert.equal(s9.crossfader, 0.6);
+  assert.equal(s9.nextCueIndex, 2);
+
+  // bar 25 → Refrain : le stem bass de B est ajouté, crossfader 0.7, prochain = bar 65.
+  const s25 = resolveArrangementStateAtBar(score, 25);
+  assert.equal(s25.cue?.bar, 25);
+  assert.equal(s25.cue?.label, 'Refrain');
+  assert.deepEqual(s25.stemsB, ['vocals', 'bass'], 'le bass de B est actif au refrain');
+  assert.equal(s25.crossfader, 0.7);
+  assert.equal(s25.nextCueIndex, 3);
+
+  // bar 65 → Outro nu (A = bass seul, crossfader 0), plus aucun repère à venir.
+  const s65 = resolveArrangementStateAtBar(score, 65);
+  assert.equal(s65.cue?.bar, 65);
+  assert.equal(s65.cue?.label, 'Outro nu');
+  assert.deepEqual(s65.stemsA, ['bass'], 'A réduit au stem bass en outro');
+  assert.equal(s65.crossfader, 0);
+  assert.equal(s65.nextCueIndex, -1, 'dernier repère → plus rien à venir');
 });

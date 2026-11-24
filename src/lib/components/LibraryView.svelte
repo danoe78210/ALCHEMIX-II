@@ -27,6 +27,7 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
   let importing = $state(false);
   let importingPct = $state(0);
   let error = $state('');
+  let exportLoraMsg = $state(''); // ALC-270 : retour d'export du jeu d'entraînement LoRA
   let previewing = $state<number | null>(null);
   // ALC-166-2 : mini-spectre de la pré-écoute (position/durée) + volume casque dédié.
   let previewPos = $state(0);
@@ -484,6 +485,20 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
     previewPos = previewAudio.currentTime;
   }
 
+  // ALC-270 : exporte les partitions notées (rating >= 4) en `.jsonl` d'entraînement LoRA.
+  async function exportLoRA() {
+    exportLoraMsg = '';
+    const dir = await open({ directory: true, multiple: false, title: 'Exporter le jeu d\'entraînement LoRA (.jsonl)' });
+    if (!dir) return;
+    try {
+      const dest = `${String(dir).replace(/[\\/]+$/, '')}/alchemix-chef-training.jsonl`;
+      const n = await libraryIpc.exportTrainingDatasetJsonl(dest);
+      exportLoraMsg = `JEU D'ENTRAÎNEMENT : ${n} partition(s) → ${dest}`;
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Export LoRA interrompu';
+    }
+  }
+
   async function importFolder() {
     const dir = await open({ directory: true, multiple: false, title: 'Importer un dossier musique' });
     if (!dir) return;
@@ -730,7 +745,19 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
         <span class="material-symbols-outlined text-[13px]">playlist_play</span>
         <span>EXPORTER SET</span>
       </button>
+      <button
+        type="button"
+        onclick={exportLoRA}
+        class="flex items-center gap-1 px-2 py-1 rounded-[2px] border border-[#edbf7a]/40 bg-[#edbf7a]/10 hover:bg-[#edbf7a]/20 text-[#e0a860] font-label-sm text-[9px] font-semibold tracking-wider uppercase transition-colors cursor-pointer shrink-0 shadow-sm"
+        title="Exporter le jeu d'entraînement LoRA (.jsonl) de l'IA Chef d'Orchestre"
+      >
+        <span class="material-symbols-outlined text-[13px]">dataset</span>
+        <span>EXPORT LORA (.JSONL)</span>
+      </button>
     </div>
+    {#if exportLoraMsg}
+      <div class="px-2 py-1 rounded border border-[#edbf7a]/30 bg-[#edbf7a]/10 font-mono text-[9px] font-bold uppercase tracking-widest text-[#e0a860] whitespace-nowrap truncate">{exportLoraMsg}</div>
+    {/if}
     {#if importing}
       <div class="h-1 w-full rounded-full overflow-hidden bg-surface-container-high">
         <div class="h-full bg-primary transition-all" style="width:{importingPct}%"></div>

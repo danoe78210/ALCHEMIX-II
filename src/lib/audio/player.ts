@@ -59,7 +59,7 @@ export class Player {
   /** ALC-190-1 : enveloppe d'amplitude 512 bins (normalisée 0..1) par stem, pour le Beatgrid. */
   private stemEnvelopes: Partial<Record<StemName, Float32Array>> = {};
   /** ALC-182-2 : EQ doux du canal vocals (highpass 85 Hz + adoucissement > ~11 kHz). */
-  private stemEq: Partial<Record<StemName, { hp: BiquadFilterNode; lp: BiquadFilterNode }>> = {};
+  private stemEq: Partial<Record<StemName, { hp?: BiquadFilterNode; lp?: BiquadFilterNode; pk?: BiquadFilterNode }>> = {};
   private stemNodes: AudioBufferSourceNode[] = [];
   /** ALC-246-1 : moteur 4 <audio> par stem — Key Lock NATIF (`preservesPitch`), la hauteur et le
    * timbre restent 100 % d'origine même quand `playbackRate ≠ 1` (jusqu'à ±10 % de tempo). */
@@ -314,11 +314,10 @@ export class Player {
   }
 
   /**
-   * ALC-231 : Dynamic Orchestral Ducking — module en douceur (setTargetAtTime, τ = 0.06 s) le gain
-   * du creux à 1 800 Hz jusqu'à **−4.5 dB** proportionnellement à l'amplitude instantanée (0..1)
-   * du stem vocal OPPOSÉ. Les cordes/cuivres de l'OST s'effacent légèrement pendant les phrases
-   * chantées et reprennent leur ampleur entre les phrases. Appelé à 60 fps depuis le store.
-   * En rôle ≠ 'ost-instrumental', remet immédiatement le gain à 0 dB.
+   * ALC-231 : Dynamic Orchestral Ducking — module en douceur le gain du creux à 1 800 Hz jusqu'à
+   * **−4.5 dB** proportionnellement à l'amplitude instantanée (0..1) du stem vocal OPPOSÉ. Clause 9 :
+   * **attaque rapide 15 ms** / **relâchement 90 ms** pour la respiration Call-and-Response (les
+   * cordes/chœurs gonflent entre les vers). En rôle ≠ 'ost-instrumental', remet le gain à 0 dB.
    */
   updateDynamicOrchestralDucking(vocalEnvelopeValue: number, maxDuckDb = -4.5) {
     const f = this.ostDuckFilter;
@@ -326,7 +325,7 @@ export class Player {
       if (f && this.ostDuckInChain) {
         const t = this.ctx.currentTime;
         f.gain.cancelScheduledValues(t);
-        f.gain.setTargetAtTime(0, t, 0.06);
+        f.gain.setTargetAtTime(0, t, 0.09); // relâchement 90 ms (clause 9)
       }
       return;
     }
@@ -337,7 +336,7 @@ export class Player {
     const targetDb = depth * v;
     const t = this.ctx.currentTime;
     f.gain.cancelScheduledValues(t);
-    f.gain.setTargetAtTime(targetDb, t, 0.06);
+    f.gain.setTargetAtTime(targetDb, t, 0.015); // attaque 15 ms (clause 9)
   }
 
   /** ALC-105/136/138 : gain maître = volume canal × crossfader égal-puissance. Application immédiate. */
@@ -704,7 +703,26 @@ export class Player {
             lp.connect(this.lowFilter);
             this.stemEq[name] = { hp, lp };
           } else {
-            gain.connect(this.lowFilter);
+            // ALC-26x : sculpture spectrale (Crossover OST × OST & Medley) — HP 20 Hz + LP 20 kHz
+            // transparents + peaking 0 dB pré-câblés en série, réglés via setStemBandFilter / setStemMidNotch.
+            const hp = this.ctx.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = 20;
+            hp.Q.value = 0.7;
+            const lp = this.ctx.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = 20000;
+            lp.Q.value = 0.5;
+            const pk = this.ctx.createBiquadFilter();
+            pk.type = 'peaking';
+            pk.frequency.value = 1500;
+            pk.Q.value = 1.0;
+            pk.gain.value = 0; // transparent par défaut
+            gain.connect(hp);
+            hp.connect(lp);
+            lp.connect(pk);
+            pk.connect(this.lowFilter);
+            this.stemEq[name] = { hp, lp, pk };
           }
           this.stemBuffers[name] = buffer;
           this.stemGains[name] = gain;
@@ -863,6 +881,45 @@ export class Player {
     this.syncStemMediaState(name);
   }
 
+  /**
+   * Crossover OST × OST — sculpture spectrale asymétrique (partage du médium) : creux dynamique sur un
+   * stem (ex. `other` de la Platine Rythmique) via le filtre peaking pré-câblé `pk` (transparent 0 dB).
+   * `Q = 1.0` ; gain borné à [‑6, 0] dB pour ouvrir une niche en 500 Hz – 4 kHz sans déplacer le timbre.
+   */
+  setStemMidNotch(name: StemName, freqHz: number, gainDb: number) {
+    const pk = this.stemEq[name]?.pk;
+    if (!pk) return;
+    const t = this.ctx.currentTime;
+    pk.frequency.setValueAtTime(Math.max(20, Math.min(20000, Number.isFinite(freqHz) ? freqHz : 1500)), t);
+    pk.Q.setValueAtTime(1.0, t);
+    pk.gain.setTargetAtTime(Math.max(-6, Math.min(0, Number.isFinite(gainDb) ? gainDb : 0)), t, 0.02);
+  }
+
+  /** Medley OST × OST — séparation spectrale complémentaire au climax : LPF (thème grave) / HPF (thème aigu). */
+  setStemBandFilter(name: StemName, kind: 'highpass' | 'lowpass', freqHz: number) {
+    const eq = this.stemEq[name];
+    if (!eq) return;
+    const t = this.ctx.currentTime;
+    const f = Math.max(20, Math.min(20000, Number.isFinite(freqHz) ? freqHz : 1000));
+    if (kind === 'highpass') {
+      if (!eq.hp) {
+        eq.hp = this.ctx.createBiquadFilter();
+        eq.hp.connect(eq.lp ?? this.lowFilter);
+      }
+      eq.hp.type = 'highpass';
+      eq.hp.frequency.setValueAtTime(f, t);
+      eq.hp.Q.setValueAtTime(0.7, t);
+    } else {
+      if (!eq.lp) {
+        eq.lp = this.ctx.createBiquadFilter();
+        eq.lp.connect(eq.pk ?? this.stemGains[name] ?? this.lowFilter);
+      }
+      eq.lp.type = 'lowpass';
+      eq.lp.frequency.setValueAtTime(f, t);
+      eq.lp.Q.setValueAtTime(0.7, t);
+    }
+  }
+
   disposeStems() {
     this.pauseStems();
     // ALC-246-1 : coupe les <audio> par stem + révoque leurs URL blob (aucune fuite mémoire).
@@ -890,8 +947,9 @@ export class Player {
     // ALC-182-2 : coupe les nœuds de l'EQ vocals (évite les connexions mortes au rechargement).
     for (const eq of Object.values(this.stemEq)) {
       try {
-        eq?.hp.disconnect();
-        eq?.lp.disconnect();
+        eq?.hp?.disconnect();
+        eq?.lp?.disconnect();
+        eq?.pk?.disconnect();
       } catch {
         /* ignoré */
       }

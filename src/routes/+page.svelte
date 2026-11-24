@@ -3,6 +3,7 @@
   import DeckB from '$lib/components/DeckB.svelte';
   import MixerCenter from '$lib/components/MixerCenter.svelte';
   import VzTip from '$lib/components/VzTip.svelte'; // ALC-255 WP15
+  import ChefAiInstallModal from '$lib/components/ChefAiInstallModal.svelte'; // ALC-270
   import { mixerStore } from '$lib/stores/mixer.svelte';
   import { audioIpc } from '$lib/ipc/client';
 
@@ -168,6 +169,9 @@
 
       </div>
   </div>
+
+  <!-- ALC-270 : modale optionnelle d'installation de l'IA Chef d'Orchestre (1er lancement / GÉNÉRER IA) -->
+  <ChefAiInstallModal />
 
   <!-- ALC-139-3 : Modale de confirmation POWER OFF -->
   {#if showPower}

@@ -266,12 +266,12 @@ import { parseCamelot, relationFrom, affinityFrom, verdictFrom, intervalFrom, pi
   function setCross(n: number) {
     // ALC-169 : toute intervention manuelle sur le crossfader interrompt l'AUTO-MIX.
     mixerStore.cancelAutoMix();
-    mixerStore.crossfader = clampX(n);
+    mixerStore.setCrossfader(clampX(n)); // ALC-269 : intervention DJ → arrête l'orchestration
   }
   function applyCross(e: PointerEvent) {
     const el = e.currentTarget as HTMLElement;
     const r = el.getBoundingClientRect();
-    mixerStore.crossfader = clampX(Math.round(((e.clientX - r.left) / r.width) * 100));
+    mixerStore.setCrossfader(clampX(Math.round(((e.clientX - r.left) / r.width) * 100))); // ALC-269
   }
   function captureCross(e: PointerEvent) {
     // ALC-169 : saisie manuelle du crossfader → arrêt immédiat de l'AUTO-MIX.

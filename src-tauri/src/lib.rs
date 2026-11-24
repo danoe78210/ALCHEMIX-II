@@ -1,6 +1,7 @@
 use tauri::Manager;
 
 mod audio;
+mod chef_llm;
 mod commands;
 mod error;
 mod library;
@@ -36,10 +37,21 @@ pub fn run() {
             library::library_update_track_meta,
             library::library_apply_stems_telemetry,
             library::library_reanalyze_analysis,
+            library::list_mashup_rules,
+            library::upsert_mashup_rule,
+            library::save_arrangement_score,
+            library::list_arrangement_scores,
+            library::find_similar_arrangement_scores,
+            library::export_training_dataset_jsonl,
             stems::check_cached_stems,
             stems::separate_stems,
             stems::export_stems_to_folder,
-            stems::stems_telemetry
+            stems::stems_telemetry,
+            chef_llm::get_chef_llm_status,
+            chef_llm::set_chef_llm_opt_in,
+            chef_llm::install_chef_llm_model,
+            chef_llm::uninstall_chef_llm_model,
+            chef_llm::generate_chef_arrangement_score
         ])
         .run(tauri::generate_context!())
         .expect("Erreur critique lors du lancement d'AlcheMix II");
