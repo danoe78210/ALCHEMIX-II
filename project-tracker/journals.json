@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "AlcheMix II — Journaux de travail individuels par ticket",
-    "version": "1.117.0",
-    "updatedAt": "2026-11-24T12:26:00.000+01:00",
+    "version": "1.119.0",
+    "updatedAt": "2026-11-24T12:33:00.000+01:00",
     "note": "Chaque ticket ALC-XXX dispose d'une entrée 'journals' : tableau horodaté des événements (création, sous-tâches cochées, fichiers modifiés, rapports d'étape, changements de colonne)."
   },
   "journals": {
@@ -5208,6 +5208,16 @@
           "ts": "2026-11-24T12:26:00+01:00",
           "type": "subtask",
           "message": "ALC-163-6 cochee : signature Authenticode (signtool x64 10.0.26100.0, certificat local CN=AlcheMix II sha1 FF5CFB... /fd SHA256 /tr http://timestamp.digicert.com /td SHA256) de AlcheMix-II-v0.7.1-windows-x64.exe + AlcheMix-II-v0.7.1-windows-x64-setup.exe ; signtool verify /pa /v -> 0 erreur sur les 2. Certificat installe en Root (FF5C...)."
+        },
+        {
+          "ts": "2026-11-24T12:30:00+01:00",
+          "type": "subtask",
+          "message": "ALC-163-3 cochee : CHANGELOG.md section v0.7.1 (correctifs SQLite regles, llama-cpp-2 + LoRA, NSIS multilingue FileSeek + option IA ~1,9 Go, signature /pa 0 erreur) ; SPECIFICATIONS deja v0.7.1 ; commit 1df46e8 'chore(release): v0.7.1' (13 fichiers, +721/-105) ; tag -a v0.7.1 ; git push origin main e7a6d3c..1df46e8 + push tag v0.7.1 OK."
+        },
+        {
+          "ts": "2026-11-24T12:33:00+01:00",
+          "type": "column",
+          "message": "BILAN RELEASE v0.7.1 (ALC-163) : build NSIS OK (fix FileSeek installer.nsh) ; exe + setup copies et signes (signtool /pa 0 erreur) ; commit 1df46e8 + tag v0.7.1 pousses. GH AUTH INVALID (gh auth status exit 1) -> publication GitHub Release NON effectuee, differee (jamais de PAT demande) ; chemins locaux initiaux : src-tauri/target/release/AlcheMix-II-v0.7.1-windows-x64.exe + AlcheMix-II-v0.7.1-windows-x64-setup.exe. ALC-163-4 (publication) et ALC-163-7 (signature officielle CI) non executoires dans ce contexte -> laissees non cochees. ALC-163 remis en BACKLOG avec toutes ses subtasks a completed:false (rearmement recurrent). Aucun ticket Termine modifie."
         }
       ]
     }

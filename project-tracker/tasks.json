@@ -12,8 +12,8 @@
       "En revue",
       "Terminé"
     ],
-    "version": "1.13.0",
-    "updatedAt": "2026-11-24T11:26:00.000Z"
+    "version": "1.15.0",
+    "updatedAt": "2026-11-24T11:33:00.000Z"
   },
   "tasks": [
     {
@@ -4626,7 +4626,7 @@
       "id": "ALC-163",
       "title": "Release GitHub & exécutable Windows autonome (récurrent)",
       "recurrent": true,
-      "status": "En cours",
+      "status": "Backlog",
       "agent": "Architecte",
       "priority": "Haute",
       "label": "Release / Publication",
@@ -4634,12 +4634,12 @@
         {
           "id": "ALC-163-1",
           "title": "Pré-contrôle qualité & synchronisation de version : git status, npm run check, cargo test --lib (0 erreur / 100 % verts) ; dernier tag + git log pour la nouvelle SemVer ; version alignée dans package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml et docs/SPECIFICATIONS.md",
-          "completed": true
+          "completed": false
         },
         {
           "id": "ALC-163-2",
           "title": "Compilation de l'exécutable Windows 100 % autonome : vérif bundle (nsis/portable) dans tauri.conf.json ; npm run tauri build (profil release) ; contrôle taille non nulle + copie versionnée (ex. AlcheMix-II-<version>-windows-x64.exe)",
-          "completed": true
+          "completed": false
         },
         {
           "id": "ALC-163-3",
@@ -4659,7 +4659,7 @@
         {
           "id": "ALC-163-6",
           "title": "Signature numérique Authenticode (signtool / Azure Trusted Signing / SignPath.io) et vérification : détecter signtool.exe + certificat (env vars WINDOWS_CERTIFICATE/AZURE_TENANT_ID ou .pfx) ; si absent → cert local New-SelfSignedCertificate -Type CodeSigningCert CN=AlcheMix II + hook bundle.windows.signCommand (TAURI_SIGN_PFX/TAURI_SIGN_PASSWORD) + signer AlcheMix-II-<version>-windows-x64.exe avec /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 + installer public dans Cert:\\CurrentUser\\Root ; vérifier signtool verify /pa /v et remplacer l'exécutable de la release GitHub",
-          "completed": true
+          "completed": false
         },
         {
           "id": "ALC-163-7",
